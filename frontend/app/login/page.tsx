@@ -10,6 +10,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
+  const expired = searchParams.get('expired') === 'true';
   const { login, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -51,6 +52,12 @@ function LoginContent() {
             <h2 className="mt-4 text-xl font-semibold text-gray-900">Đăng nhập</h2>
             <p className="mt-2 text-gray-600">Chào mừng bạn quay trở lại!</p>
           </div>
+
+          {expired && (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+              Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">

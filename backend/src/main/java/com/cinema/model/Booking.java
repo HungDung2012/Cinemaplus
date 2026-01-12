@@ -95,4 +95,5 @@ public class Booking {
         bookingFoods.add(bookingFood);
         bookingFood.setBooking(this);
     }
+    
 }

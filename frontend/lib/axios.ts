@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authService } from '@/services/authService';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -14,9 +15,15 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Kiểm tra token có hợp lệ không trước khi gửi request
+      if (authService.isAuthenticated()) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } else {
+        // Token hết hạn, xóa auth data
+        authService.clearAuth();
       }
     }
     return config;
@@ -31,13 +38,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Xử lý khi token hết hạn
+      // Xử lý khi token hết hạn hoặc không hợp lệ
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        authService.clearAuth();
         // Only redirect if not already on login page
         if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+          window.location.href = '/login?expired=true';
         }
       }
     }

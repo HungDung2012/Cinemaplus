@@ -5,7 +5,6 @@ import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Room;
 import com.cinema.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.stream.Collectors;
 public class RoomService {
     
     private final RoomRepository roomRepository;
-    private final ModelMapper modelMapper;
     
     public List<RoomResponse> getRoomsByTheater(Long theaterId) {
         return roomRepository.findByTheaterIdAndActiveTrue(theaterId).stream()

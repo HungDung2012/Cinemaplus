@@ -49,4 +49,5 @@ public class BookingFood {
             this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
         }
     }
+    
 }

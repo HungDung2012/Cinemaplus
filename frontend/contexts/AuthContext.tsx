@@ -20,10 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Check if user is already logged in và token còn hạn
     const storedUser = authService.getUser();
-    if (storedUser) {
+    if (storedUser && authService.isAuthenticated()) {
       setUser(storedUser);
+    } else {
+      // Token hết hạn hoặc không có
+      setUser(null);
     }
     setIsLoading(false);
   }, []);
@@ -43,8 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    authService.clearAuth();
     setUser(null);
   };
 
@@ -53,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && authService.isAuthenticated(),
         login,
         register,
         logout,

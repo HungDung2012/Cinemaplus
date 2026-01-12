@@ -185,6 +185,8 @@ export interface BookingRequest {
   showtimeId: number;
   seatIds: number[];
   notes?: string;
+  foodItems?: { foodId: number; quantity: number }[];
+  discountCode?: string;
 }
 
 export interface PaymentRequest {
@@ -213,4 +215,33 @@ export interface Region {
   name: string;
   code: string;
   theaterCount: number;
+}
+
+// Food types
+export type FoodCategory = 'POPCORN' | 'DRINK' | 'SNACK' | 'COMBO' | 'FAST_FOOD' | 'CANDY' | 'ICE_CREAM';
+export type FoodSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'EXTRA_LARGE';
+
+export interface Food {
+  id: number;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  price: number;
+  category: FoodCategory;
+  categoryName: string;
+  size: FoodSize;
+  sizeName: string;
+  isAvailable: boolean;
+  isCombo: boolean;
+  comboDescription?: string;
+  originalPrice?: number;
+  discountPercent?: number;
+  savedAmount?: number;
+  calories?: number;
+}
+
+export interface FoodOrderItem {
+  foodId: number;
+  quantity: number;
+  food?: Food;
 }

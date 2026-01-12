@@ -5,6 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +42,32 @@ public class User {
     @Column(length = 255)
     private String avatar;
 
+    // ===== NEW FIELDS FOR USER PROFILE MANAGEMENT =====
+    
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Gender gender;
+    
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_level", nullable = false)
+    @Builder.Default
+    private MembershipLevel membershipLevel = MembershipLevel.NORMAL;
+    
+    @Column(name = "total_spending", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal totalSpending = BigDecimal.ZERO;
+    
+    @Column(name = "current_points")
+    @Builder.Default
+    private Integer currentPoints = 0;
+    
+    @Column(name = "total_points_earned")
+    @Builder.Default
+    private Integer totalPointsEarned = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -60,8 +88,30 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Booking> bookings = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<PointHistory> pointHistories = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<UserVoucher> userVouchers = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<UserCoupon> userCoupons = new ArrayList<>();
 
     public enum Role {
         USER, ADMIN
+    }
+    
+    public enum Gender {
+        MALE, FEMALE, OTHER
+    }
+    
+    public enum MembershipLevel {
+        NORMAL,     // 0 - 999,999 VND
+        VIP,        // 1,000,000 - 4,999,999 VND
+        PLATINUM    // >= 5,000,000 VND
     }
 }

@@ -457,14 +457,6 @@ export default function ProfilePage() {
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-semibold text-zinc-900">Thông tin cá nhân</h3>
-                    {!editMode && (
-                      <button
-                        onClick={() => setEditMode(true)}
-                        className="text-sm text-zinc-600 hover:text-zinc-900"
-                      >
-                        Chỉnh sửa
-                      </button>
-                    )}
                   </div>
 
                   <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -474,7 +466,7 @@ export default function ProfilePage() {
                         type="text"
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        disabled={!editMode}
+                
                         className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 disabled:bg-zinc-50"
                       />
                     </div>
@@ -484,7 +476,7 @@ export default function ProfilePage() {
                       <select
                         value={formData.gender}
                         onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
-                        disabled={!editMode}
+           
                         className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 disabled:bg-zinc-50"
                       >
                         <option value="">Chọn giới tính</option>
@@ -500,7 +492,7 @@ export default function ProfilePage() {
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                        disabled={!editMode}
+                
                         className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 disabled:bg-zinc-50"
                       />
                     </div>
@@ -511,7 +503,7 @@ export default function ProfilePage() {
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        disabled={!editMode}
+                  
                         className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 disabled:bg-zinc-50"
                       />
                     </div>
@@ -522,12 +514,12 @@ export default function ProfilePage() {
                         type="text"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        disabled={!editMode}
+                      
                         className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 disabled:bg-zinc-50"
                       />
                     </div>
 
-                    {editMode && (
+                    
                       <div className="flex gap-3 pt-2">
                         <button
                           type="submit"
@@ -544,7 +536,7 @@ export default function ProfilePage() {
                           Hủy
                         </button>
                       </div>
-                    )}
+                    
                   </form>
                 </div>
 

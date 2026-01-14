@@ -276,7 +276,7 @@ function BookingContent() {
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* ===== STICKY HEADER WITH PROMINENT TIMER ===== */}
-      <header className="sticky top-0 z-50 bg-white border-b border-zinc-200 shadow-sm">
+      <header className="sticky top-0 z-10 bg-white border-b border-zinc-200 shadow-sm">
         <div className="max-w-7xl mx-auto">
           {/* Timer Bar - Always visible when active */}
           {timerStarted && step < 4 && (
@@ -603,7 +603,7 @@ function BookingContent() {
                     disabled={processing}
                     className="flex-1 py-3 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {processing ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(booking.finalAmount)}`}
+                    {processing ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(booking.totalAmount)}`}
                   </button>
                 </div>
               </div>
@@ -732,7 +732,7 @@ function BookingContent() {
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-zinc-900">Tổng cộng</span>
                       <span className="text-lg font-bold text-zinc-900">
-                        {formatCurrency(step >= 3 && booking ? booking.finalAmount : totalAmount)}
+                        {formatCurrency(totalAmount)}
                       </span>
                     </div>
                   </div>

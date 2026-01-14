@@ -170,9 +170,13 @@ public class BookingService {
      * @throws ResourceNotFoundException Khi không tìm thấy user
      */
     private User getCurrentUser() {
+    
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+                .orElseThrow(() -> { 
+                    log.warn("khong tim thay User voi email tu token: {}", email);
+                    return new ResourceNotFoundException("User", "email", email);
+                });
     }
     
     /**

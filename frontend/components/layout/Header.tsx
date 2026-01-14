@@ -2,12 +2,34 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/dist/client/components/navigation';
 
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  
+  // Ref dùng để xác định vùng chứa của dropdown
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  
+  // Xử lý click outside để đóng dropdown
+  useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    // Nếu dropdown đang mở VÀ click xảy ra bên ngoài element được ref
+    if (isUserMenuOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setIsUserMenuOpen(false);
+    }
+  };
+
+  // Đăng ký sự kiện khi component mount
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Dọn dẹp sự kiện khi component unmount
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]); // Re-run effect khi trạng thái isUserMenuOpen thay đổi
 
   return (
     <header className="bg-gray-900 text-white sticky top-0 z-50">
@@ -43,7 +65,7 @@ export default function Header() {
           {/* User Menu */}
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 hover:text-red-500 transition-colors"
@@ -57,7 +79,7 @@ export default function Header() {
                   </svg>
                 </button>
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 text-gray-800">
+                  <div className="absolute z-50 right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 text-gray-800">
                     <Link
                       href="/profile"
                       className="block px-4 py-2 hover:bg-gray-100"
@@ -111,69 +133,7 @@ export default function Header() {
               </div>
             )}
           </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-lg hover:bg-gray-800"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-800">
-            <div className="flex flex-col space-y-4">
-              <Link href="/" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                Trang chủ
-              </Link>
-              <Link href="/movies" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                Phim
-              </Link>
-              <Link href="/dat-ve" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                Đặt vé
-              </Link>
-              <Link href="/theaters" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                Rạp chiếu
-              </Link>
-              <Link href="/promotions" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                Khuyến mãi
-              </Link>
-              <hr className="border-gray-800" />
-              {isAuthenticated ? (
-                <>
-                  <Link href="/profile" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                    Tài khoản
-                  </Link>
-                  <Link href="/my-bookings" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                    Lịch sử đặt vé
-                  </Link>
-                  <button onClick={logout} className="text-left text-red-500">
-                    Đăng xuất
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                    Đăng nhập
-                  </Link>
-                  <Link href="/register" className="hover:text-red-500" onClick={() => setIsMenuOpen(false)}>
-                    Đăng ký
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </nav>
     </header>
   );

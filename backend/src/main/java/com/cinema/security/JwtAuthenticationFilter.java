@@ -35,15 +35,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
                 String email = jwtTokenProvider.getEmailFromToken(jwt);
                 
-                // Load User entity directly instead of UserPrincipal
+                // Load User entity and create UserPrincipal
                 User user = userRepository.findByEmailAndActiveTrue(email).orElse(null);
                 
                 if (user != null) {
+                    // Create UserPrincipal from User entity
+                    UserPrincipal userPrincipal = UserPrincipal.create(user);
+                    
                     UsernamePasswordAuthenticationToken authentication = 
                             new UsernamePasswordAuthenticationToken(
-                                    user,  // User entity as principal
+                                    userPrincipal,  // UserPrincipal as principal (implements UserDetails)
                                     null,
-                                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                                    userPrincipal.getAuthorities()
                             );
                     
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

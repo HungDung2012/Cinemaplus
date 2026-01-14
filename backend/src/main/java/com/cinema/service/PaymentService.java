@@ -59,6 +59,9 @@ public class PaymentService {
         
         // Simulate payment processing
         String transactionId = "TXN" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+
+        
+
         payment.markAsCompleted(transactionId);
         
         // Update booking status

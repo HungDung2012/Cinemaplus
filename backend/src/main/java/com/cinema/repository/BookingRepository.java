@@ -79,4 +79,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
     Long countCompletedBookingsByUserId(@Param("userId") Long userId);
+
+    /**
+     * Lấy booking với đầy đủ thông tin showtime và movie (để tránh LazyInitializationException)
+     */
+    @Query("SELECT b FROM Booking b " +
+           "JOIN FETCH b.user u " +
+           "JOIN FETCH b.showtime s " +
+           "JOIN FETCH s.movie m " +
+           "WHERE b.id = :bookingId")
+    Optional<Booking> findByIdWithShowtimeAndMovie(@Param("bookingId") Long bookingId);
 }

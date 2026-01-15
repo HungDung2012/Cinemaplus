@@ -80,15 +80,18 @@ public class RewardPointService {
     /**
      * Cộng điểm thưởng khi hoàn thành giao dịch
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRED)
     public void earnPoints(Long userId, Integer points, String description, Long referenceId, PointHistory.ReferenceType referenceType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ProfileUpdateException("Không tìm thấy người dùng"));
 
-        // Cập nhật điểm user
-        int newBalance = user.getCurrentPoints() + points;
+        // Cập nhật điểm user (null check)
+        int currentPoints = user.getCurrentPoints() != null ? user.getCurrentPoints() : 0;
+        int totalEarned = user.getTotalPointsEarned() != null ? user.getTotalPointsEarned() : 0;
+        
+        int newBalance = currentPoints + points;
         user.setCurrentPoints(newBalance);
-        user.setTotalPointsEarned(user.getTotalPointsEarned() + points);
+        user.setTotalPointsEarned(totalEarned + points);
         userRepository.save(user);
 
         // Ghi lịch sử
@@ -110,17 +113,19 @@ public class RewardPointService {
     /**
      * Đổi điểm thưởng
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRED)
     public void redeemPoints(Long userId, Integer points, String description, Long referenceId, PointHistory.ReferenceType referenceType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ProfileUpdateException("Không tìm thấy người dùng"));
 
-        if (user.getCurrentPoints() < points) {
-            throw new InsufficientPointsException(user.getCurrentPoints(), points);
+        int currentPoints = user.getCurrentPoints() != null ? user.getCurrentPoints() : 0;
+        
+        if (currentPoints < points) {
+            throw new InsufficientPointsException(currentPoints, points);
         }
 
         // Trừ điểm user
-        int newBalance = user.getCurrentPoints() - points;
+        int newBalance = currentPoints - points;
         user.setCurrentPoints(newBalance);
         userRepository.save(user);
 

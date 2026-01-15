@@ -194,6 +194,7 @@ export interface BookingRequest {
 export interface PaymentRequest {
   bookingId: number;
   paymentMethod: PaymentMethod;
+  pointsToUse?: number;
 }
 
 // Review types

@@ -18,4 +18,10 @@ public class PaymentRequest {
     
     @NotNull(message = "Payment method is required")
     private Payment.PaymentMethod paymentMethod;
+    
+    /**
+     * Số điểm thưởng sử dụng để trừ tiền (tùy chọn)
+     * 1 điểm = 1.000đ
+     */
+    private Integer pointsToUse;
 }

@@ -57,7 +57,6 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final FoodRepository foodRepository;
     private final UserRepository userRepository;
-    private final RewardPointService rewardPointService;
     
     // ==================== MAIN BOOKING METHODS ====================
     
@@ -660,86 +659,11 @@ public class BookingService {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
         booking = bookingRepository.save(booking);
         
-        // ===== Cập nhật tổng chi tiêu và hạng thành viên của user =====
-        updateUserSpendingAndMembership(booking.getUser(), booking.getFinalAmount());
-        
-        // ===== Tích điểm thưởng cho user (10.000đ = 1 điểm) =====
-        int pointsToEarn = calculatePointsEarned(booking.getFinalAmount());
-        if (pointsToEarn > 0) {
-            rewardPointService.earnPoints(
-                booking.getUser().getId(),
-                pointsToEarn,
-                String.format("Đặt vé xem phim: %s - Mã %s", 
-                    booking.getShowtime().getMovie().getTitle(), 
-                    booking.getBookingCode()),
-                booking.getId(),
-                PointHistory.ReferenceType.BOOKING
-            );
-            log.info("User {} earned {} points for booking {}", 
-                booking.getUser().getEmail(), pointsToEarn, booking.getBookingCode());
-        }
+        // Lưu ý: Logic tích điểm và cập nhật membership đã chuyển sang PaymentService.processPayment()
         
         log.info("Booking {} đã được xác nhận", booking.getBookingCode());
         
         return mapToResponse(booking);
-    }
-    
-    /**
-     * Cập nhật tổng chi tiêu và tự động nâng hạng thành viên.
-     * 
-     * @param user User cần cập nhật
-     * @param amount Số tiền giao dịch
-     */
-    private void updateUserSpendingAndMembership(User user, BigDecimal amount) {
-        // Cập nhật tổng chi tiêu
-        BigDecimal currentSpending = user.getTotalSpending() != null ? user.getTotalSpending() : BigDecimal.ZERO;
-        BigDecimal newTotalSpending = currentSpending.add(amount);
-        user.setTotalSpending(newTotalSpending);
-        
-        // Cập nhật hạng thành viên dựa trên tổng chi tiêu
-        User.MembershipLevel newLevel = calculateMembershipLevel(newTotalSpending);
-        User.MembershipLevel currentLevel = user.getMembershipLevel() != null ? user.getMembershipLevel() : User.MembershipLevel.NORMAL;
-        
-        if (newLevel != currentLevel) {
-            user.setMembershipLevel(newLevel);
-            log.info("User {} đã được nâng hạng từ {} lên {}", user.getEmail(), currentLevel, newLevel);
-        }
-        
-        userRepository.save(user);
-        log.debug("Cập nhật tổng chi tiêu cho user {}: {} -> {}", user.getEmail(), currentSpending, newTotalSpending);
-    }
-    
-    /**
-     * Tính toán hạng thành viên dựa trên tổng chi tiêu.
-     * - NORMAL: 0 - 4,999,999 VND
-     * - VIP: 5,000,000 - 14,999,999 VND  
-     * - PLATINUM: >= 15,000,000 VND
-     */
-    private User.MembershipLevel calculateMembershipLevel(BigDecimal totalSpending) {
-        BigDecimal VIP_THRESHOLD = new BigDecimal("5000000");
-        BigDecimal PLATINUM_THRESHOLD = new BigDecimal("15000000");
-        
-        if (totalSpending.compareTo(PLATINUM_THRESHOLD) >= 0) {
-            return User.MembershipLevel.PLATINUM;
-        } else if (totalSpending.compareTo(VIP_THRESHOLD) >= 0) {
-            return User.MembershipLevel.VIP;
-        }
-        return User.MembershipLevel.NORMAL;
-    }
-    
-    /**
-     * Tính điểm tích lũy dựa trên số tiền thanh toán.
-     * Công thức: 10.000đ = 1 điểm (làm tròn xuống)
-     * 
-     * @param amount Số tiền thanh toán
-     * @return Số điểm tích lũy
-     */
-    private int calculatePointsEarned(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return 0;
-        }
-        // 10.000đ = 1 điểm
-        return amount.divide(new BigDecimal("10000"), 0, java.math.RoundingMode.DOWN).intValue();
     }
     
     /**

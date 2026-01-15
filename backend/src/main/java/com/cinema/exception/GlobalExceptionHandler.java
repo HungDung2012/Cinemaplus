@@ -154,6 +154,46 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     
+    /**
+     * Xử lý exception khi voucher không hợp lệ.
+     */
+    @ExceptionHandler(InvalidVoucherException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleInvalidVoucherException(
+            InvalidVoucherException ex) {
+        log.warn("Invalid voucher: {}", ex.getMessage());
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("errorCode", ex.getErrorCode());
+        
+        ApiResponse<Map<String, Object>> response = ApiResponse.<Map<String, Object>>builder()
+                .success(false)
+                .message(ex.getMessage())
+                .data(details)
+                .build();
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
+    /**
+     * Xử lý exception khi coupon không hợp lệ.
+     */
+    @ExceptionHandler(InvalidCouponException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleInvalidCouponException(
+            InvalidCouponException ex) {
+        log.warn("Invalid coupon: {}", ex.getMessage());
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("errorCode", ex.getErrorCode());
+        
+        ApiResponse<Map<String, Object>> response = ApiResponse.<Map<String, Object>>builder()
+                .success(false)
+                .message(ex.getMessage())
+                .data(details)
+                .build();
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Object>> handleBadCredentialsException(BadCredentialsException ex) {
         log.warn("Bad credentials: {}", ex.getMessage());

@@ -103,6 +103,8 @@ export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED' | 
 export interface Booking {
   id: number;
   bookingCode: string;
+  seatAmount: number;
+  foodAmount: number;
   totalAmount: number;
   discountAmount: number;
   finalAmount: number;

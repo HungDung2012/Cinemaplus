@@ -19,6 +19,8 @@ import java.util.List;
 public class BookingResponse {
     private Long id;
     private String bookingCode;
+    private BigDecimal seatAmount;
+    private BigDecimal foodAmount;
     private BigDecimal totalAmount;
     private BigDecimal discountAmount;
     private BigDecimal finalAmount;

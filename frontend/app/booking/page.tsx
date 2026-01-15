@@ -103,11 +103,6 @@ function BookingContent() {
   }, [timeLeft]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=/booking?showtimeId=${showtimeId}`);
-      return;
-    }
-
     if (showtimeId) {
       fetchShowtimeAndSeats();
       fetchFoods();
@@ -146,12 +141,17 @@ function BookingContent() {
     setSelectedSeats(seats);
   };
 
-  const handleCreateBooking = async () => {
+  // Step 1 → Step 2: Chỉ chuyển bước, chưa tạo booking
+  const handleContinueToFood = () => {
     if (selectedSeats.length === 0) {
       alert('Vui lòng chọn ít nhất 1 ghế');
       return;
     }
+    setStep(2);
+  };
 
+  // Step 2 → Step 3: Tạo booking với cả seats + foods
+  const handleCreateBooking = async () => {
     try {
       setProcessing(true);
       const bookingData = await bookingService.createBooking({
@@ -164,23 +164,23 @@ function BookingContent() {
       });
       setBooking(bookingData);
       
+      // Bắt đầu đếm ngược thời gian giữ chỗ
       setTimerStarted(true);
       setTimeLeft(HOLD_TIME_SECONDS);
       
-      setStep(2);
+      setStep(3);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Không thể tạo đơn đặt vé';
       alert(errorMessage);
-      if (err.response?.status === 409) {
-        router.push(`/dat-ve?movieId=${showtime?.movieId}`);
-      }
+      // Quay lại step 1 nếu có lỗi
+      setStep(1);
     } finally {
       setProcessing(false);
     }
   };
 
   const handleContinueToPayment = () => {
-    setStep(3);
+    handleCreateBooking();
   };
 
   const handlePayment = async () => {
@@ -194,6 +194,7 @@ function BookingContent() {
       });
 
       await paymentService.processPayment(payment.id);
+      
       setStep(4);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Thanh toán thất bại');
@@ -368,9 +369,8 @@ function BookingContent() {
                 
                 <div className="p-5 border-t border-zinc-100 bg-zinc-50">
                   <Button
-                    onClick={handleCreateBooking}
-                    disabled={selectedSeats.length === 0 || processing}
-                    isLoading={processing}
+                    onClick={handleContinueToFood}
+                    disabled={selectedSeats.length === 0}
                     className="w-full bg-zinc-900 hover:bg-zinc-800 text-white"
                     size="lg"
                   >
@@ -543,15 +543,24 @@ function BookingContent() {
                 <div className="p-5 border-t border-zinc-100 flex gap-3">
                   <button
                     onClick={() => setStep(1)}
-                    className="flex-1 py-3 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
+                    disabled={processing}
+                    className="flex-1 py-3 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
                   >
                     Quay lại
                   </button>
                   <button
                     onClick={handleContinueToPayment}
-                    className="flex-1 py-3 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors"
+                    disabled={processing}
+                    className="flex-1 py-3 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {foodOrders.length > 0 ? 'Tiếp tục' : 'Bỏ qua'}
+                    {processing ? (
+                      <>
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        <span>Đang xử lý...</span>
+                      </>
+                    ) : (
+                      foodOrders.length > 0 ? 'Tiếp tục thanh toán' : 'Bỏ qua, thanh toán ngay'
+                    )}
                   </button>
                 </div>
               </div>
@@ -603,7 +612,7 @@ function BookingContent() {
                     disabled={processing}
                     className="flex-1 py-3 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {processing ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(booking.totalAmount)}`}
+                    {processing ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(totalAmount)}`}
                   </button>
                 </div>
               </div>
@@ -703,10 +712,12 @@ function BookingContent() {
                     
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Vé</span>
-                      <span className="text-zinc-900">{formatCurrency(seatTotal)}</span>
+                      <span className="text-zinc-900">
+                        {formatCurrency(booking?.seatAmount || seatTotal)}
+                      </span>
                     </div>
                     
-                    {foodOrders.length > 0 && (
+                    {(foodOrders.length > 0 || (booking?.foodAmount && booking.foodAmount > 0)) && (
                       <>
                         <div className="border-t border-zinc-100 pt-3 space-y-2">
                           {foodOrders.map((item) => {
@@ -721,7 +732,9 @@ function BookingContent() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-zinc-500">Đồ ăn</span>
-                          <span className="text-zinc-900">{formatCurrency(foodTotal)}</span>
+                          <span className="text-zinc-900">
+                            {formatCurrency(booking?.foodAmount || foodTotal)}
+                          </span>
                         </div>
                       </>
                     )}
@@ -732,9 +745,23 @@ function BookingContent() {
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-zinc-900">Tổng cộng</span>
                       <span className="text-lg font-bold text-zinc-900">
-                        {formatCurrency(totalAmount)}
+                        {formatCurrency(booking?.totalAmount || totalAmount)}
                       </span>
                     </div>
+                    {booking?.discountAmount && booking.discountAmount > 0 && (
+                      <>
+                        <div className="flex justify-between items-center mt-2 text-sm text-green-600">
+                          <span>Giảm giá</span>
+                          <span>-{formatCurrency(booking.discountAmount)}</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
+                          <span className="font-semibold text-zinc-900">Thanh toán</span>
+                          <span className="text-xl font-bold text-zinc-900">
+                            {formatCurrency(booking.finalAmount)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </>
               )}

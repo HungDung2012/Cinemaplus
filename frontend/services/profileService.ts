@@ -22,7 +22,7 @@ export const getProfile = async (): Promise<UserProfile> => {
 
 
 export const updateProfile = async (data: UserProfileUpdateRequest): Promise<UserProfile> => {
-  const response = await api.put('/user/profile', data);
+  const response = await api.put('/user/profile-update', data);
   return response.data;
 };
 

@@ -78,4 +78,20 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
             @Param("userId") Long userId,
             @Param("type") PointHistory.TransactionType type
     );
+
+    /**
+     * Lấy điểm tích lũy cho một booking cụ thể
+     */
+    @Query("SELECT COALESCE(SUM(ph.points), 0) FROM PointHistory ph " +
+           "WHERE ph.referenceId = :bookingId AND ph.referenceType = 'BOOKING' " +
+           "AND ph.transactionType = 'EARNED'")
+    Integer getPointsEarnedByBookingId(@Param("bookingId") Long bookingId);
+
+    /**
+     * Lấy điểm đã sử dụng cho một booking cụ thể
+     */
+    @Query("SELECT COALESCE(SUM(ABS(ph.points)), 0) FROM PointHistory ph " +
+           "WHERE ph.referenceId = :bookingId AND ph.referenceType = 'BOOKING' " +
+           "AND ph.transactionType = 'REDEEMED'")
+    Integer getPointsUsedByBookingId(@Param("bookingId") Long bookingId);
 }

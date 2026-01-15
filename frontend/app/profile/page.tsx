@@ -263,7 +263,7 @@ export default function ProfilePage() {
   const getMembershipColor = (level: string) => {
     switch (level) {
       case 'PLATINUM':
-        return 'from-slate-600 to-slate-800';
+        return 'from-cyan-400 via-teal-500 to-emerald-600';
       case 'VIP':
         return 'from-amber-500 to-amber-700';
       default:
@@ -274,7 +274,7 @@ export default function ProfilePage() {
   const getMembershipBadge = (level: string) => {
     switch (level) {
       case 'PLATINUM':
-        return 'bg-slate-100 text-slate-800';
+        return 'bg-gradient-to-r from-cyan-100 to-teal-100 text-teal-900 border border-teal-300';
       case 'VIP':
         return 'bg-amber-100 text-amber-800';
       default:
@@ -855,12 +855,77 @@ export default function ProfilePage() {
                             </div>
                           </div>
 
-                          <div className="flex justify-between items-center pt-2 border-t border-zinc-100">
-                            <div className="text-sm text-zinc-500">
-                              {formatDateTime(tx.bookingTime)}
+                          {/* Thông tin đồ ăn */}
+                          {tx.foodItems && tx.foodItems.length > 0 && (
+                            <div className="mb-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                              <div className="text-sm font-medium text-amber-800 mb-2 flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Đồ ăn & Thức uống
+                              </div>
+                              <div className="space-y-1">
+                                {tx.foodItems.map((food, idx) => (
+                                  <div key={idx} className="flex justify-between text-sm">
+                                    <span className="text-zinc-700">
+                                      {food.foodName} x{food.quantity}
+                                    </span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {formatCurrency(food.subtotal)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-amber-200 flex justify-between text-sm font-medium">
+                                <span className="text-amber-800">Tổng đồ ăn:</span>
+                                <span className="text-amber-900">{formatCurrency(tx.foodPrice)}</span>
+                              </div>
                             </div>
-                            <div className="font-semibold text-zinc-900">
-                              {formatCurrency(tx.totalAmount)}
+                          )}
+
+                          {/* Chi tiết giá */}
+                          <div className="pt-3 border-t border-zinc-100 space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-zinc-500">Vé ({tx.seatCount} ghế):</span>
+                              <span className="text-zinc-700">{formatCurrency(tx.ticketPrice)}</span>
+                            </div>
+                            {tx.foodPrice > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Đồ ăn:</span>
+                                <span className="text-zinc-700">{formatCurrency(tx.foodPrice)}</span>
+                              </div>
+                            )}
+                            {tx.discountAmount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Giảm giá:</span>
+                                <span className="text-green-600">-{formatCurrency(tx.discountAmount)}</span>
+                              </div>
+                            )}
+                            {(tx.voucherCode || tx.couponCode) && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Mã giảm giá:</span>
+                                <span className="text-blue-600">{tx.voucherCode || tx.couponCode}</span>
+                              </div>
+                            )}
+                            {tx.pointsUsed > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Điểm sử dụng:</span>
+                                <span className="text-orange-600">-{tx.pointsUsed} điểm</span>
+                              </div>
+                            )}
+                            {tx.pointsEarned > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Điểm tích lũy:</span>
+                                <span className="text-green-600">+{tx.pointsEarned} điểm</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center pt-2 border-t border-zinc-200">
+                              <div className="text-sm text-zinc-500">
+                                {formatDateTime(tx.bookingTime)}
+                              </div>
+                              <div className="font-bold text-lg text-zinc-900">
+                                {formatCurrency(tx.totalAmount)}
+                              </div>
                             </div>
                           </div>
                         </div>

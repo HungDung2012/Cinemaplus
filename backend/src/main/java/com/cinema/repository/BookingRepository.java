@@ -66,4 +66,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      * Lấy booking gần đây của user
      */
     List<Booking> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
+
+    /**
+     * Tính tổng chi tiêu của user từ các booking đã CONFIRMED hoặc COMPLETED
+     */
+    @Query("SELECT COALESCE(SUM(b.finalAmount), 0) FROM Booking b " +
+           "WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
+    java.math.BigDecimal calculateTotalSpendingByUserId(@Param("userId") Long userId);
+
+    /**
+     * Đếm số booking đã hoàn thành của user
+     */
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
+    Long countCompletedBookingsByUserId(@Param("userId") Long userId);
 }

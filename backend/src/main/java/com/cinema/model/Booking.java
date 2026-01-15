@@ -36,6 +36,14 @@ public class Booking {
     @Column(name = "final_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal finalAmount;
 
+    @Column(name = "seat_amount", precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal seatAmount = BigDecimal.ZERO;
+
+    @Column(name = "food_amount", precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal foodAmount = BigDecimal.ZERO;
+
     @Column(name = "number_of_seats", nullable = false)
     private Integer numberOfSeats;
 

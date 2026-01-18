@@ -39,7 +39,6 @@ function BookingFlowContent() {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedRoomType, setSelectedRoomType] = useState<string>('STANDARD_2D');
-  const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
 
   // Loading states
   const [loadingMovies, setLoadingMovies] = useState(true);

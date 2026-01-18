@@ -9,24 +9,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TheaterResponse {
+public class CityResponse {
     private Long id;
     private String name;
-    private String address;
-    private String phone;
-    private String email;
-    private String imageUrl;
-    private String description;
+    private String code;
+    private String provinceCode;
     private Boolean active;
-    private Integer totalRooms;
-    
-    // City information
-    private Long cityId;
-    private String cityName;
-    private String cityCode;
-    
-    // Region information (through City)
     private Long regionId;
     private String regionName;
     private String regionCode;
+    private Integer theaterCount;
 }

@@ -1,6 +1,7 @@
 package com.cinema.service;
 
 import com.cinema.dto.response.RegionResponse;
+import com.cinema.model.City;
 import com.cinema.model.Region;
 import com.cinema.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,23 @@ public class RegionService {
     }
 
     private RegionResponse mapToResponse(Region region) {
+        // Đếm tổng số theaters trong region thông qua cities
+        int theaterCount = 0;
+        if (region.getCities() != null) {
+            for (City city : region.getCities()) {
+                if (city.getTheaters() != null) {
+                    theaterCount += (int) city.getTheaters().stream()
+                            .filter(t -> t.getActive() != null && t.getActive())
+                            .count();
+                }
+            }
+        }
+
         return RegionResponse.builder()
                 .id(region.getId())
                 .name(region.getName())
                 .code(region.getCode())
-                .theaterCount(region.getTheaters() != null ? region.getTheaters().size() : 0)
+                .theaterCount(theaterCount)
                 .build();
     }
 }

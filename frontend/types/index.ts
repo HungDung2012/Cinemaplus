@@ -37,13 +37,33 @@ export interface Theater {
   id: number;
   name: string;
   address: string;
-  city?: string;
   phone?: string;
   email?: string;
   imageUrl?: string;
   description?: string;
   active: boolean;
   totalRooms: number;
+  // City information
+  cityId?: number;
+  cityName?: string;
+  cityCode?: string;
+  // Region information (through City)
+  regionId?: number;
+  regionName?: string;
+  regionCode?: string;
+}
+
+// City types
+export interface City {
+  id: number;
+  name: string;
+  code: string;
+  provinceCode?: string;
+  active: boolean;
+  regionId: number;
+  regionName: string;
+  regionCode: string;
+  theaterCount: number;
 }
 
 // Room types
@@ -247,4 +267,64 @@ export interface FoodOrderItem {
   foodId: number;
   quantity: number;
   food?: Food;
+}
+
+// Cinema types (for CGV-style cinema selector)
+export interface CinemaListResponse {
+  cities: CityGroup[];
+  totalTheaters: number;
+}
+
+export interface CityGroup {
+  cityName: string;
+  cityCode: string;
+  theaterCount: number;
+  theaters: TheaterSummary[];
+}
+
+export interface TheaterSummary {
+  id: number;
+  name: string;
+  address: string;
+  phone?: string;
+  imageUrl?: string;
+  mapUrl?: string;
+  totalRooms: number;
+}
+
+export interface CinemaScheduleResponse {
+  theaterId: number;
+  theaterName: string;
+  theaterAddress: string;
+  theaterPhone?: string;
+  theaterImageUrl?: string;
+  scheduleDate: string;
+  movies: MovieSchedule[];
+}
+
+export interface MovieSchedule {
+  movieId: number;
+  movieTitle: string;
+  posterUrl?: string;
+  duration: number;
+  ageRating?: string;
+  genre?: string;
+  rating?: number;
+  formats: FormatSchedule[];
+}
+
+export interface FormatSchedule {
+  format: string;
+  roomType: string;
+  showtimes: ShowtimeSlot[];
+}
+
+export interface ShowtimeSlot {
+  showtimeId: number;
+  startTime: string;
+  endTime: string;
+  basePrice: number;
+  status: string;
+  roomName: string;
+  availableSeats?: number;
 }

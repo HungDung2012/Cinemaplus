@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import { ApiResponse, Theater, Room, Seat, Region } from '@/types';
+import { ApiResponse, Theater, Room, Seat, Region, City } from '@/types';
 
 export const theaterService = {
   async getAllTheaters(): Promise<Theater[]> {
@@ -7,8 +7,13 @@ export const theaterService = {
     return response.data.data;
   },
 
-  async getTheatersByCity(city: string): Promise<Theater[]> {
-    const response = await api.get<ApiResponse<Theater[]>>(`/theaters/city/${city}`);
+  async getTheatersByCity(cityId: number): Promise<Theater[]> {
+    const response = await api.get<ApiResponse<Theater[]>>(`/theaters/city/${cityId}`);
+    return response.data.data;
+  },
+
+  async getTheatersByCityCode(cityCode: string): Promise<Theater[]> {
+    const response = await api.get<ApiResponse<Theater[]>>(`/theaters/city/code/${cityCode}`);
     return response.data.data;
   },
 
@@ -24,6 +29,38 @@ export const theaterService = {
 
   async getTheatersByRegionCode(regionCode: string): Promise<Theater[]> {
     const response = await api.get<ApiResponse<Theater[]>>(`/theaters/region/code/${regionCode}`);
+    return response.data.data;
+  }
+};
+
+export const cityService = {
+  async getAllCities(): Promise<City[]> {
+    const response = await api.get<ApiResponse<City[]>>('/cities');
+    return response.data.data;
+  },
+
+  async getCityById(id: number): Promise<City> {
+    const response = await api.get<ApiResponse<City>>(`/cities/${id}`);
+    return response.data.data;
+  },
+
+  async getCityByCode(code: string): Promise<City> {
+    const response = await api.get<ApiResponse<City>>(`/cities/code/${code}`);
+    return response.data.data;
+  },
+
+  async getCitiesByRegion(regionId: number): Promise<City[]> {
+    const response = await api.get<ApiResponse<City[]>>(`/cities/region/${regionId}`);
+    return response.data.data;
+  },
+
+  async getCitiesByRegionCode(regionCode: string): Promise<City[]> {
+    const response = await api.get<ApiResponse<City[]>>(`/cities/region/code/${regionCode}`);
+    return response.data.data;
+  },
+
+  async getCitiesWithActiveTheaters(): Promise<City[]> {
+    const response = await api.get<ApiResponse<City[]>>('/cities/with-theaters');
     return response.data.data;
   }
 };

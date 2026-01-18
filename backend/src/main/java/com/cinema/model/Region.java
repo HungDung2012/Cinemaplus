@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -26,6 +27,22 @@ public class Region {
     @Column(nullable = false, unique = true)
     private String code; // NORTH, CENTRAL, SOUTH
 
-    @OneToMany(mappedBy = "region")
-    private List<Theater> theaters;
+    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<City> cities = new ArrayList<>();
+
+    /**
+     * Helper method để lấy tất cả theaters trong region thông qua cities
+     */
+    public List<Theater> getAllTheaters() {
+        List<Theater> allTheaters = new ArrayList<>();
+        if (cities != null) {
+            for (City city : cities) {
+                if (city.getTheaters() != null) {
+                    allTheaters.addAll(city.getTheaters());
+                }
+            }
+        }
+        return allTheaters;
+    }
 }

@@ -25,6 +25,7 @@ import java.util.Random;
 public class SampleDataInitializer implements CommandLineRunner {
 
     private final RegionRepository regionRepository;
+    private final CityRepository cityRepository;
     private final TheaterRepository theaterRepository;
     private final RoomRepository roomRepository;
     private final SeatRepository seatRepository;
@@ -38,6 +39,9 @@ public class SampleDataInitializer implements CommandLineRunner {
     public void run(String... args) {
         if (regionRepository.count() == 0) {
             initRegions();
+        }
+        if (cityRepository.count() == 0) {
+            initCities();
         }
         if (theaterRepository.count() == 0) {
             initTheaters();
@@ -83,42 +87,111 @@ public class SampleDataInitializer implements CommandLineRunner {
         log.info("Created {} regions", regions.size());
     }
 
-    private void initTheaters() {
-        log.info("Initializing theaters...");
+    private void initCities() {
+        log.info("Initializing cities...");
         
         Region north = regionRepository.findByCode("NORTH").orElse(null);
         Region central = regionRepository.findByCode("CENTRAL").orElse(null);
         Region south = regionRepository.findByCode("SOUTH").orElse(null);
 
         if (north == null || central == null || south == null) {
-            log.warn("Regions not found, skipping theater initialization");
+            log.warn("Regions not found, skipping city initialization");
+            return;
+        }
+
+        List<City> cities = new ArrayList<>();
+        
+        // Miền Bắc
+        cities.add(createCity("Hà Nội", "HA_NOI", north));
+        cities.add(createCity("Hải Phòng", "HAI_PHONG", north));
+        cities.add(createCity("Quảng Ninh", "QUANG_NINH", north));
+        
+        // Miền Trung
+        cities.add(createCity("Đà Nẵng", "DA_NANG", central));
+        cities.add(createCity("Huế", "HUE", central));
+        cities.add(createCity("Nha Trang", "NHA_TRANG", central));
+        
+        // Miền Nam
+        cities.add(createCity("TP.HCM", "HO_CHI_MINH", south));
+        cities.add(createCity("Cần Thơ", "CAN_THO", south));
+        cities.add(createCity("Biên Hòa", "BIEN_HOA", south));
+
+        cityRepository.saveAll(cities);
+        log.info("Created {} cities", cities.size());
+    }
+
+    private City createCity(String name, String code, Region region) {
+        return City.builder()
+                .name(name)
+                .code(code)
+                .region(region)
+                .active(true)
+                .build();
+    }
+
+    private void initTheaters() {
+        log.info("Initializing theaters...");
+        
+        City hanoi = cityRepository.findByCode("HA_NOI").orElse(null);
+        City haiphong = cityRepository.findByCode("HAI_PHONG").orElse(null);
+        City danang = cityRepository.findByCode("DA_NANG").orElse(null);
+        City hue = cityRepository.findByCode("HUE").orElse(null);
+        City nhatrang = cityRepository.findByCode("NHA_TRANG").orElse(null);
+        City hcm = cityRepository.findByCode("HO_CHI_MINH").orElse(null);
+        City cantho = cityRepository.findByCode("CAN_THO").orElse(null);
+        City bienhoa = cityRepository.findByCode("BIEN_HOA").orElse(null);
+
+        if (hanoi == null || hcm == null) {
+            log.warn("Required cities not found, skipping theater initialization");
             return;
         }
 
         List<Theater> theaters = new ArrayList<>();
 
-        // Miền Bắc
-        theaters.add(createTheater("CinemaPlus Vincom Bà Triệu", "191 Bà Triệu, Hai Bà Trưng", "Hà Nội", north));
-        theaters.add(createTheater("CinemaPlus Royal City", "72A Nguyễn Trãi, Thanh Xuân", "Hà Nội", north));
-        theaters.add(createTheater("CinemaPlus Times City", "458 Minh Khai, Hai Bà Trưng", "Hà Nội", north));
-        theaters.add(createTheater("CinemaPlus Aeon Long Biên", "27 Cổ Linh, Long Biên", "Hà Nội", north));
-        theaters.add(createTheater("CinemaPlus Hải Phòng", "10 Lê Hồng Phong, Ngô Quyền", "Hải Phòng", north));
+        // Miền Bắc - Hà Nội
+        theaters.add(createTheater("CinemaPlus Vincom Bà Triệu", "191 Bà Triệu, Hai Bà Trưng", hanoi));
+        theaters.add(createTheater("CinemaPlus Royal City", "72A Nguyễn Trãi, Thanh Xuân", hanoi));
+        theaters.add(createTheater("CinemaPlus Times City", "458 Minh Khai, Hai Bà Trưng", hanoi));
+        theaters.add(createTheater("CinemaPlus Aeon Long Biên", "27 Cổ Linh, Long Biên", hanoi));
+        
+        // Miền Bắc - Hải Phòng
+        if (haiphong != null) {
+            theaters.add(createTheater("CinemaPlus Hải Phòng", "10 Lê Hồng Phong, Ngô Quyền", haiphong));
+        }
 
-        // Miền Trung  
-        theaters.add(createTheater("CinemaPlus Đà Nẵng", "910 Ngô Quyền, Sơn Trà", "Đà Nẵng", central));
-        theaters.add(createTheater("CinemaPlus Vincom Đà Nẵng", "Vincom Plaza, Hải Châu", "Đà Nẵng", central));
-        theaters.add(createTheater("CinemaPlus Huế", "25 Hai Bà Trưng, TP Huế", "Huế", central));
-        theaters.add(createTheater("CinemaPlus Nha Trang", "50 Thống Nhất, Nha Trang", "Nha Trang", central));
+        // Miền Trung - Đà Nẵng
+        if (danang != null) {
+            theaters.add(createTheater("CinemaPlus Đà Nẵng", "910 Ngô Quyền, Sơn Trà", danang));
+            theaters.add(createTheater("CinemaPlus Vincom Đà Nẵng", "Vincom Plaza, Hải Châu", danang));
+        }
+        
+        // Miền Trung - Huế
+        if (hue != null) {
+            theaters.add(createTheater("CinemaPlus Huế", "25 Hai Bà Trưng, TP Huế", hue));
+        }
+        
+        // Miền Trung - Nha Trang
+        if (nhatrang != null) {
+            theaters.add(createTheater("CinemaPlus Nha Trang", "50 Thống Nhất, Nha Trang", nhatrang));
+        }
 
-        // Miền Nam
-        theaters.add(createTheater("CinemaPlus Landmark 81", "Vinhomes Central Park, Bình Thạnh", "TP.HCM", south));
-        theaters.add(createTheater("CinemaPlus Vincom Đồng Khởi", "72 Lê Thánh Tôn, Quận 1", "TP.HCM", south));
-        theaters.add(createTheater("CinemaPlus Aeon Tân Phú", "30 Bờ Bao Tân Thắng, Tân Phú", "TP.HCM", south));
-        theaters.add(createTheater("CinemaPlus Crescent Mall", "101 Tôn Dật Tiên, Quận 7", "TP.HCM", south));
-        theaters.add(createTheater("CinemaPlus Giga Mall", "242 Phạm Văn Đồng, Thủ Đức", "TP.HCM", south));
-        theaters.add(createTheater("CinemaPlus Cantavil", "1 Cantavil, Quận 2", "TP.HCM", south));
-        theaters.add(createTheater("CinemaPlus Cần Thơ", "209 đường 30/4, Ninh Kiều", "Cần Thơ", south));
-        theaters.add(createTheater("CinemaPlus Biên Hòa", "Vincom Biên Hòa, Đồng Nai", "Biên Hòa", south));
+        // Miền Nam - TP.HCM
+        theaters.add(createTheater("CinemaPlus Landmark 81", "Vinhomes Central Park, Bình Thạnh", hcm));
+        theaters.add(createTheater("CinemaPlus Vincom Đồng Khởi", "72 Lê Thánh Tôn, Quận 1", hcm));
+        theaters.add(createTheater("CinemaPlus Aeon Tân Phú", "30 Bờ Bao Tân Thắng, Tân Phú", hcm));
+        theaters.add(createTheater("CinemaPlus Crescent Mall", "101 Tôn Dật Tiên, Quận 7", hcm));
+        theaters.add(createTheater("CinemaPlus Giga Mall", "242 Phạm Văn Đồng, Thủ Đức", hcm));
+        theaters.add(createTheater("CinemaPlus Cantavil", "1 Cantavil, Quận 2", hcm));
+        
+        // Miền Nam - Cần Thơ
+        if (cantho != null) {
+            theaters.add(createTheater("CinemaPlus Cần Thơ", "209 đường 30/4, Ninh Kiều", cantho));
+        }
+        
+        // Miền Nam - Biên Hòa
+        if (bienhoa != null) {
+            theaters.add(createTheater("CinemaPlus Biên Hòa", "Vincom Biên Hòa, Đồng Nai", bienhoa));
+        }
 
         theaterRepository.saveAll(theaters);
         log.info("Created {} theaters", theaters.size());
@@ -129,12 +202,11 @@ public class SampleDataInitializer implements CommandLineRunner {
         }
     }
 
-    private Theater createTheater(String name, String address, String city, Region region) {
+    private Theater createTheater(String name, String address, City city) {
         return Theater.builder()
                 .name(name)
                 .address(address)
                 .city(city)
-                .region(region)
                 .phone("1900" + (1000 + new Random().nextInt(9000)))
                 .email(name.toLowerCase().replace(" ", "").replace("cinemaplus", "contact@cinemaplus") + ".vn")
                 .active(true)

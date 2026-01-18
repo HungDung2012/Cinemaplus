@@ -22,10 +22,16 @@ public class TheaterController {
         return ResponseEntity.ok(ApiResponse.success(theaters));
     }
     
-    @GetMapping("/city/{city}")
-    public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheatersByCity(@PathVariable String city) {
-        List<TheaterResponse> theaters = theaterService.getTheatersByCity(city);
-        return ResponseEntity.ok(ApiResponse.success(theaters));
+    @GetMapping("/city/{cityId}")
+    public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheatersByCity(@PathVariable Long cityId) {
+        List<TheaterResponse> theaters = theaterService.getTheatersByCity(cityId);
+        return ResponseEntity.ok(ApiResponse.success("Danh sách rạp theo thành phố", theaters));
+    }
+
+    @GetMapping("/city/code/{cityCode}")
+    public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheatersByCityCode(@PathVariable String cityCode) {
+        List<TheaterResponse> theaters = theaterService.getTheatersByCityCode(cityCode);
+        return ResponseEntity.ok(ApiResponse.success("Danh sách rạp theo thành phố", theaters));
     }
 
     @GetMapping("/region/{regionId}")

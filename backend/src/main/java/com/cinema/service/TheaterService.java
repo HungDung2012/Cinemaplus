@@ -2,6 +2,8 @@ package com.cinema.service;
 
 import com.cinema.dto.response.TheaterResponse;
 import com.cinema.exception.ResourceNotFoundException;
+import com.cinema.model.City;
+import com.cinema.model.Region;
 import com.cinema.model.Theater;
 import com.cinema.repository.TheaterRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +26,14 @@ public class TheaterService {
                 .collect(Collectors.toList());
     }
     
-    public List<TheaterResponse> getTheatersByCity(String city) {
-        return theaterRepository.findByCityAndActiveTrue(city).stream()
+    public List<TheaterResponse> getTheatersByCity(Long cityId) {
+        return theaterRepository.findByCityIdAndActiveTrue(cityId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<TheaterResponse> getTheatersByCityCode(String cityCode) {
+        return theaterRepository.findByCityCodeAndActiveTrue(cityCode).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -49,12 +57,34 @@ public class TheaterService {
     }
     
     private TheaterResponse mapToResponse(Theater theater) {
-        TheaterResponse response = modelMapper.map(theater, TheaterResponse.class);
-        response.setTotalRooms(theater.getRooms() != null ? theater.getRooms().size() : 0);
-        if (theater.getRegion() != null) {
-            response.setRegionId(theater.getRegion().getId());
-            response.setRegionName(theater.getRegion().getName());
+        TheaterResponse response = TheaterResponse.builder()
+                .id(theater.getId())
+                .name(theater.getName())
+                .address(theater.getAddress())
+                .phone(theater.getPhone())
+                .email(theater.getEmail())
+                .imageUrl(theater.getImageUrl())
+                .description(theater.getDescription())
+                .active(theater.getActive())
+                .totalRooms(theater.getRooms() != null ? theater.getRooms().size() : 0)
+                .build();
+
+        // Set City information
+        City city = theater.getCity();
+        if (city != null) {
+            response.setCityId(city.getId());
+            response.setCityName(city.getName());
+            response.setCityCode(city.getCode());
+            
+            // Set Region information through City
+            Region region = city.getRegion();
+            if (region != null) {
+                response.setRegionId(region.getId());
+                response.setRegionName(region.getName());
+                response.setRegionCode(region.getCode());
+            }
         }
+
         return response;
     }
 }

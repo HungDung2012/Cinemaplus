@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,9 @@ public class SampleDataInitializer implements CommandLineRunner {
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final FoodRepository foodRepository;
+    private final CouponRepository couponRepository;
+    private final VoucherRepository voucherRepository;
+    private final PromotionRepository promotionRepository;
 
     @Override
     public void run(String... args) {
@@ -64,6 +68,18 @@ public class SampleDataInitializer implements CommandLineRunner {
         // Init foods and combos
         if (foodRepository.count() == 0) {
             initFoodsAndCombos();
+        }
+        // Init coupons
+        if (couponRepository.count() == 0) {
+            initCoupons();
+        }
+        // Init vouchers
+        if (voucherRepository.count() == 0) {
+            initVouchers();
+        }
+        // Init promotions
+        if (promotionRepository.count() == 0) {
+            initPromotions();
         }
     }
     
@@ -1608,5 +1624,387 @@ public class SampleDataInitializer implements CommandLineRunner {
 
         foodRepository.saveAll(foods);
         log.info("Created {} foods and combos", foods.size());
+    }
+
+    private void initCoupons() {
+        List<Coupon> coupons = new ArrayList<>();
+
+        // Coupon giảm 10%
+        coupons.add(Coupon.builder()
+                .couponCode("GIAM10")
+                .pinCode("1234")
+                .discountType(Coupon.DiscountType.PERCENTAGE)
+                .discountValue(new BigDecimal("10"))
+                .maxDiscountAmount(new BigDecimal("50000"))
+                .minPurchaseAmount(new BigDecimal("100000"))
+                .usageLimit(100)
+                .usageCount(0)
+                .expiryDate(LocalDateTime.now().plusMonths(3))
+                .status(Coupon.CouponStatus.ACTIVE)
+                .description("Giảm 10% tối đa 50.000đ cho đơn từ 100.000đ")
+                .build());
+
+        // Coupon giảm 50K
+        coupons.add(Coupon.builder()
+                .couponCode("GIAM50K")
+                .pinCode("5678")
+                .discountType(Coupon.DiscountType.FIXED_AMOUNT)
+                .discountValue(new BigDecimal("50000"))
+                .maxDiscountAmount(new BigDecimal("50000"))
+                .minPurchaseAmount(new BigDecimal("200000"))
+                .usageLimit(50)
+                .usageCount(0)
+                .expiryDate(LocalDateTime.now().plusMonths(2))
+                .status(Coupon.CouponStatus.ACTIVE)
+                .description("Giảm trực tiếp 50.000đ cho đơn từ 200.000đ")
+                .build());
+
+        // Coupon Welcome cho khách mới
+        coupons.add(Coupon.builder()
+                .couponCode("WELCOME")
+                .pinCode("0000")
+                .discountType(Coupon.DiscountType.PERCENTAGE)
+                .discountValue(new BigDecimal("20"))
+                .maxDiscountAmount(new BigDecimal("100000"))
+                .minPurchaseAmount(new BigDecimal("150000"))
+                .usageLimit(1000)
+                .usageCount(0)
+                .expiryDate(LocalDateTime.now().plusMonths(6))
+                .status(Coupon.CouponStatus.ACTIVE)
+                .description("Giảm 20% tối đa 100.000đ cho thành viên mới")
+                .build());
+
+        // Coupon giảm 30% cuối tuần
+        coupons.add(Coupon.builder()
+                .couponCode("WEEKEND30")
+                .pinCode("9999")
+                .discountType(Coupon.DiscountType.PERCENTAGE)
+                .discountValue(new BigDecimal("30"))
+                .maxDiscountAmount(new BigDecimal("150000"))
+                .minPurchaseAmount(new BigDecimal("300000"))
+                .usageLimit(200)
+                .usageCount(0)
+                .expiryDate(LocalDateTime.now().plusMonths(1))
+                .status(Coupon.CouponStatus.ACTIVE)
+                .description("Giảm 30% tối đa 150.000đ cho đơn từ 300.000đ - Chỉ cuối tuần")
+                .build());
+
+        // Coupon giảm 100K cho combo
+        coupons.add(Coupon.builder()
+                .couponCode("COMBO100")
+                .pinCode("1111")
+                .discountType(Coupon.DiscountType.FIXED_AMOUNT)
+                .discountValue(new BigDecimal("100000"))
+                .maxDiscountAmount(new BigDecimal("100000"))
+                .minPurchaseAmount(new BigDecimal("500000"))
+                .usageLimit(30)
+                .usageCount(0)
+                .expiryDate(LocalDateTime.now().plusWeeks(2))
+                .status(Coupon.CouponStatus.ACTIVE)
+                .description("Giảm 100.000đ cho đơn combo từ 500.000đ")
+                .build());
+
+        couponRepository.saveAll(coupons);
+        log.info("Created {} coupons", coupons.size());
+    }
+
+    private void initVouchers() {
+        List<Voucher> vouchers = new ArrayList<>();
+
+        // Voucher 100K
+        vouchers.add(Voucher.builder()
+                .voucherCode("VOC100K")
+                .pinCode("1111")
+                .value(new BigDecimal("100000"))
+                .minPurchaseAmount(new BigDecimal("200000"))
+                .expiryDate(LocalDateTime.now().plusMonths(6))
+                .status(Voucher.VoucherStatus.ACTIVE)
+                .build());
+
+        // Voucher 50K
+        vouchers.add(Voucher.builder()
+                .voucherCode("VOC50K")
+                .pinCode("2222")
+                .value(new BigDecimal("50000"))
+                .minPurchaseAmount(new BigDecimal("100000"))
+                .expiryDate(LocalDateTime.now().plusMonths(6))
+                .status(Voucher.VoucherStatus.ACTIVE)
+                .build());
+
+        // Voucher 200K
+        vouchers.add(Voucher.builder()
+                .voucherCode("VOC200K")
+                .pinCode("3333")
+                .value(new BigDecimal("200000"))
+                .minPurchaseAmount(new BigDecimal("500000"))
+                .expiryDate(LocalDateTime.now().plusMonths(3))
+                .status(Voucher.VoucherStatus.ACTIVE)
+                .build());
+
+        // Voucher 500K Premium
+        vouchers.add(Voucher.builder()
+                .voucherCode("PREMIUM500")
+                .pinCode("5555")
+                .value(new BigDecimal("500000"))
+                .minPurchaseAmount(new BigDecimal("1000000"))
+                .expiryDate(LocalDateTime.now().plusMonths(12))
+                .status(Voucher.VoucherStatus.ACTIVE)
+                .build());
+
+        // Voucher sinh nhật
+        vouchers.add(Voucher.builder()
+                .voucherCode("BIRTHDAY")
+                .pinCode("8888")
+                .value(new BigDecimal("150000"))
+                .minPurchaseAmount(new BigDecimal("0"))
+                .expiryDate(LocalDateTime.now().plusMonths(1))
+                .status(Voucher.VoucherStatus.ACTIVE)
+                .build());
+
+        voucherRepository.saveAll(vouchers);
+        log.info("Created {} vouchers", vouchers.size());
+    }
+
+    private void initPromotions() {
+        List<Promotion> promotions = new ArrayList<>();
+
+        // Promotion 1 - Mua 2 tặng 2
+        promotions.add(Promotion.builder()
+                .title("MUA 02 TẶNG 02 - CONAN MOVIE 01 RA RẠP")
+                .shortDescription("Mua 02 vé tặng 01 thẻ sưu tầm & 01 móc khóa đựng thẻ")
+                .content("<h2>I. Thời gian và địa điểm áp dụng</h2>" +
+                        "<p><strong>Thời gian:</strong> Áp dụng cho các suất chiếu PHIM ĐIỆN ẢNH THÁM TỬ LỪNG DANH CONAN: QUẢ BOM CHỌC TRỜI trong các ngày 23, 24 và 25/01/2026, hoặc đến khi hết quà, tùy điều kiện nào đến trước.</p>" +
+                        "<h3>Địa điểm:</h3>" +
+                        "<p><strong>TP.HCM:</strong> CinemaPlus Vincom Bà Triệu, CinemaPlus Crescent Mall, CinemaPlus Thảo Điền Pearl...</p>" +
+                        "<p><strong>Hà Nội:</strong> CinemaPlus Vincom Center Bà Triệu, CinemaPlus Hồ Gươm Plaza...</p>" +
+                        "<h2>II. Điều kiện áp dụng</h2>" +
+                        "<ul><li>Mua 02 vé phim Conan: Quả Bom Chọc Trời</li><li>Nhận 01 thẻ sưu tầm phiên bản giới hạn</li><li>Nhận 01 móc khóa đựng thẻ exclusive</li></ul>" +
+                        "<h2>III. Lưu ý</h2>" +
+                        "<p>Số lượng quà có hạn, áp dụng cho đến khi hết quà. Mỗi khách hàng chỉ được nhận tối đa 2 phần quà/ngày.</p>")
+                .imageUrl("https://placehold.co/980x448/e11d48/ffffff?text=CONAN+MOVIE")
+                .thumbnailUrl("https://placehold.co/400x400/e11d48/ffffff?text=CONAN")
+                .startDate(LocalDate.of(2026, 1, 23))
+                .endDate(LocalDate.of(2026, 1, 25))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.MOVIE)
+                .isFeatured(true)
+                .sortOrder(1)
+                .build());
+
+        // Promotion 2 - Suất chiếu đặc biệt
+        promotions.add(Promotion.builder()
+                .title("3 SUẤT CHIẾU ĐẶC BIỆT DÀNH CHO KHÁN GIẢ")
+                .shortDescription("Giá vé chỉ 69.000 VND tại một số rạp")
+                .content("<h2>Ưu đãi vé giá rẻ</h2>" +
+                        "<p>Chương trình áp dụng tại các rạp: TP.HCM, Hà Nội với giá vé ưu đãi chỉ <strong>69.000 VND</strong></p>" +
+                        "<h3>Điều kiện áp dụng:</h3>" +
+                        "<ul><li>Áp dụng cho các suất chiếu 10:00, 14:00 và 20:00</li><li>Áp dụng cho tất cả các phim 2D</li><li>Không áp dụng cùng các khuyến mãi khác</li></ul>" +
+                        "<p><em>*Chương trình có thể kết thúc sớm mà không cần báo trước</em></p>")
+                .imageUrl("https://placehold.co/980x448/3b82f6/ffffff?text=SPECIAL+SHOW")
+                .thumbnailUrl("https://placehold.co/400x400/3b82f6/ffffff?text=69K")
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 1, 13))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.TICKET)
+                .isFeatured(true)
+                .sortOrder(2)
+                .build());
+
+        // Promotion 3 - Bao Lì Xì
+        promotions.add(Promotion.builder()
+                .title("BAO LÌ XÌ - COOL DEAL NHẬN NGAY")
+                .shortDescription("Tặng 01 bộ lì xì Geo Quẻ cho mỗi hóa đơn mua bắp nước")
+                .content("<h2>Chương trình Tết 2026</h2>" +
+                        "<p>Tặng bao lì xì xinh xắn khi mua combo bắp nước</p>" +
+                        "<h3>Chi tiết ưu đãi:</h3>" +
+                        "<ul><li>Mua bất kỳ combo bắp nước từ 79.000đ trở lên</li><li>Nhận ngay 01 bộ bao lì xì Geo Quẻ 12 con giáp</li><li>Số lượng có hạn, đến khi hết quà</li></ul>" +
+                        "<h3>Thời gian áp dụng:</h3>" +
+                        "<p>Từ 09/01/2026 đến 15/02/2026 hoặc đến khi hết quà</p>")
+                .imageUrl("https://placehold.co/980x448/f59e0b/ffffff?text=LI+XI+TET")
+                .thumbnailUrl("https://placehold.co/400x400/f59e0b/ffffff?text=LI+XI")
+                .startDate(LocalDate.of(2026, 1, 9))
+                .endDate(LocalDate.of(2026, 2, 15))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.SPECIAL_DAY)
+                .isFeatured(true)
+                .sortOrder(3)
+                .build());
+
+        // Promotion 4 - Lì Xì Liền Tay
+        promotions.add(Promotion.builder()
+                .title("LÌ XÌ LIỀN TAY - BẮP NƯỚC BỜ ĐÂY")
+                .shortDescription("Khui bảo / Hibiscus Snack - Tặng ngay!")
+                .content("<h2>Ưu đãi Tết</h2>" +
+                        "<p>Chương trình Tết - Mua combo bắp nước nhận ngay lì xì may mắn</p>" +
+                        "<h3>Cách thức tham gia:</h3>" +
+                        "<ul><li>Mua combo bắp nước bất kỳ</li><li>Bóc ngay lì xì may mắn</li><li>Nhận quà tặng hấp dẫn</li></ul>" +
+                        "<p>Giải thưởng bao gồm: Voucher giảm giá, Bắp nước miễn phí, Vé xem phim...</p>")
+                .imageUrl("https://placehold.co/980x448/ec4899/ffffff?text=LI+XI+LIEN+TAY")
+                .thumbnailUrl("https://placehold.co/400x400/ec4899/ffffff?text=LI+XI")
+                .startDate(LocalDate.of(2026, 1, 9))
+                .endDate(LocalDate.of(2026, 2, 1))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.FOOD)
+                .isFeatured(false)
+                .sortOrder(4)
+                .build());
+
+        // Promotion 5 - VISA
+        promotions.add(Promotion.builder()
+                .title("MUA 2 VÉ CINEMAPLUS VỚI THẺ VISA TRÊN APPLE PAY")
+                .shortDescription("Tặng Combo 1 bắp 2 nước")
+                .content("<h2>Ưu đãi VISA x Apple Pay</h2>" +
+                        "<p>Áp dụng khi thanh toán bằng thẻ Visa qua Apple Pay tại quầy</p>" +
+                        "<h3>Điều kiện:</h3>" +
+                        "<ul><li>Mua tối thiểu 02 vé xem phim</li><li>Thanh toán bằng thẻ Visa qua Apple Pay</li><li>Nhận ngay Combo 1 bắp + 2 nước trị giá 89.000đ</li></ul>" +
+                        "<h3>Lưu ý:</h3>" +
+                        "<p>Mỗi thẻ chỉ được áp dụng 01 lần/tháng. Không áp dụng cùng các khuyến mãi khác.</p>")
+                .imageUrl("https://placehold.co/980x448/1e40af/ffffff?text=VISA+APPLE+PAY")
+                .thumbnailUrl("https://placehold.co/400x400/1e40af/ffffff?text=VISA")
+                .startDate(LocalDate.of(2026, 1, 9))
+                .endDate(LocalDate.of(2026, 6, 30))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.PARTNER)
+                .isFeatured(false)
+                .sortOrder(5)
+                .build());
+
+        // Promotion 6 - ZaloPay
+        promotions.add(Promotion.builder()
+                .title("ZALOPAY x CINEMAPLUS - ĐẶT VÉ PHIM TRÊN ZALOPAY")
+                .shortDescription("Chỉ với 19.000đ")
+                .content("<h2>Siêu ưu đãi ZaloPay</h2>" +
+                        "<p>Đặt vé phim qua ZaloPay với giá siêu ưu đãi chỉ <strong>19.000đ/vé</strong></p>" +
+                        "<h3>Cách thức tham gia:</h3>" +
+                        "<ol><li>Mở ứng dụng ZaloPay</li><li>Chọn mục Đặt vé xem phim</li><li>Chọn CinemaPlus và suất chiếu yêu thích</li><li>Thanh toán và nhận vé điện tử</li></ol>" +
+                        "<p><em>*Áp dụng cho người dùng mới ZaloPay, giới hạn 2 vé/giao dịch</em></p>")
+                .imageUrl("https://placehold.co/980x448/0ea5e9/ffffff?text=ZALOPAY+19K")
+                .thumbnailUrl("https://placehold.co/400x400/0ea5e9/ffffff?text=ZALOPAY")
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 1, 31))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.PARTNER)
+                .isFeatured(true)
+                .sortOrder(6)
+                .build());
+
+        // Promotion 7 - MoMo
+        promotions.add(Promotion.builder()
+                .title("BẠN THÂN MOMO - GIẢM 10K VÉ XEM PHIM")
+                .shortDescription("Kiểm tra quà có sẵn - Giảm 10K vé xem phim")
+                .content("<h2>Ưu đãi MoMo</h2>" +
+                        "<p>Ưu đãi dành cho thành viên MoMo - Giảm ngay <strong>10.000đ</strong> khi thanh toán bằng ví MoMo</p>" +
+                        "<h3>Điều kiện áp dụng:</h3>" +
+                        "<ul><li>Là thành viên MoMo</li><li>Thanh toán qua ví MoMo tại quầy hoặc web/app CinemaPlus</li><li>Không giới hạn số lần sử dụng</li></ul>")
+                .imageUrl("https://placehold.co/980x448/a855f7/ffffff?text=MOMO+10K")
+                .thumbnailUrl("https://placehold.co/400x400/a855f7/ffffff?text=MOMO")
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 1, 31))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.PARTNER)
+                .isFeatured(false)
+                .sortOrder(7)
+                .build());
+
+        // Promotion 8 - XEM PHIM CHỈ 100K
+        promotions.add(Promotion.builder()
+                .title("XEM PHIM CHỈ VỚI 100K - MUA 4 VÉ")
+                .shortDescription("Xem phim bất tận với gói 4 vé chỉ 100K")
+                .content("<h2>Gói vé siêu tiết kiệm</h2>" +
+                        "<p>Chương trình đặc biệt - Mua 4 vé xem phim với giá chỉ <strong>100.000đ</strong></p>" +
+                        "<h3>Chi tiết chương trình:</h3>" +
+                        "<ul><li>Mua gói 4 vé với giá 100.000đ (tiết kiệm đến 60%)</li><li>Áp dụng cho tất cả các phim 2D</li><li>Có thể sử dụng cho 4 suất chiếu khác nhau</li><li>Vé có hiệu lực trong vòng 30 ngày kể từ ngày mua</li></ul>")
+                .imageUrl("https://placehold.co/980x448/10b981/ffffff?text=4+VE+100K")
+                .thumbnailUrl("https://placehold.co/400x400/10b981/ffffff?text=100K")
+                .startDate(LocalDate.of(2025, 12, 31))
+                .endDate(LocalDate.of(2026, 12, 31))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.TICKET)
+                .isFeatured(false)
+                .sortOrder(8)
+                .build());
+
+        // Promotion 9 - Quà sinh nhật
+        promotions.add(Promotion.builder()
+                .title("QUÀ SINH NHẬT - MIỄN PHÍ")
+                .shortDescription("Quà Sinh Nhật MIỄN PHÍ cho thành viên")
+                .content("<h2>Ưu đãi sinh nhật thành viên</h2>" +
+                        "<p>Thành viên CinemaPlus có sinh nhật trong tháng nhận ngay quà tặng miễn phí</p>" +
+                        "<h3>Quyền lợi sinh nhật:</h3>" +
+                        "<ul><li>01 vé xem phim 2D miễn phí</li><li>01 phần bắp nước size M</li><li>Giảm 50% cho người đi cùng (tối đa 2 người)</li></ul>" +
+                        "<h3>Cách nhận quà:</h3>" +
+                        "<p>Xuất trình CMND/CCCD và thẻ thành viên CinemaPlus tại quầy vé</p>")
+                .imageUrl("https://placehold.co/980x448/f472b6/ffffff?text=SINH+NHAT")
+                .thumbnailUrl("https://placehold.co/400x400/f472b6/ffffff?text=BIRTHDAY")
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 12, 31))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.MEMBER)
+                .isFeatured(false)
+                .sortOrder(9)
+                .build());
+
+        // Promotion 10 - ShopeePay
+        promotions.add(Promotion.builder()
+                .title("SHOPEE PAY - XEM PHIM XUYÊN LỄ ƯU ĐÃI SIÊU MÊ")
+                .shortDescription("Bạn mới giảm 20% - Bạn thân giảm 10%")
+                .content("<h2>Ưu đãi ShopeePay</h2>" +
+                        "<p>Thanh toán bằng ShopeePay tại web/ứng dụng CinemaPlus để nhận ưu đãi</p>" +
+                        "<h3>Mức ưu đãi:</h3>" +
+                        "<ul><li><strong>Bạn mới:</strong> Giảm 20% tối đa 50.000đ</li><li><strong>Bạn thân:</strong> Giảm 10% tối đa 30.000đ</li></ul>" +
+                        "<h3>Điều kiện:</h3>" +
+                        "<p>Thanh toán qua ShopeePay, không áp dụng cùng mã giảm giá khác</p>")
+                .imageUrl("https://placehold.co/980x448/f97316/ffffff?text=SHOPEEPAY")
+                .thumbnailUrl("https://placehold.co/400x400/f97316/ffffff?text=SHOPEE")
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 1, 31))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.PARTNER)
+                .isFeatured(false)
+                .sortOrder(10)
+                .build());
+
+        // Promotion 11 - Wide Poster
+        promotions.add(Promotion.builder()
+                .title("TẶNG 01 WIDE POSTER - SCREENX & IMAX")
+                .shortDescription("Mỗi vé IMAX/ScreenX nhận ngay Wide Poster")
+                .content("<h2>Quà tặng phim đặc biệt</h2>" +
+                        "<p>Chương trình áp dụng cho phim được chọn tại các rạp ScreenX và IMAX</p>" +
+                        "<h3>Chi tiết:</h3>" +
+                        "<ul><li>Mua vé xem phim tại rạp ScreenX hoặc IMAX</li><li>Nhận ngay 01 Wide Poster phim phiên bản giới hạn</li><li>Số lượng có hạn, đến khi hết quà</li></ul>" +
+                        "<h3>Danh sách phim áp dụng:</h3>" +
+                        "<p>Avatar 3, Transformers: Rise, Fast & Furious 11...</p>")
+                .imageUrl("https://placehold.co/980x448/6366f1/ffffff?text=WIDE+POSTER")
+                .thumbnailUrl("https://placehold.co/400x400/6366f1/ffffff?text=POSTER")
+                .startDate(LocalDate.of(2026, 1, 3))
+                .endDate(LocalDate.of(2026, 1, 25))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.MOVIE)
+                .isFeatured(false)
+                .sortOrder(11)
+                .build());
+
+        // Promotion 12 - Đại Thoại Tây Du
+        promotions.add(Promotion.builder()
+                .title("MUA 1 VÉ ĐẠI THOẠI TÂY DU - NHẬN NGAY 1 LỊCH ĐỂ BÀN 2026")
+                .shortDescription("Hình ảnh bản quyền cực nét!")
+                .content("<h2>Ưu đãi phim Đại Thoại Tây Du</h2>" +
+                        "<p>Chương trình đặc biệt cho phim Đại Thoại Tây Du - Nhận lịch để bàn 2026 khi mua vé</p>" +
+                        "<h3>Điều kiện:</h3>" +
+                        "<ul><li>Mua vé xem phim Đại Thoại Tây Du</li><li>Nhận ngay 01 Lịch để bàn 2026 phiên bản Tây Du Ký</li><li>Số lượng có hạn, đến khi hết quà</li></ul>" +
+                        "<h3>Lưu ý:</h3>" +
+                        "<p>Mỗi vé nhận 01 lịch. Quà tặng không quy đổi thành tiền mặt.</p>")
+                .imageUrl("https://placehold.co/980x448/ef4444/ffffff?text=TAY+DU+KY")
+                .thumbnailUrl("https://placehold.co/400x400/ef4444/ffffff?text=TAY+DU")
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 1, 31))
+                .status(Promotion.PromotionStatus.ACTIVE)
+                .type(Promotion.PromotionType.MOVIE)
+                .isFeatured(false)
+                .sortOrder(12)
+                .build());
+
+        promotionRepository.saveAll(promotions);
+        log.info("Created {} promotions", promotions.size());
     }
 }

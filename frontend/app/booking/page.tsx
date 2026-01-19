@@ -4,19 +4,25 @@ import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Showtime, Seat, Booking, PaymentMethod, Food, FoodOrderItem } from '@/types';
-import { RewardPoints } from '@/types/profile';
+import { RewardPoints, Voucher, Coupon } from '@/types/profile';
 import { showtimeService } from '@/services/showtimeService';
 import { seatService } from '@/services/theaterService';
 import { bookingService, paymentService } from '@/services/bookingService';
 import { foodService } from '@/services/foodService';
-import { getRewardPoints } from '@/services/profileService';
+import { 
+  getRewardPoints, 
+  getAvailableVouchers, 
+  getAvailableCoupons,
+  redeemVoucher,
+  redeemCoupon
+} from '@/services/profileService';
 import { SeatMap } from '@/components';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
-// Thời gian giữ chỗ (15 phút = 900 giây)
-const HOLD_TIME_SECONDS = 15 * 60;
+// Thời gian giữ chỗ (5 phút = 300 giây)
+const HOLD_TIME_SECONDS = 5 * 60;
 
 // Category labels
 const CATEGORY_LABELS: Record<string, string> = {
@@ -37,6 +43,49 @@ const STEPS = [
   { num: 4, label: 'Hoàn tất' },
 ];
 
+// Payment method icons and info
+const PAYMENT_METHODS = [
+  { 
+    id: 'CREDIT_CARD' as PaymentMethod, 
+    name: 'ATM card (Thẻ nội địa)', 
+    color: 'bg-blue-600',
+    icon: '🏧'
+  },
+  { 
+    id: 'DEBIT_CARD' as PaymentMethod, 
+    name: 'Thẻ quốc tế (Visa, Master, Amex, JCB)', 
+    color: 'bg-blue-800',
+    icon: '💳'
+  },
+  { 
+    id: 'MOMO' as PaymentMethod, 
+    name: 'Ví MoMo', 
+    color: 'bg-pink-500',
+    icon: '📱',
+    promo: 'Giảm 5K cho đơn từ 50K'
+  },
+  { 
+    id: 'ZALOPAY' as PaymentMethod, 
+    name: 'ZaloPay', 
+    color: 'bg-blue-500',
+    icon: '💙',
+    promo: 'Giảm 5K mọi đơn lần đầu'
+  },
+  { 
+    id: 'VNPAY' as PaymentMethod, 
+    name: 'VNPay', 
+    color: 'bg-red-600',
+    icon: '🔴'
+  },
+  { 
+    id: 'BANK_TRANSFER' as PaymentMethod, 
+    name: 'ShopeePay', 
+    color: 'bg-orange-500',
+    icon: '🧡',
+    promo: 'Giảm đến 50.000đ!'
+  },
+];
+
 function BookingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -45,7 +94,7 @@ function BookingContent() {
 
   const showtimeId = Number(searchParams.get('showtimeId'));
 
-  // Steps: 1 = Chọn ghế, 2 = Chọn đồ ăn, 3 = Thanh toán, 4 = Hoàn tất
+  // Steps: 1 = Chọn ghế, 2 = Chọn đồ ăn, 3 = Thanh toán (Giảm giá + HTTT), 4 = Hoàn tất
   const [step, setStep] = useState(1);
   const [showtime, setShowtime] = useState<Showtime | null>(null);
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -70,6 +119,30 @@ function BookingContent() {
   const [userPoints, setUserPoints] = useState<RewardPoints | null>(null);
   const [pointsToUse, setPointsToUse] = useState<number>(0);
   const [usePoints, setUsePoints] = useState<boolean>(false);
+  const [showPointsDropdown, setShowPointsDropdown] = useState(false);
+
+  // Voucher state
+  const [userVouchers, setUserVouchers] = useState<Voucher[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [showVoucherDropdown, setShowVoucherDropdown] = useState(false);
+  const [voucherInputMode, setVoucherInputMode] = useState<'select' | 'input'>('select');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherPin, setVoucherPin] = useState('');
+  const [loadingVoucher, setLoadingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+
+  // Coupon state
+  const [userCoupons, setUserCoupons] = useState<Coupon[]>([]);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [showCouponDropdown, setShowCouponDropdown] = useState(false);
+  const [couponInputMode, setCouponInputMode] = useState<'select' | 'input'>('select');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponPin, setCouponPin] = useState('');
+  const [loadingCoupon, setLoadingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Terms agreement
+  const [agreeTerms, setAgreeTerms] = useState(false);
 
   // ===== UX FIX: Scroll to top when step changes =====
   useEffect(() => {
@@ -78,22 +151,33 @@ function BookingContent() {
 
   // Countdown timer effect
   useEffect(() => {
-    if (!timerStarted || step === 4) return;
+    if (!timerStarted || step === 4 || step === 1) return;
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          alert('Hết thời gian giữ chỗ! Vui lòng đặt vé lại.');
-          router.push(`/dat-ve?movieId=${showtime?.movieId}`);
-          return 0;
+          // Reset all states when time expires
+          setSelectedSeats([]);
+          setFoodOrders([]);
+          setTimerStarted(false);
+          setStep(1);
+          alert('Hết thời gian giữ chỗ! Vui lòng chọn ghế lại.');
+          return HOLD_TIME_SECONDS;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timerStarted, step, router, showtime?.movieId]);
+  }, [timerStarted, step]);
+
+  // Handler for going back to step 1 - reset timer
+  const handleBackToStep1 = () => {
+    setTimerStarted(false);
+    setTimeLeft(HOLD_TIME_SECONDS);
+    setStep(1);
+  };
 
   // Format time for display
   const formatTime = useCallback((seconds: number) => {
@@ -114,18 +198,24 @@ function BookingContent() {
       fetchShowtimeAndSeats();
       fetchFoods();
     }
-    // Fetch user points if authenticated
+    // Fetch user data if authenticated
     if (isAuthenticated) {
-      fetchUserPoints();
+      fetchUserData();
     }
   }, [showtimeId, isAuthenticated]);
 
-  const fetchUserPoints = async () => {
+  const fetchUserData = async () => {
     try {
-      const points = await getRewardPoints();
+      const [points, vouchers, coupons] = await Promise.all([
+        getRewardPoints(),
+        getAvailableVouchers(),
+        getAvailableCoupons()
+      ]);
       setUserPoints(points);
+      setUserVouchers(vouchers);
+      setUserCoupons(coupons);
     } catch (err) {
-      console.error('Error fetching user points:', err);
+      console.error('Error fetching user data:', err);
     }
   };
 
@@ -204,8 +294,60 @@ function BookingContent() {
     handleCreateBooking();
   };
 
+  // Handle voucher redeem
+  const handleRedeemVoucher = async () => {
+    if (!voucherCode || !voucherPin) return;
+    
+    try {
+      setLoadingVoucher(true);
+      setVoucherError(null);
+      const voucher = await redeemVoucher({ voucherCode, pinCode: voucherPin });
+      setUserVouchers(prev => [...prev, voucher]);
+      setSelectedVoucher(voucher);
+      setVoucherCode('');
+      setVoucherPin('');
+      setVoucherInputMode('select');
+    } catch (err: any) {
+      setVoucherError(err.response?.data?.message || 'Mã voucher không hợp lệ');
+    } finally {
+      setLoadingVoucher(false);
+    }
+  };
+
+  // Handle coupon redeem
+  const handleRedeemCoupon = async () => {
+    if (!couponCode || !couponPin) return;
+    
+    try {
+      setLoadingCoupon(true);
+      setCouponError(null);
+      const coupon = await redeemCoupon({ couponCode, pinCode: couponPin });
+      setUserCoupons(prev => [...prev, coupon]);
+      setSelectedCoupon(coupon);
+      setCouponCode('');
+      setCouponPin('');
+      setCouponInputMode('select');
+    } catch (err: any) {
+      setCouponError(err.response?.data?.message || 'Mã coupon không hợp lệ');
+    } finally {
+      setLoadingCoupon(false);
+    }
+  };
+
+  // Reset all discounts
+  const handleResetDiscounts = () => {
+    setSelectedVoucher(null);
+    setSelectedCoupon(null);
+    setUsePoints(false);
+    setPointsToUse(0);
+  };
+
   const handlePayment = async () => {
     if (!booking) return;
+    if (!agreeTerms) {
+      alert('Vui lòng đồng ý với điều khoản sử dụng');
+      return;
+    }
 
     try {
       setProcessing(true);
@@ -218,7 +360,7 @@ function BookingContent() {
       await paymentService.processPayment(payment.id);
       
       // Cập nhật điểm thưởng sau khi thanh toán thành công
-      const earnedPoints = Math.floor((totalAmount - pointsDiscount) / 10000);
+      const earnedPoints = Math.floor((totalAmount - totalDiscount) / 10000);
       setUserPoints(prev => {
         if (!prev) return prev;
         const newPoints = prev.currentPoints - (usePoints ? pointsToUse : 0) + earnedPoints;
@@ -232,7 +374,7 @@ function BookingContent() {
       console.log('Simulating successful payment...');
       
       // Cập nhật điểm thưởng (giả lập)
-      const earnedPoints = Math.floor((totalAmount - pointsDiscount) / 10000);
+      const earnedPoints = Math.floor((totalAmount - totalDiscount) / 10000);
       setUserPoints(prev => {
         if (!prev) return prev;
         const newPoints = prev.currentPoints - (usePoints ? pointsToUse : 0) + earnedPoints;
@@ -294,7 +436,23 @@ function BookingContent() {
     Math.floor(totalAmount / POINT_TO_VND)
   ) : 0;
   const pointsDiscount = usePoints ? pointsToUse * POINT_TO_VND : 0;
-  const finalPaymentAmount = totalAmount - pointsDiscount;
+
+  // Voucher discount
+  const voucherDiscount = selectedVoucher ? selectedVoucher.value : 0;
+
+  // Coupon discount
+  const couponDiscount = selectedCoupon ? (
+    selectedCoupon.discountType === 'PERCENTAGE'
+      ? Math.min(
+          (totalAmount * selectedCoupon.discountValue) / 100,
+          selectedCoupon.maxDiscountAmount || Infinity
+        )
+      : selectedCoupon.discountValue
+  ) : 0;
+
+  // Total discount
+  const totalDiscount = pointsDiscount + voucherDiscount + couponDiscount;
+  const finalPaymentAmount = Math.max(0, totalAmount - totalDiscount);
 
   // Points to earn from this transaction (10,000 VND = 1 point)
   const pointsToEarn = Math.floor(finalPaymentAmount / 10000);
@@ -347,33 +505,33 @@ function BookingContent() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* ===== STICKY HEADER WITH PROMINENT TIMER ===== */}
-      <header className="sticky top-0 z-10 bg-white border-b border-zinc-200 shadow-sm">
+      {/* ===== FIXED TIMER BAR - Below main header ===== */}
+      {timerStarted && step > 1 && step < 4 && (
+        <div className={`
+          fixed top-16 left-0 right-0 z-40 px-4 py-2 flex items-center justify-center gap-3 text-white transition-colors shadow-lg
+          ${getTimerUrgency() === 'critical' 
+            ? 'bg-red-600 animate-pulse' 
+            : getTimerUrgency() === 'warning' 
+              ? 'bg-amber-500' 
+              : 'bg-zinc-800'}
+        `}>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-mono text-xl font-bold tracking-wider">
+            {formatTime(timeLeft)}
+          </span>
+          <span className="text-sm opacity-90">
+            {getTimerUrgency() === 'critical' 
+              ? 'Sắp hết giờ!' 
+              : 'thời gian giữ chỗ'}
+          </span>
+        </div>
+      )}
+
+      {/* ===== STICKY HEADER ===== */}
+      <header className={`sticky z-10 bg-white border-b border-zinc-200 shadow-sm ${timerStarted && step > 1 && step < 4 ? 'top-[104px]' : 'top-0'}`}>
         <div className="max-w-7xl mx-auto">
-          {/* Timer Bar - Always visible when active */}
-          {timerStarted && step < 4 && (
-            <div className={`
-              px-4 py-2 flex items-center justify-center gap-3 text-white transition-colors
-              ${getTimerUrgency() === 'critical' 
-                ? 'bg-red-600 animate-pulse' 
-                : getTimerUrgency() === 'warning' 
-                  ? 'bg-amber-500' 
-                  : 'bg-zinc-800'}
-            `}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="font-mono text-xl font-bold tracking-wider">
-                {formatTime(timeLeft)}
-              </span>
-              <span className="text-sm opacity-90">
-                {getTimerUrgency() === 'critical' 
-                  ? 'Sắp hết giờ!' 
-                  : 'thời gian giữ chỗ'}
-              </span>
-            </div>
-          )}
-          
           {/* Navigation Header */}
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
@@ -451,7 +609,7 @@ function BookingContent() {
               </div>
             )}
 
-            {/* ===== STEP 2: FOOD SELECTION - MINIMALIST DESIGN ===== */}
+            {/* ===== STEP 2: FOOD SELECTION ===== */}
             {step === 2 && (
               <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
                 {/* Header */}
@@ -460,7 +618,7 @@ function BookingContent() {
                   <p className="text-sm text-zinc-500 mt-1">Tùy chọn - Có thể bỏ qua</p>
                 </div>
 
-                {/* Category Tabs - Clean design */}
+                {/* Category Tabs */}
                 <div className="border-b border-zinc-100 overflow-x-auto">
                   <div className="flex px-2">
                     {availableCategories.map((cat) => (
@@ -483,7 +641,7 @@ function BookingContent() {
                   </div>
                 </div>
 
-                {/* Food Grid - Clean cards */}
+                {/* Food Grid */}
                 <div className="p-5">
                   {loadingFoods ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -558,7 +716,7 @@ function BookingContent() {
                                   )}
                                 </div>
 
-                                {/* Quantity Controls - Minimal */}
+                                {/* Quantity Controls */}
                                 <div className="mt-3">
                                   {isSelected ? (
                                     <div className="inline-flex items-center border border-zinc-300 rounded-lg">
@@ -613,7 +771,7 @@ function BookingContent() {
                 {/* Actions */}
                 <div className="p-5 border-t border-zinc-100 flex gap-3">
                   <button
-                    onClick={() => setStep(1)}
+                    onClick={handleBackToStep1}
                     disabled={processing}
                     className="flex-1 py-3 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
                   >
@@ -637,125 +795,423 @@ function BookingContent() {
               </div>
             )}
 
-            {/* ===== STEP 3: PAYMENT ===== */}
+            {/* ===== STEP 3: PAYMENT (Giảm giá + Hình thức thanh toán) ===== */}
             {step === 3 && booking && (
-              <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-                <div className="p-5 border-b border-zinc-100">
-                  <h2 className="text-lg font-semibold text-zinc-900">Thanh toán</h2>
-                  <p className="text-sm text-zinc-500 mt-1">Chọn phương thức thanh toán</p>
+              <div className="space-y-4">
+                {/* ===== BƯỚC 1: GIẢM GIÁ ===== */}
+                <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                  <div className="bg-zinc-800 text-white px-4 py-3 flex items-center justify-between">
+                    <span className="font-semibold">Bước 1: GIẢM GIÁ</span>
+                    <button
+                      onClick={handleResetDiscounts}
+                      className="text-sm flex items-center gap-1 hover:underline text-zinc-300 hover:text-white"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Đặt lại
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-zinc-100">
+                    {/* ===== VOUCHER DROPDOWN ===== */}
+                    <div>
+                      <button
+                        onClick={() => {
+                          setShowVoucherDropdown(!showVoucherDropdown);
+                          setShowCouponDropdown(false);
+                          setShowPointsDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors"
+                      >
+                        <span className="text-zinc-800 font-medium">Voucher</span>
+                        <div className="flex items-center gap-2">
+                          {selectedVoucher && (
+                            <span className="text-green-600 text-sm">
+                              -{formatCurrency(selectedVoucher.value)}
+                            </span>
+                          )}
+                          <svg className={`w-5 h-5 text-zinc-400 transition-transform ${showVoucherDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+                      
+                      {showVoucherDropdown && (
+                        <div className="px-4 pb-4 bg-zinc-50">
+                          {/* Mode Toggle */}
+                          <div className="flex gap-2 mb-3">
+                            <button
+                              onClick={() => setVoucherInputMode('select')}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                                voucherInputMode === 'select' 
+                                  ? 'bg-zinc-800 text-white' 
+                                  : 'bg-white border border-zinc-200 text-zinc-700'
+                              }`}
+                            >
+                              Chọn voucher
+                            </button>
+                            <button
+                              onClick={() => setVoucherInputMode('input')}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                                voucherInputMode === 'input' 
+                                  ? 'bg-zinc-800 text-white' 
+                                  : 'bg-white border border-zinc-200 text-zinc-700'
+                              }`}
+                            >
+                              Nhập mã
+                            </button>
+                          </div>
+
+                          {voucherInputMode === 'select' ? (
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                              {userVouchers.length === 0 ? (
+                                <p className="text-sm text-zinc-500 text-center py-3">Bạn chưa có voucher nào</p>
+                              ) : (
+                                <>
+                                  <label className={`flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all ${
+                                    !selectedVoucher ? 'border-zinc-800' : 'border-zinc-200'
+                                  }`}>
+                                    <input
+                                      type="radio"
+                                      name="voucher"
+                                      checked={!selectedVoucher}
+                                      onChange={() => setSelectedVoucher(null)}
+                                      className="w-4 h-4 text-zinc-800"
+                                    />
+                                    <span className="ml-3 text-sm text-zinc-700">Không sử dụng</span>
+                                  </label>
+                                  {userVouchers.map((v) => (
+                                    <label
+                                      key={v.id}
+                                      className={`flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer transition-all ${
+                                        selectedVoucher?.id === v.id ? 'border-zinc-800' : 'border-zinc-200'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <input
+                                          type="radio"
+                                          name="voucher"
+                                          checked={selectedVoucher?.id === v.id}
+                                          onChange={() => setSelectedVoucher(v)}
+                                          className="w-4 h-4 text-zinc-800"
+                                        />
+                                        <div>
+                                          <p className="text-sm font-medium text-zinc-900">{v.voucherCode}</p>
+                                          <p className="text-xs text-zinc-500">HSD: {formatDate(v.expiryDate)}</p>
+                                        </div>
+                                      </div>
+                                      <span className="text-green-600 font-semibold">-{formatCurrency(v.value)}</span>
+                                    </label>
+                                  ))}
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <input
+                                type="text"
+                                value={voucherCode}
+                                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                                placeholder="Nhập mã voucher"
+                                className="w-full px-3 py-2 text-sm border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500"
+                              />
+                              <input
+                                type="text"
+                                value={voucherPin}
+                                onChange={(e) => setVoucherPin(e.target.value)}
+                                placeholder="Nhập mã PIN"
+                                className="w-full px-3 py-2 text-sm border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500"
+                              />
+                              {voucherError && (
+                                <p className="text-red-600 text-sm">{voucherError}</p>
+                              )}
+                              <button
+                                onClick={handleRedeemVoucher}
+                                disabled={loadingVoucher || !voucherCode || !voucherPin}
+                                className="w-full py-2 text-sm font-medium text-white bg-zinc-800 rounded-lg hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+                              >
+                                {loadingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ===== COUPON DROPDOWN ===== */}
+                    <div>
+                      <button
+                        onClick={() => {
+                          setShowCouponDropdown(!showCouponDropdown);
+                          setShowVoucherDropdown(false);
+                          setShowPointsDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors"
+                      >
+                        <span className="text-zinc-800 font-medium">Mã giảm giá (Coupon)</span>
+                        <div className="flex items-center gap-2">
+                          {selectedCoupon && (
+                            <span className="text-green-600 text-sm">
+                              {selectedCoupon.discountType === 'PERCENTAGE' 
+                                ? `-${selectedCoupon.discountValue}%`
+                                : `-${formatCurrency(selectedCoupon.discountValue)}`}
+                            </span>
+                          )}
+                          <svg className={`w-5 h-5 text-zinc-400 transition-transform ${showCouponDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+                      
+                      {showCouponDropdown && (
+                        <div className="px-4 pb-4 bg-zinc-50">
+                          {/* Mode Toggle */}
+                          <div className="flex gap-2 mb-3">
+                            <button
+                              onClick={() => setCouponInputMode('select')}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                                couponInputMode === 'select' 
+                                  ? 'bg-zinc-800 text-white' 
+                                  : 'bg-white border border-zinc-200 text-zinc-700'
+                              }`}
+                            >
+                              Chọn coupon
+                            </button>
+                            <button
+                              onClick={() => setCouponInputMode('input')}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                                couponInputMode === 'input' 
+                                  ? 'bg-zinc-800 text-white' 
+                                  : 'bg-white border border-zinc-200 text-zinc-700'
+                              }`}
+                            >
+                              Nhập mã
+                            </button>
+                          </div>
+
+                          {couponInputMode === 'select' ? (
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                              {userCoupons.length === 0 ? (
+                                <p className="text-sm text-zinc-500 text-center py-3">Bạn chưa có coupon nào</p>
+                              ) : (
+                                <>
+                                  <label className={`flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all ${
+                                    !selectedCoupon ? 'border-zinc-800' : 'border-zinc-200'
+                                  }`}>
+                                    <input
+                                      type="radio"
+                                      name="coupon"
+                                      checked={!selectedCoupon}
+                                      onChange={() => setSelectedCoupon(null)}
+                                      className="w-4 h-4 text-zinc-800"
+                                    />
+                                    <span className="ml-3 text-sm text-zinc-700">Không sử dụng</span>
+                                  </label>
+                                  {userCoupons.map((c) => (
+                                    <label
+                                      key={c.id}
+                                      className={`flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer transition-all ${
+                                        selectedCoupon?.id === c.id ? 'border-zinc-800' : 'border-zinc-200'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <input
+                                          type="radio"
+                                          name="coupon"
+                                          checked={selectedCoupon?.id === c.id}
+                                          onChange={() => setSelectedCoupon(c)}
+                                          className="w-4 h-4 text-zinc-800"
+                                        />
+                                        <div>
+                                          <p className="text-sm font-medium text-zinc-900">{c.couponCode}</p>
+                                          <p className="text-xs text-zinc-500">{c.description}</p>
+                                        </div>
+                                      </div>
+                                      <span className="text-green-600 font-semibold">
+                                        {c.discountType === 'PERCENTAGE' 
+                                          ? `-${c.discountValue}%`
+                                          : `-${formatCurrency(c.discountValue)}`}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <input
+                                type="text"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                placeholder="Nhập mã coupon"
+                                className="w-full px-3 py-2 text-sm border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500"
+                              />
+                              <input
+                                type="text"
+                                value={couponPin}
+                                onChange={(e) => setCouponPin(e.target.value)}
+                                placeholder="Nhập mã PIN"
+                                className="w-full px-3 py-2 text-sm border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500"
+                              />
+                              {couponError && (
+                                <p className="text-red-600 text-sm">{couponError}</p>
+                              )}
+                              <button
+                                onClick={handleRedeemCoupon}
+                                disabled={loadingCoupon || !couponCode || !couponPin}
+                                className="w-full py-2 text-sm font-medium text-white bg-zinc-800 rounded-lg hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+                              >
+                                {loadingCoupon ? 'Đang kiểm tra...' : 'Áp dụng'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ===== ĐIỂM THƯỞNG DROPDOWN ===== */}
+                    <div>
+                      <button
+                        onClick={() => {
+                          setShowPointsDropdown(!showPointsDropdown);
+                          setShowVoucherDropdown(false);
+                          setShowCouponDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors"
+                      >
+                        <span className="text-zinc-800 font-medium">Điểm thưởng</span>
+                        <div className="flex items-center gap-2">
+                          {usePoints && pointsToUse > 0 && (
+                            <span className="text-green-600 text-sm">
+                              -{formatCurrency(pointsDiscount)}
+                            </span>
+                          )}
+                          <svg className={`w-5 h-5 text-zinc-400 transition-transform ${showPointsDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+                      
+                      {showPointsDropdown && (
+                        <div className="px-4 pb-4 bg-zinc-50">
+                          {userPoints ? (
+                            <div className="space-y-3">
+                              {/* Hiển thị điểm hiện có */}
+                              <div className="p-3 bg-white rounded-lg border border-zinc-200">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-zinc-600">Điểm hiện có:</span>
+                                  <span className="text-lg font-bold text-zinc-900">{userPoints.currentPoints.toLocaleString()} điểm</span>
+                                </div>
+                                <p className="text-xs text-zinc-500 mt-1">1 điểm = 1.000đ</p>
+                              </div>
+                              
+                              {/* Ô nhập số điểm muốn dùng */}
+                              {userPoints.currentPoints > 0 && (
+                                <div className="p-3 bg-white rounded-lg border border-zinc-200">
+                                  <label className="block text-sm text-zinc-700 mb-2">Số điểm muốn sử dụng:</label>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={maxPointsCanUse}
+                                      value={pointsToUse}
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        handlePointsInputChange(val);
+                                        setUsePoints(val > 0);
+                                      }}
+                                      placeholder="0"
+                                      className="flex-1 px-3 py-2 text-sm border border-zinc-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500"
+                                    />
+                                    <span className="text-sm text-zinc-500">/ {maxPointsCanUse.toLocaleString()}</span>
+                                  </div>
+                                  {pointsToUse > 0 && (
+                                    <p className="text-sm text-green-600 mt-2">
+                                      Giảm: {formatCurrency(pointsDiscount)}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-zinc-500 text-center py-3">
+                              Bạn chưa có điểm thưởng
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="p-5 space-y-3">
-                  {(['MOMO', 'VNPAY', 'ZALOPAY', 'CREDIT_CARD', 'BANK_TRANSFER'] as PaymentMethod[]).map(
-                    (method) => (
+
+                {/* ===== BƯỚC 2: HÌNH THỨC THANH TOÁN ===== */}
+                <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                  <div className="bg-zinc-800 text-white px-4 py-3">
+                    <span className="font-semibold">Bước 2: HÌNH THỨC THANH TOÁN</span>
+                  </div>
+
+                  <div className="divide-y divide-zinc-100">
+                    {PAYMENT_METHODS.map((method) => (
                       <label
-                        key={method}
-                        className={`
-                          flex items-center p-4 border rounded-xl cursor-pointer transition-all
-                          ${paymentMethod === method 
-                            ? 'border-zinc-900 bg-zinc-50' 
-                            : 'border-zinc-200 hover:border-zinc-300'}
-                        `}
+                        key={method.id}
+                        className={`flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors ${
+                          paymentMethod === method.id ? 'bg-zinc-100' : ''
+                        }`}
                       >
                         <input
                           type="radio"
                           name="paymentMethod"
-                          value={method}
-                          checked={paymentMethod === method}
-                          onChange={() => setPaymentMethod(method)}
-                          className="w-4 h-4 text-zinc-900 border-zinc-300 focus:ring-zinc-500"
+                          value={method.id}
+                          checked={paymentMethod === method.id}
+                          onChange={() => setPaymentMethod(method.id)}
+                          className="w-4 h-4 text-zinc-800 border-zinc-300 focus:ring-zinc-500"
                         />
-                        <span className="ml-3 text-sm font-medium text-zinc-900">{getPaymentMethodName(method)}</span>
+                        <div className={`w-10 h-10 ${method.color} rounded-lg flex items-center justify-center ml-3`}>
+                          <span className="text-lg">{method.icon}</span>
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <span className="text-sm font-medium text-zinc-900">{method.name}</span>
+                          {method.promo && (
+                            <p className="text-xs text-green-600">{method.promo}</p>
+                          )}
+                        </div>
                       </label>
-                    )
-                  )}
+                    ))}
+                  </div>
                 </div>
 
-                {/* ===== REWARD POINTS SECTION ===== */}
-                {userPoints && userPoints.currentPoints > 0 && (
-                  <div className="p-5 border-t border-zinc-100">
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-semibold text-amber-900">Điểm thưởng</span>
-                        </div>
-                        <span className="text-sm text-amber-700">
-                          Bạn có <span className="font-bold">{userPoints.currentPoints.toLocaleString()}</span> điểm
-                        </span>
-                      </div>
-                      
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={usePoints}
-                          onChange={(e) => handleUsePointsChange(e.target.checked)}
-                          className="w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
-                        />
-                        <span className="text-sm text-amber-800">
-                          Sử dụng điểm để giảm giá (1 điểm = 1.000đ)
-                        </span>
-                      </label>
+                {/* ===== ĐIỀU KHOẢN & NÚT THANH TOÁN ===== */}
+                <div className="bg-white rounded-xl border border-zinc-200 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer mb-4">
+                    <input
+                      type="checkbox"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="w-5 h-5 mt-0.5 text-zinc-800 border-zinc-300 rounded focus:ring-zinc-500"
+                    />
+                    <span className="text-sm text-zinc-700">
+                      Tôi đồng ý với{' '}
+                      <a href="#" className="text-zinc-800 font-medium hover:underline">điều khoản sử dụng</a>
+                      {' '}và mua vé cho người có độ tuổi phù hợp
+                    </span>
+                  </label>
 
-                      {usePoints && (
-                        <div className="mt-4 space-y-3">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="range"
-                              min="0"
-                              max={maxPointsCanUse}
-                              value={pointsToUse}
-                              onChange={(e) => handlePointsInputChange(Number(e.target.value))}
-                              className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              max={maxPointsCanUse}
-                              value={pointsToUse}
-                              onChange={(e) => handlePointsInputChange(Number(e.target.value))}
-                              className="w-24 px-3 py-2 text-center text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                            />
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-amber-700">Giảm giá:</span>
-                            <span className="font-bold text-green-600">-{formatCurrency(pointsDiscount)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm pt-2 border-t border-amber-200">
-                            <span className="text-amber-800 font-medium">Còn phải trả:</span>
-                            <span className="font-bold text-amber-900">{formatCurrency(finalPaymentAmount)}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-3 pt-3 border-t border-amber-200">
-                        <div className="flex items-center gap-2 text-xs text-amber-700">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>Bạn sẽ tích được <span className="font-bold text-amber-900">+{pointsToEarn}</span> điểm từ đơn này</span>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex-1 py-3 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
+                    >
+                      Quay lại
+                    </button>
+                    <button
+                      onClick={handlePayment}
+                      disabled={processing || !agreeTerms}
+                      className="flex-1 py-3 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {processing ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(finalPaymentAmount)}`}
+                    </button>
                   </div>
-                )}
-
-                <div className="p-5 border-t border-zinc-100 flex gap-3">
-                  <button
-                    onClick={() => setStep(2)}
-                    className="flex-1 py-3 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg hover:bg-zinc-50 transition-colors"
-                  >
-                    Quay lại
-                  </button>
-                  <button
-                    onClick={handlePayment}
-                    disabled={processing}
-                    className="flex-1 py-3 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {processing ? 'Đang xử lý...' : `Thanh toán ${formatCurrency(finalPaymentAmount)}`}
-                  </button>
                 </div>
               </div>
             )}
@@ -897,6 +1353,31 @@ function BookingContent() {
                         </div>
                       </>
                     )}
+
+                    {/* Discounts */}
+                    {step === 3 && totalDiscount > 0 && (
+                      <div className="border-t border-zinc-100 pt-3 space-y-2">
+                        <p className="text-xs text-zinc-500 uppercase font-medium">Giảm giá</p>
+                        {selectedVoucher && (
+                          <div className="flex justify-between text-green-600 text-xs">
+                            <span>Voucher ({selectedVoucher.voucherCode})</span>
+                            <span>-{formatCurrency(voucherDiscount)}</span>
+                          </div>
+                        )}
+                        {selectedCoupon && (
+                          <div className="flex justify-between text-green-600 text-xs">
+                            <span>Coupon ({selectedCoupon.couponCode})</span>
+                            <span>-{formatCurrency(couponDiscount)}</span>
+                          </div>
+                        )}
+                        {usePoints && pointsToUse > 0 && (
+                          <div className="flex justify-between text-green-600 text-xs">
+                            <span>Điểm ({pointsToUse.toLocaleString()})</span>
+                            <span>-{formatCurrency(pointsDiscount)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Total */}
@@ -908,12 +1389,20 @@ function BookingContent() {
                       </span>
                     </div>
                     
-                    {/* Points discount display */}
-                    {step === 3 && usePoints && pointsToUse > 0 && (
-                      <div className="flex justify-between items-center mt-2 text-sm text-green-600">
-                        <span>Điểm thưởng ({pointsToUse.toLocaleString()} điểm)</span>
-                        <span>-{formatCurrency(pointsDiscount)}</span>
-                      </div>
+                    {/* Final payment amount with discounts */}
+                    {step === 3 && totalDiscount > 0 && (
+                      <>
+                        <div className="flex justify-between items-center mt-2 text-sm text-green-600">
+                          <span>Giảm giá</span>
+                          <span>-{formatCurrency(totalDiscount)}</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
+                          <span className="font-semibold text-zinc-900">Thanh toán</span>
+                          <span className="text-xl font-bold text-zinc-900">
+                            {formatCurrency(finalPaymentAmount)}
+                          </span>
+                        </div>
+                      </>
                     )}
                     
                     {booking?.discountAmount && booking.discountAmount > 0 && (
@@ -925,20 +1414,10 @@ function BookingContent() {
                       </>
                     )}
                     
-                    {/* Final payment amount */}
-                    {(step === 3 && (usePoints && pointsToUse > 0)) && (
-                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
-                        <span className="font-semibold text-zinc-900">Thanh toán</span>
-                        <span className="text-xl font-bold text-zinc-900">
-                          {formatCurrency(finalPaymentAmount)}
-                        </span>
-                      </div>
-                    )}
-                    
                     {/* Points to earn info */}
                     {step >= 2 && pointsToEarn > 0 && (
-                      <div className="mt-3 pt-3 border-t border-zinc-200 flex items-center gap-2 text-xs text-amber-700">
-                        <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="mt-3 pt-3 border-t border-zinc-200 flex items-center gap-2 text-xs text-zinc-600">
+                        <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>Tích lũy <span className="font-bold">+{pointsToEarn}</span> điểm</span>

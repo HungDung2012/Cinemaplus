@@ -328,3 +328,31 @@ export interface ShowtimeSlot {
   roomName: string;
   availableSeats?: number;
 }
+
+// Promotion types
+export type PromotionStatus = 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'UPCOMING';
+export type PromotionType = 'GENERAL' | 'TICKET' | 'FOOD' | 'COMBO' | 'MEMBER' | 'PARTNER' | 'SPECIAL_DAY' | 'MOVIE';
+
+export interface Promotion {
+  id: number;
+  title: string;
+  shortDescription?: string;
+  content?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  status: PromotionStatus;
+  type: PromotionType;
+  isFeatured: boolean;
+  viewCount: number;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  dateRangeDisplay?: string;
+}
+
+export interface PromotionTypeOption {
+  value: string;
+  label: string;
+}

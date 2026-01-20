@@ -569,16 +569,16 @@ function BookingContent() {
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main ref={mainContentRef} className="max-w-7xl mx-auto px-4 py-6">
+      <main ref={mainContentRef} className="max-w-7xl mx-auto px-4 py-6 pt-16">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
           {/* Main Content Area */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 ">
             
             {/* ===== STEP 1: SEAT SELECTION ===== */}
             {step === 1 && showtime && (
@@ -611,7 +611,7 @@ function BookingContent() {
 
             {/* ===== STEP 2: FOOD SELECTION ===== */}
             {step === 2 && (
-              <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+              <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden ">
                 {/* Header */}
                 <div className="p-5 border-b border-zinc-100">
                   <h2 className="text-lg font-semibold text-zinc-900">Thêm đồ ăn & thức uống</h2>
@@ -1405,7 +1405,7 @@ function BookingContent() {
                       </>
                     )}
                     
-                    {booking?.discountAmount && booking.discountAmount > 0 && (
+                    {booking?.discountAmount != null && booking.discountAmount > 0 && (
                       <>
                         <div className="flex justify-between items-center mt-2 text-sm text-green-600">
                           <span>Giảm giá</span>

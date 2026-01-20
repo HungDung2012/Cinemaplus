@@ -1781,8 +1781,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li>Mua 02 vé phim Conan: Quả Bom Chọc Trời</li><li>Nhận 01 thẻ sưu tầm phiên bản giới hạn</li><li>Nhận 01 móc khóa đựng thẻ exclusive</li></ul>" +
                         "<h2>III. Lưu ý</h2>" +
                         "<p>Số lượng quà có hạn, áp dụng cho đến khi hết quà. Mỗi khách hàng chỉ được nhận tối đa 2 phần quà/ngày.</p>")
-                .imageUrl("https://placehold.co/980x448/e11d48/ffffff?text=CONAN+MOVIE")
-                .thumbnailUrl("https://placehold.co/400x400/e11d48/ffffff?text=CONAN")
+                .imageUrl("https://picsum.photos/seed/conan/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/conan/400/400")
                 .startDate(LocalDate.of(2026, 1, 23))
                 .endDate(LocalDate.of(2026, 1, 25))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1800,8 +1800,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<h3>Điều kiện áp dụng:</h3>" +
                         "<ul><li>Áp dụng cho các suất chiếu 10:00, 14:00 và 20:00</li><li>Áp dụng cho tất cả các phim 2D</li><li>Không áp dụng cùng các khuyến mãi khác</li></ul>" +
                         "<p><em>*Chương trình có thể kết thúc sớm mà không cần báo trước</em></p>")
-                .imageUrl("https://placehold.co/980x448/3b82f6/ffffff?text=SPECIAL+SHOW")
-                .thumbnailUrl("https://placehold.co/400x400/3b82f6/ffffff?text=69K")
+                .imageUrl("https://picsum.photos/seed/special/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/special/400/400")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 1, 13))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1820,8 +1820,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li>Mua bất kỳ combo bắp nước từ 79.000đ trở lên</li><li>Nhận ngay 01 bộ bao lì xì Geo Quẻ 12 con giáp</li><li>Số lượng có hạn, đến khi hết quà</li></ul>" +
                         "<h3>Thời gian áp dụng:</h3>" +
                         "<p>Từ 09/01/2026 đến 15/02/2026 hoặc đến khi hết quà</p>")
-                .imageUrl("https://placehold.co/980x448/f59e0b/ffffff?text=LI+XI+TET")
-                .thumbnailUrl("https://placehold.co/400x400/f59e0b/ffffff?text=LI+XI")
+                .imageUrl("https://picsum.photos/seed/lixi/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/lixi/400/400")
                 .startDate(LocalDate.of(2026, 1, 9))
                 .endDate(LocalDate.of(2026, 2, 15))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1839,8 +1839,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<h3>Cách thức tham gia:</h3>" +
                         "<ul><li>Mua combo bắp nước bất kỳ</li><li>Bóc ngay lì xì may mắn</li><li>Nhận quà tặng hấp dẫn</li></ul>" +
                         "<p>Giải thưởng bao gồm: Voucher giảm giá, Bắp nước miễn phí, Vé xem phim...</p>")
-                .imageUrl("https://placehold.co/980x448/ec4899/ffffff?text=LI+XI+LIEN+TAY")
-                .thumbnailUrl("https://placehold.co/400x400/ec4899/ffffff?text=LI+XI")
+                .imageUrl("https://picsum.photos/seed/tet/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/tet/400/400")
                 .startDate(LocalDate.of(2026, 1, 9))
                 .endDate(LocalDate.of(2026, 2, 1))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1859,8 +1859,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li>Mua tối thiểu 02 vé xem phim</li><li>Thanh toán bằng thẻ Visa qua Apple Pay</li><li>Nhận ngay Combo 1 bắp + 2 nước trị giá 89.000đ</li></ul>" +
                         "<h3>Lưu ý:</h3>" +
                         "<p>Mỗi thẻ chỉ được áp dụng 01 lần/tháng. Không áp dụng cùng các khuyến mãi khác.</p>")
-                .imageUrl("https://placehold.co/980x448/1e40af/ffffff?text=VISA+APPLE+PAY")
-                .thumbnailUrl("https://placehold.co/400x400/1e40af/ffffff?text=VISA")
+                .imageUrl("https://picsum.photos/seed/visa/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/visa/400/400")
                 .startDate(LocalDate.of(2026, 1, 9))
                 .endDate(LocalDate.of(2026, 6, 30))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1878,8 +1878,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<h3>Cách thức tham gia:</h3>" +
                         "<ol><li>Mở ứng dụng ZaloPay</li><li>Chọn mục Đặt vé xem phim</li><li>Chọn CinemaPlus và suất chiếu yêu thích</li><li>Thanh toán và nhận vé điện tử</li></ol>" +
                         "<p><em>*Áp dụng cho người dùng mới ZaloPay, giới hạn 2 vé/giao dịch</em></p>")
-                .imageUrl("https://placehold.co/980x448/0ea5e9/ffffff?text=ZALOPAY+19K")
-                .thumbnailUrl("https://placehold.co/400x400/0ea5e9/ffffff?text=ZALOPAY")
+                .imageUrl("https://picsum.photos/seed/zalopay/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/zalopay/400/400")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 1, 31))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1896,8 +1896,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<p>Ưu đãi dành cho thành viên MoMo - Giảm ngay <strong>10.000đ</strong> khi thanh toán bằng ví MoMo</p>" +
                         "<h3>Điều kiện áp dụng:</h3>" +
                         "<ul><li>Là thành viên MoMo</li><li>Thanh toán qua ví MoMo tại quầy hoặc web/app CinemaPlus</li><li>Không giới hạn số lần sử dụng</li></ul>")
-                .imageUrl("https://placehold.co/980x448/a855f7/ffffff?text=MOMO+10K")
-                .thumbnailUrl("https://placehold.co/400x400/a855f7/ffffff?text=MOMO")
+                .imageUrl("https://picsum.photos/seed/momo/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/momo/400/400")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 1, 31))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1914,8 +1914,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<p>Chương trình đặc biệt - Mua 4 vé xem phim với giá chỉ <strong>100.000đ</strong></p>" +
                         "<h3>Chi tiết chương trình:</h3>" +
                         "<ul><li>Mua gói 4 vé với giá 100.000đ (tiết kiệm đến 60%)</li><li>Áp dụng cho tất cả các phim 2D</li><li>Có thể sử dụng cho 4 suất chiếu khác nhau</li><li>Vé có hiệu lực trong vòng 30 ngày kể từ ngày mua</li></ul>")
-                .imageUrl("https://placehold.co/980x448/10b981/ffffff?text=4+VE+100K")
-                .thumbnailUrl("https://placehold.co/400x400/10b981/ffffff?text=100K")
+                .imageUrl("https://picsum.photos/seed/100k/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/100k/400/400")
                 .startDate(LocalDate.of(2025, 12, 31))
                 .endDate(LocalDate.of(2026, 12, 31))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1934,8 +1934,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li>01 vé xem phim 2D miễn phí</li><li>01 phần bắp nước size M</li><li>Giảm 50% cho người đi cùng (tối đa 2 người)</li></ul>" +
                         "<h3>Cách nhận quà:</h3>" +
                         "<p>Xuất trình CMND/CCCD và thẻ thành viên CinemaPlus tại quầy vé</p>")
-                .imageUrl("https://placehold.co/980x448/f472b6/ffffff?text=SINH+NHAT")
-                .thumbnailUrl("https://placehold.co/400x400/f472b6/ffffff?text=BIRTHDAY")
+                .imageUrl("https://picsum.photos/seed/birthday/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/birthday/400/400")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 12, 31))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1954,8 +1954,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li><strong>Bạn mới:</strong> Giảm 20% tối đa 50.000đ</li><li><strong>Bạn thân:</strong> Giảm 10% tối đa 30.000đ</li></ul>" +
                         "<h3>Điều kiện:</h3>" +
                         "<p>Thanh toán qua ShopeePay, không áp dụng cùng mã giảm giá khác</p>")
-                .imageUrl("https://placehold.co/980x448/f97316/ffffff?text=SHOPEEPAY")
-                .thumbnailUrl("https://placehold.co/400x400/f97316/ffffff?text=SHOPEE")
+                .imageUrl("https://picsum.photos/seed/shopee/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/shopee/400/400")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 1, 31))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1974,8 +1974,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li>Mua vé xem phim tại rạp ScreenX hoặc IMAX</li><li>Nhận ngay 01 Wide Poster phim phiên bản giới hạn</li><li>Số lượng có hạn, đến khi hết quà</li></ul>" +
                         "<h3>Danh sách phim áp dụng:</h3>" +
                         "<p>Avatar 3, Transformers: Rise, Fast & Furious 11...</p>")
-                .imageUrl("https://placehold.co/980x448/6366f1/ffffff?text=WIDE+POSTER")
-                .thumbnailUrl("https://placehold.co/400x400/6366f1/ffffff?text=POSTER")
+                .imageUrl("https://picsum.photos/seed/poster/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/poster/400/400")
                 .startDate(LocalDate.of(2026, 1, 3))
                 .endDate(LocalDate.of(2026, 1, 25))
                 .status(Promotion.PromotionStatus.ACTIVE)
@@ -1994,8 +1994,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         "<ul><li>Mua vé xem phim Đại Thoại Tây Du</li><li>Nhận ngay 01 Lịch để bàn 2026 phiên bản Tây Du Ký</li><li>Số lượng có hạn, đến khi hết quà</li></ul>" +
                         "<h3>Lưu ý:</h3>" +
                         "<p>Mỗi vé nhận 01 lịch. Quà tặng không quy đổi thành tiền mặt.</p>")
-                .imageUrl("https://placehold.co/980x448/ef4444/ffffff?text=TAY+DU+KY")
-                .thumbnailUrl("https://placehold.co/400x400/ef4444/ffffff?text=TAY+DU")
+                .imageUrl("https://picsum.photos/seed/taydu/980/448")
+                .thumbnailUrl("https://picsum.photos/seed/taydu/400/400")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 1, 31))
                 .status(Promotion.PromotionStatus.ACTIVE)

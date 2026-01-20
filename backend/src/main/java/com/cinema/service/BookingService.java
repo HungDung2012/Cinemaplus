@@ -46,7 +46,7 @@ public class BookingService {
     private static final int MIN_MINUTES_BEFORE_SHOWTIME = 30;
     
     /** Thời gian giữ chỗ tối đa (phút) - sau thời gian này booking sẽ expired */
-    private static final int HOLD_TIME_MINUTES = 15;
+    private static final int HOLD_TIME_MINUTES = 5;
     
     // ==================== DEPENDENCIES ====================
     

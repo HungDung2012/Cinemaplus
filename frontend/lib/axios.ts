@@ -33,6 +33,7 @@ api.interceptors.request.use(
   }
 );
 
+export default api;
 // Interceptor để xử lý response
 api.interceptors.response.use(
   (response) => response,

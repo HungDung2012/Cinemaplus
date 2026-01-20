@@ -30,7 +30,7 @@ public class Movie {
     private String description;
 
     @Column(nullable = false)
-    private Integer duration; // Duration in minutes
+    private Integer duration;
 
     @Column(length = 100)
     private String director;
@@ -57,10 +57,10 @@ public class Movie {
     private String trailerUrl;
 
     @Column(name = "age_rating", length = 10)
-    private String ageRating; // P, C13, C16, C18
+    private String ageRating;
 
     @Column(precision = 3)
-    private Double rating; // 0.0 - 10.0
+    private Double rating;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

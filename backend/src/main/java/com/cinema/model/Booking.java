@@ -61,16 +61,10 @@ public class Booking {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
-    /**
-     * Số điểm thưởng đã sử dụng cho đơn này
-     */
     @Column(name = "points_used")
     @Builder.Default
     private Integer pointsUsed = 0;
 
-    /**
-     * Số tiền được giảm từ điểm thưởng (1 điểm = 1.000đ)
-     */
     @Column(name = "points_discount", precision = 12, scale = 2)
     @Builder.Default
     private BigDecimal pointsDiscount = BigDecimal.ZERO;
@@ -106,16 +100,13 @@ public class Booking {
         PENDING, CONFIRMED, CANCELLED, EXPIRED, COMPLETED
     }
 
-    // Helper method to add booking seat
     public void addBookingSeat(BookingSeat bookingSeat) {
         bookingSeats.add(bookingSeat);
         bookingSeat.setBooking(this);
     }
 
-    // Helper method to add booking food
     public void addBookingFood(BookingFood bookingFood) {
         bookingFoods.add(bookingFood);
         bookingFood.setBooking(this);
     }
-    
 }

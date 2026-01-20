@@ -8,6 +8,8 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Nó bảo Axios gửi kèm Cookies (nếu có) trong mọi request.
+  withCredentials: true,
   timeout: 10000,
 });
 

@@ -41,8 +41,6 @@ public class User {
 
     @Column(length = 255)
     private String avatar;
-
-    // ===== NEW FIELDS FOR USER PROFILE MANAGEMENT =====
     
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
@@ -110,8 +108,6 @@ public class User {
     }
     
     public enum MembershipLevel {
-        NORMAL,     // 0 - 999,999 VND
-        VIP,        // 1,000,000 - 4,999,999 VND
-        PLATINUM    // >= 5,000,000 VND
+        NORMAL, VIP, PLATINUM
     }
 }

@@ -41,7 +41,7 @@ public class Theater {
     private String description;
 
     @Column(name = "map_url", length = 500)
-    private String mapUrl;  // Google Maps URL
+    private String mapUrl;
 
     @Column(name = "hotline", length = 20)
     private String hotline;
@@ -66,9 +66,6 @@ public class Theater {
     @JoinColumn(name = "city_id")
     private City city;
 
-    /**
-     * Helper method để lấy Region thông qua City
-     */
     public Region getRegion() {
         return city != null ? city.getRegion() : null;
     }

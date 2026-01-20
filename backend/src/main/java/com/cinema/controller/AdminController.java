@@ -1,8 +1,9 @@
 package com.cinema.controller;
 
+import com.cinema.dto.mapper.AdminDTOMapper;
+import com.cinema.dto.response.*;
 import com.cinema.model.*;
 import com.cinema.repository.*;
-import com.cinema.dto.request.MovieRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,7 +17,6 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     @Autowired
@@ -48,6 +48,9 @@ public class AdminController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AdminDTOMapper dtoMapper;
 
     // ==================== MOVIES ====================
 
@@ -94,14 +97,14 @@ public class AdminController {
     // ==================== THEATERS ====================
 
     @GetMapping("/theaters")
-    public ResponseEntity<List<Theater>> getAllTheaters() {
-        return ResponseEntity.ok(theaterRepository.findAll());
+    public ResponseEntity<List<TheaterResponse>> getAllTheaters() {
+        return ResponseEntity.ok(dtoMapper.toTheaterResponseList(theaterRepository.findAll()));
     }
 
     @GetMapping("/theaters/{id}")
-    public ResponseEntity<Theater> getTheaterById(@PathVariable Long id) {
+    public ResponseEntity<TheaterResponse> getTheaterById(@PathVariable Long id) {
         return theaterRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(theater -> ResponseEntity.ok(dtoMapper.toTheaterResponse(theater)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -132,18 +135,18 @@ public class AdminController {
     // ==================== ROOMS ====================
 
     @GetMapping("/rooms")
-    public ResponseEntity<List<Room>> getAllRooms() {
-        return ResponseEntity.ok(roomRepository.findAll());
+    public ResponseEntity<List<RoomResponse>> getAllRooms() {
+        return ResponseEntity.ok(dtoMapper.toRoomResponseList(roomRepository.findAll()));
     }
 
     @GetMapping("/rooms/theater/{theaterId}")
-    public ResponseEntity<List<Room>> getRoomsByTheater(@PathVariable Long theaterId) {
-        return ResponseEntity.ok(roomRepository.findByTheaterId(theaterId));
+    public ResponseEntity<List<RoomResponse>> getRoomsByTheater(@PathVariable Long theaterId) {
+        return ResponseEntity.ok(dtoMapper.toRoomResponseList(roomRepository.findByTheaterId(theaterId)));
     }
 
     @GetMapping("/theaters/{theaterId}/rooms")
-    public ResponseEntity<List<Room>> getTheaterRooms(@PathVariable Long theaterId) {
-        return ResponseEntity.ok(roomRepository.findByTheaterId(theaterId));
+    public ResponseEntity<List<RoomResponse>> getTheaterRooms(@PathVariable Long theaterId) {
+        return ResponseEntity.ok(dtoMapper.toRoomResponseList(roomRepository.findByTheaterId(theaterId)));
     }
 
     @PostMapping("/rooms")
@@ -173,14 +176,14 @@ public class AdminController {
     // ==================== SHOWTIMES ====================
 
     @GetMapping("/showtimes")
-    public ResponseEntity<List<Showtime>> getAllShowtimes() {
-        return ResponseEntity.ok(showtimeRepository.findAll());
+    public ResponseEntity<List<ShowtimeResponse>> getAllShowtimes() {
+        return ResponseEntity.ok(dtoMapper.toShowtimeResponseList(showtimeRepository.findAll()));
     }
 
     @GetMapping("/showtimes/{id}")
-    public ResponseEntity<Showtime> getShowtimeById(@PathVariable Long id) {
+    public ResponseEntity<ShowtimeResponse> getShowtimeById(@PathVariable Long id) {
         return showtimeRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(showtime -> ResponseEntity.ok(dtoMapper.toShowtimeResponse(showtime)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -260,14 +263,14 @@ public class AdminController {
     // ==================== BOOKINGS ====================
 
     @GetMapping("/bookings")
-    public ResponseEntity<List<Booking>> getAllBookings() {
-        return ResponseEntity.ok(bookingRepository.findAll());
+    public ResponseEntity<List<BookingResponse>> getAllBookings() {
+        return ResponseEntity.ok(dtoMapper.toBookingResponseList(bookingRepository.findAll()));
     }
 
     @GetMapping("/bookings/{id}")
-    public ResponseEntity<Booking> getBookingById(@PathVariable Long id) {
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
         return bookingRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(booking -> ResponseEntity.ok(dtoMapper.toBookingResponse(booking)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -293,14 +296,14 @@ public class AdminController {
     // ==================== USERS ====================
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(dtoMapper.toUserResponseList(userRepository.findAll()));
     }
 
     @GetMapping("/users/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return userRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(user -> ResponseEntity.ok(dtoMapper.toUserResponse(user)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -437,8 +440,8 @@ public class AdminController {
     // ==================== REVIEWS ====================
 
     @GetMapping("/reviews")
-    public ResponseEntity<List<Review>> getAllReviews() {
-        return ResponseEntity.ok(reviewRepository.findAll());
+    public ResponseEntity<List<ReviewResponse>> getAllReviews() {
+        return ResponseEntity.ok(dtoMapper.toReviewResponseList(reviewRepository.findAll()));
     }
 
     @DeleteMapping("/reviews/{id}")

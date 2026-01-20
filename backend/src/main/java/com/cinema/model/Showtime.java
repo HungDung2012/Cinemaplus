@@ -66,7 +66,6 @@ public class Showtime {
         AVAILABLE, SOLD_OUT, CANCELLED
     }
 
-    // Helper method to get full datetime
     public LocalDateTime getShowDateTime() {
         return LocalDateTime.of(showDate, startTime);
     }

@@ -92,11 +92,16 @@ const MENU_ITEMS = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Chờ AuthContext load xong trước khi kiểm tra authentication
+    if (isLoading) {
+      return;
+    }
+    
     // Check if user is admin
     if (!isAuthenticated) {
       router.push('/login?redirect=/admin');
@@ -109,7 +114,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     
     setLoading(false);
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, isLoading, user, router]);
 
   if (loading) {
     return (

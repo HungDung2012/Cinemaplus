@@ -22,7 +22,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
     
     List<Booking> findByShowtimeId(Long showtimeId);
-    
+
     @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.createdAt < :expireTime")
     List<Booking> findPendingBookingsToExpire(@Param("status") Booking.BookingStatus status, 
                                                @Param("expireTime") LocalDateTime expireTime);

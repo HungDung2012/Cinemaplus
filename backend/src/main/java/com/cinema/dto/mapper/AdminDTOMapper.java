@@ -14,6 +14,36 @@ import java.util.stream.Collectors;
 @Component
 public class AdminDTOMapper {
 
+    // ==================== MOVIE ====================
+
+    public MovieResponse toMovieResponse(Movie movie) {
+        if (movie == null) return null;
+
+        return MovieResponse.builder()
+                .id(movie.getId())
+                .title(movie.getTitle())
+                .description(movie.getDescription())
+                .duration(movie.getDuration())
+                .director(movie.getDirector())
+                .actors(movie.getActors())
+                .genre(movie.getGenre())
+                .language(movie.getLanguage())
+                .releaseDate(movie.getReleaseDate())
+                .endDate(movie.getEndDate())
+                .posterUrl(movie.getPosterUrl())
+                .trailerUrl(movie.getTrailerUrl())
+                .ageRating(movie.getAgeRating())
+                .rating(movie.getRating())
+                .status(movie.getStatus())
+                .build();
+    }
+
+    public List<MovieResponse> toMovieResponseList(List<Movie> movies) {
+        return movies.stream()
+                .map(this::toMovieResponse)
+                .collect(Collectors.toList());
+    }
+
     // ==================== BOOKING ====================
     
     public BookingResponse toBookingResponse(Booking booking) {
@@ -34,7 +64,7 @@ public class AdminDTOMapper {
 
         // User info
         if (booking.getUser() != null) {
-            User user = booking.getUser();
+            User user = booking.getUser();  
             builder.userId(user.getId())
                    .userFullName(user.getFullName())
                    .userEmail(user.getEmail());

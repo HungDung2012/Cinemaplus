@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -55,32 +56,32 @@ public class AdminController {
     // ==================== MOVIES ====================
 
     @GetMapping("/movies")
-    public ResponseEntity<List<Movie>> getAllMovies() {
-        return ResponseEntity.ok(movieRepository.findAll());
+    public ResponseEntity<List<MovieResponse>> getAllMovies() {
+        return ResponseEntity.ok(dtoMapper.toMovieResponseList(movieRepository.findAll()));
     }
 
     @GetMapping("/movies/{id}")
-    public ResponseEntity<Movie> getMovieById(@PathVariable Long id) {
+    public ResponseEntity<MovieResponse> getMovieById(@PathVariable Long id) {
         return movieRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(movie -> ResponseEntity.ok(dtoMapper.toMovieResponse(movie)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/movies")
-    public ResponseEntity<Movie> createMovie(@RequestBody Movie movie) {
+    public ResponseEntity<MovieResponse> createMovie(@RequestBody Movie movie) {
         movie.setCreatedAt(LocalDateTime.now());
         movie.setUpdatedAt(LocalDateTime.now());
-        return ResponseEntity.ok(movieRepository.save(movie));
+        return ResponseEntity.ok(dtoMapper.toMovieResponse(movieRepository.save(movie)));
     }
 
     @PutMapping("/movies/{id}")
-    public ResponseEntity<Movie> updateMovie(@PathVariable Long id, @RequestBody Movie movie) {
+    public ResponseEntity<MovieResponse> updateMovie(@PathVariable Long id, @RequestBody Movie movie) {
         return movieRepository.findById(id)
                 .map(existingMovie -> {
                     movie.setId(id);
                     movie.setCreatedAt(existingMovie.getCreatedAt());
                     movie.setUpdatedAt(LocalDateTime.now());
-                    return ResponseEntity.ok(movieRepository.save(movie));
+                    return ResponseEntity.ok(dtoMapper.toMovieResponse(movieRepository.save(movie)));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -176,8 +177,21 @@ public class AdminController {
     // ==================== SHOWTIMES ====================
 
     @GetMapping("/showtimes")
-    public ResponseEntity<List<ShowtimeResponse>> getAllShowtimes() {
-        return ResponseEntity.ok(dtoMapper.toShowtimeResponseList(showtimeRepository.findAll()));
+    public ResponseEntity<List<ShowtimeResponse>> getAllShowtimes(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        
+        LocalDate now = LocalDate.now();
+        int targetMonth = month != null ? month : now.getMonthValue();
+        int targetYear = year != null ? year : now.getYear();
+
+        List<Showtime> allShowtimes = showtimeRepository.findAll();
+        List<Showtime> filteredShowtimes = allShowtimes.stream()
+                .filter(s -> s.getShowDate().getMonthValue() == targetMonth && s.getShowDate().getYear() == targetYear)
+                .sorted(Comparator.comparing(Showtime::getShowDate).thenComparing(Showtime::getStartTime))
+                .toList();
+
+        return ResponseEntity.ok(dtoMapper.toShowtimeResponseList(filteredShowtimes));
     }
 
     @GetMapping("/showtimes/{id}")

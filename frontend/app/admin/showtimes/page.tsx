@@ -60,7 +60,7 @@ export default function ShowtimesManagementPage() {
   const [filters, setFilters] = useState({
     movieId: '',
     theaterId: '',
-    date: '',
+    date: new Date().toISOString().split('T')[0], // Mặc định là hôm nay
   });
 
   const [formData, setFormData] = useState({
@@ -73,8 +73,12 @@ export default function ShowtimesManagementPage() {
   });
 
   useEffect(() => {
-    fetchInitialData();
+    fetchMetadata();
   }, []);
+
+  useEffect(() => {
+    fetchShowtimes();
+  }, [filters]);
 
   useEffect(() => {
     if (formData.theaterId) {
@@ -84,18 +88,27 @@ export default function ShowtimesManagementPage() {
     }
   }, [formData.theaterId]);
 
-  const fetchInitialData = async () => {
+  const fetchMetadata = async () => {
     try {
-      const [showtimesRes, moviesRes, theatersRes] = await Promise.all([
-        adminShowtimeService.getAll(),
+      const [moviesRes, theatersRes] = await Promise.all([
         adminMovieService.getAll(),
         adminTheaterService.getAll(),
       ]);
-      setShowtimes(showtimesRes);
       setMovies(moviesRes);
       setTheaters(theatersRes);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching metadata:', error);
+    }
+  };
+
+  const fetchShowtimes = async () => {
+    setLoading(true);
+    try {
+      // Gửi filters lên backend để lọc server-side
+      const showtimesRes = await adminShowtimeService.getAll(filters);
+      setShowtimes(showtimesRes);
+    } catch (error) {
+      console.error('Error fetching showtimes:', error);
     } finally {
       setLoading(false);
     }
@@ -159,7 +172,7 @@ export default function ShowtimesManagementPage() {
         await adminShowtimeService.create(data);
       }
 
-      await fetchInitialData();
+      await fetchShowtimes();
       setModalOpen(false);
     } catch (error: any) {
       console.error('Error saving showtime:', error);
@@ -214,16 +227,8 @@ export default function ShowtimesManagementPage() {
     }
   };
 
-  const filteredShowtimes = showtimes.filter(showtime => {
-    if (filters.movieId && showtime.movie?.id !== parseInt(filters.movieId)) return false;
-    if (filters.theaterId && showtime.theater?.id !== parseInt(filters.theaterId)) return false;
-    if (filters.date) {
-      const showtimeDate = new Date(showtime.startTime).toDateString();
-      const filterDate = new Date(filters.date).toDateString();
-      if (showtimeDate !== filterDate) return false;
-    }
-    return true;
-  });
+  // Dữ liệu showtimes đã được lọc từ server nên không cần filter client-side nữa
+  const filteredShowtimes = showtimes;
 
   if (loading) {
     return (
@@ -282,7 +287,7 @@ export default function ShowtimesManagementPage() {
             className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <button
-            onClick={() => setFilters({ movieId: '', theaterId: '', date: '' })}
+            onClick={() => setFilters({ movieId: '', theaterId: '', date: new Date().toISOString().split('T')[0] })}
             className="px-4 py-2 text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
           >
             Xóa bộ lọc

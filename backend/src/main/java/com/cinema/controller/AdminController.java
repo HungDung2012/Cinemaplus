@@ -1,484 +1,165 @@
 package com.cinema.controller;
 
-import com.cinema.dto.mapper.AdminDTOMapper;
-import com.cinema.dto.response.*;
-import com.cinema.model.*;
-import com.cinema.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.cinema.dto.response.ApiResponse;
+import com.cinema.dto.response.ShowtimeResponse;
+import com.cinema.dto.response.MovieResponse;
+import com.cinema.dto.response.PageResponse;
+import com.cinema.dto.response.TheaterResponse;
+import com.cinema.dto.response.BookingResponse;
+import com.cinema.dto.response.UserResponse;
+import com.cinema.model.User;
+import com.cinema.repository.UserRepository;
+import com.cinema.service.ShowtimeService;
+import com.cinema.service.MovieService;
+import com.cinema.service.TheaterService;
+import com.cinema.service.BookingService;
+import org.modelmapper.ModelMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    @Autowired
-    private MovieRepository movieRepository;
+    private final ShowtimeService showtimeService;
+    private final MovieService movieService;
+    private final TheaterService theaterService;
+    private final BookingService bookingService;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private TheaterRepository theaterRepository;
+    @GetMapping("/showtimes/range")
+    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getShowtimesByRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<ShowtimeResponse> showtimes = showtimeService.getShowtimesByRange(startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.success(showtimes));
+    }
 
-    @Autowired
-    private ShowtimeRepository showtimeRepository;
-
-    @Autowired
-    private BookingRepository bookingRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private FoodRepository foodRepository;
-
-    @Autowired
-    private PromotionRepository promotionRepository;
-
-    @Autowired
-    private ReviewRepository reviewRepository;
-
-    @Autowired
-    private RoomRepository roomRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private AdminDTOMapper dtoMapper;
-
-    // ==================== MOVIES ====================
-
+    // =================== MOVIES (admin proxy) ===================
     @GetMapping("/movies")
-    public ResponseEntity<List<MovieResponse>> getAllMovies() {
-        return ResponseEntity.ok(dtoMapper.toMovieResponseList(movieRepository.findAll()));
+    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> adminGetMovies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "releaseDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? org.springframework.data.domain.Sort.by(sortBy).ascending()
+                : org.springframework.data.domain.Sort.by(sortBy).descending();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+
+        PageResponse<MovieResponse> response = movieService.getAllMovies(pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/movies/{id}")
-    public ResponseEntity<MovieResponse> getMovieById(@PathVariable Long id) {
-        return movieRepository.findById(id)
-                .map(movie -> ResponseEntity.ok(dtoMapper.toMovieResponse(movie)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<MovieResponse>> adminGetMovieById(@PathVariable Long id) {
+        MovieResponse movie = movieService.getMovieById(id);
+        return ResponseEntity.ok(ApiResponse.success(movie));
     }
 
     @PostMapping("/movies")
-    public ResponseEntity<MovieResponse> createMovie(@RequestBody Movie movie) {
-        movie.setCreatedAt(LocalDateTime.now());
-        movie.setUpdatedAt(LocalDateTime.now());
-        return ResponseEntity.ok(dtoMapper.toMovieResponse(movieRepository.save(movie)));
+    public ResponseEntity<ApiResponse<MovieResponse>> adminCreateMovie(@RequestBody com.cinema.dto.request.MovieRequest request) {
+        MovieResponse movie = movieService.createMovie(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success("Movie created", movie));
     }
 
     @PutMapping("/movies/{id}")
-    public ResponseEntity<MovieResponse> updateMovie(@PathVariable Long id, @RequestBody Movie movie) {
-        return movieRepository.findById(id)
-                .map(existingMovie -> {
-                    movie.setId(id);
-                    movie.setCreatedAt(existingMovie.getCreatedAt());
-                    movie.setUpdatedAt(LocalDateTime.now());
-                    return ResponseEntity.ok(dtoMapper.toMovieResponse(movieRepository.save(movie)));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<MovieResponse>> adminUpdateMovie(@PathVariable Long id, @RequestBody com.cinema.dto.request.MovieRequest request) {
+        MovieResponse movie = movieService.updateMovie(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Movie updated", movie));
     }
 
     @DeleteMapping("/movies/{id}")
-    public ResponseEntity<Void> deleteMovie(@PathVariable Long id) {
-        if (movieRepository.existsById(id)) {
-            movieRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<ApiResponse<Void>> adminDeleteMovie(@PathVariable Long id) {
+        movieService.deleteMovie(id);
+        return ResponseEntity.ok(ApiResponse.success("Movie deleted", null));
     }
 
-    // ==================== THEATERS ====================
-
+    // =================== THEATERS (admin proxy) ===================
     @GetMapping("/theaters")
-    public ResponseEntity<List<TheaterResponse>> getAllTheaters() {
-        return ResponseEntity.ok(dtoMapper.toTheaterResponseList(theaterRepository.findAll()));
+    public ResponseEntity<ApiResponse<List<TheaterResponse>>> adminGetTheaters() {
+        List<TheaterResponse> list = theaterService.getAllTheaters();
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     @GetMapping("/theaters/{id}")
-    public ResponseEntity<TheaterResponse> getTheaterById(@PathVariable Long id) {
-        return theaterRepository.findById(id)
-                .map(theater -> ResponseEntity.ok(dtoMapper.toTheaterResponse(theater)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<TheaterResponse>> adminGetTheaterById(@PathVariable Long id) {
+        TheaterResponse t = theaterService.getTheaterById(id);
+        return ResponseEntity.ok(ApiResponse.success(t));
     }
 
     @PostMapping("/theaters")
-    public ResponseEntity<Theater> createTheater(@RequestBody Theater theater) {
-        return ResponseEntity.ok(theaterRepository.save(theater));
+    public ResponseEntity<ApiResponse<TheaterResponse>> adminCreateTheater(@RequestBody com.cinema.model.Theater request) {
+        // reuse existing repository/service flow: simple create via repository
+        throw new UnsupportedOperationException("Create theater via admin endpoint not implemented yet");
     }
 
-    @PutMapping("/theaters/{id}")
-    public ResponseEntity<Theater> updateTheater(@PathVariable Long id, @RequestBody Theater theater) {
-        return theaterRepository.findById(id)
-                .map(existingTheater -> {
-                    theater.setId(id);
-                    return ResponseEntity.ok(theaterRepository.save(theater));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/theaters/{id}")
-    public ResponseEntity<Void> deleteTheater(@PathVariable Long id) {
-        if (theaterRepository.existsById(id)) {
-            theaterRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== ROOMS ====================
-
-    @GetMapping("/rooms")
-    public ResponseEntity<List<RoomResponse>> getAllRooms() {
-        return ResponseEntity.ok(dtoMapper.toRoomResponseList(roomRepository.findAll()));
-    }
-
-    @GetMapping("/rooms/theater/{theaterId}")
-    public ResponseEntity<List<RoomResponse>> getRoomsByTheater(@PathVariable Long theaterId) {
-        return ResponseEntity.ok(dtoMapper.toRoomResponseList(roomRepository.findByTheaterId(theaterId)));
-    }
-
-    @GetMapping("/theaters/{theaterId}/rooms")
-    public ResponseEntity<List<RoomResponse>> getTheaterRooms(@PathVariable Long theaterId) {
-        return ResponseEntity.ok(dtoMapper.toRoomResponseList(roomRepository.findByTheaterId(theaterId)));
-    }
-
-    @PostMapping("/rooms")
-    public ResponseEntity<Room> createRoom(@RequestBody Room room) {
-        return ResponseEntity.ok(roomRepository.save(room));
-    }
-
-    @PutMapping("/rooms/{id}")
-    public ResponseEntity<Room> updateRoom(@PathVariable Long id, @RequestBody Room room) {
-        return roomRepository.findById(id)
-                .map(existingRoom -> {
-                    room.setId(id);
-                    return ResponseEntity.ok(roomRepository.save(room));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/rooms/{id}")
-    public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {
-        if (roomRepository.existsById(id)) {
-            roomRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== SHOWTIMES ====================
-
-    @GetMapping("/showtimes")
-    public ResponseEntity<List<ShowtimeResponse>> getAllShowtimes(
-            @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year) {
-        
-        LocalDate now = LocalDate.now();
-        int targetMonth = month != null ? month : now.getMonthValue();
-        int targetYear = year != null ? year : now.getYear();
-
-        List<Showtime> allShowtimes = showtimeRepository.findAll();
-        List<Showtime> filteredShowtimes = allShowtimes.stream()
-                .filter(s -> s.getShowDate().getMonthValue() == targetMonth && s.getShowDate().getYear() == targetYear)
-                .sorted(Comparator.comparing(Showtime::getShowDate).thenComparing(Showtime::getStartTime))
-                .toList();
-
-        return ResponseEntity.ok(dtoMapper.toShowtimeResponseList(filteredShowtimes));
-    }
-
-    @GetMapping("/showtimes/{id}")
-    public ResponseEntity<ShowtimeResponse> getShowtimeById(@PathVariable Long id) {
-        return showtimeRepository.findById(id)
-                .map(showtime -> ResponseEntity.ok(dtoMapper.toShowtimeResponse(showtime)))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/showtimes")
-    public ResponseEntity<?> createShowtime(@RequestBody Map<String, Object> request) {
-        try {
-            Showtime showtime = new Showtime();
-            
-            Long movieId = Long.valueOf(request.get("movieId").toString());
-            Long roomId = Long.valueOf(request.get("roomId").toString());
-            
-            Movie movie = movieRepository.findById(movieId)
-                    .orElseThrow(() -> new RuntimeException("Movie not found"));
-            Room room = roomRepository.findById(roomId)
-                    .orElseThrow(() -> new RuntimeException("Room not found"));
-            
-            showtime.setMovie(movie);
-            showtime.setRoom(room);
-            
-            // Parse datetime and extract date/time
-            LocalDateTime dateTime = LocalDateTime.parse(request.get("startTime").toString());
-            showtime.setShowDate(dateTime.toLocalDate());
-            showtime.setStartTime(dateTime.toLocalTime());
-            showtime.setBasePrice(new BigDecimal(request.get("price").toString()));
-            showtime.setStatus(Showtime.ShowtimeStatus.valueOf(request.get("status").toString()));
-            
-            // Calculate end time based on movie duration
-            showtime.setEndTime(showtime.getStartTime().plusMinutes(movie.getDuration()));
-            
-            return ResponseEntity.ok(showtimeRepository.save(showtime));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/showtimes/{id}")
-    public ResponseEntity<?> updateShowtime(@PathVariable Long id, @RequestBody Map<String, Object> request) {
-        try {
-            return showtimeRepository.findById(id)
-                    .map(showtime -> {
-                        Long movieId = Long.valueOf(request.get("movieId").toString());
-                        Long roomId = Long.valueOf(request.get("roomId").toString());
-                        
-                        Movie movie = movieRepository.findById(movieId)
-                                .orElseThrow(() -> new RuntimeException("Movie not found"));
-                        Room room = roomRepository.findById(roomId)
-                                .orElseThrow(() -> new RuntimeException("Room not found"));
-                        
-                        showtime.setMovie(movie);
-                        showtime.setRoom(room);
-                        
-                        // Parse datetime and extract date/time
-                        LocalDateTime dateTime = LocalDateTime.parse(request.get("startTime").toString());
-                        showtime.setShowDate(dateTime.toLocalDate());
-                        showtime.setStartTime(dateTime.toLocalTime());
-                        showtime.setBasePrice(new BigDecimal(request.get("price").toString()));
-                        showtime.setStatus(Showtime.ShowtimeStatus.valueOf(request.get("status").toString()));
-                        showtime.setEndTime(showtime.getStartTime().plusMinutes(movie.getDuration()));
-                        
-                        return ResponseEntity.ok(showtimeRepository.save(showtime));
-                    })
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
-    }
-
-    @DeleteMapping("/showtimes/{id}")
-    public ResponseEntity<Void> deleteShowtime(@PathVariable Long id) {
-        if (showtimeRepository.existsById(id)) {
-            showtimeRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== BOOKINGS ====================
-
+    // =================== BOOKINGS (admin) ===================
     @GetMapping("/bookings")
-    public ResponseEntity<List<BookingResponse>> getAllBookings() {
-        return ResponseEntity.ok(dtoMapper.toBookingResponseList(bookingRepository.findAll()));
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> adminGetBookings() {
+        List<BookingResponse> bookings = bookingService.getAllBookings();
+        return ResponseEntity.ok(ApiResponse.success(bookings));
     }
 
     @GetMapping("/bookings/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
-        return bookingRepository.findById(id)
-                .map(booking -> ResponseEntity.ok(dtoMapper.toBookingResponse(booking)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<BookingResponse>> adminGetBookingById(@PathVariable Long id) {
+        BookingResponse booking = bookingService.getBookingById(id);
+        return ResponseEntity.ok(ApiResponse.success(booking));
     }
 
     @PutMapping("/bookings/{id}/status")
-    public ResponseEntity<Booking> updateBookingStatus(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        return bookingRepository.findById(id)
-                .map(booking -> {
-                    booking.setStatus(Booking.BookingStatus.valueOf(request.get("status")));
-                    return ResponseEntity.ok(bookingRepository.save(booking));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<BookingResponse>> adminUpdateBookingStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        BookingResponse updated = bookingService.updateBookingStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     @DeleteMapping("/bookings/{id}")
-    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
-        if (bookingRepository.existsById(id)) {
-            bookingRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<ApiResponse<Void>> adminDeleteBooking(@PathVariable Long id) {
+        bookingService.deleteBooking(id);
+        return ResponseEntity.ok(ApiResponse.success("Booking deleted", null));
     }
 
-    // ==================== USERS ====================
-
+    // =================== USERS (basic admin) ===================
     @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(dtoMapper.toUserResponseList(userRepository.findAll()));
+    public ResponseEntity<ApiResponse<List<UserResponse>>> adminGetUsers() {
+        List<User> users = userRepository.findAll();
+        List<UserResponse> resp = users.stream()
+                .map(u -> modelMapper.map(u, UserResponse.class))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(resp));
     }
 
     @GetMapping("/users/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        return userRepository.findById(id)
-                .map(user -> ResponseEntity.ok(dtoMapper.toUserResponse(user)))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/users")
-    public ResponseEntity<?> createUser(@RequestBody Map<String, Object> request) {
-        try {
-            User user = new User();
-            user.setFullName((String) request.get("fullName"));
-            user.setEmail((String) request.get("email"));
-            user.setPhone((String) request.get("phone"));
-            user.setPassword(passwordEncoder.encode((String) request.get("password")));
-            user.setRole(User.Role.valueOf((String) request.get("role")));
-            user.setActive(true);
-            return ResponseEntity.ok(userRepository.save(user));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/users/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> request) {
-        return userRepository.findById(id)
-                .map(user -> {
-                    user.setFullName((String) request.get("fullName"));
-                    user.setEmail((String) request.get("email"));
-                    user.setPhone((String) request.get("phone"));
-                    user.setRole(User.Role.valueOf((String) request.get("role")));
-                    
-                    String password = (String) request.get("password");
-                    if (password != null && !password.isEmpty()) {
-                        user.setPassword(passwordEncoder.encode(password));
-                    }
-                    
-                    return ResponseEntity.ok(userRepository.save(user));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<UserResponse>> adminGetUserById(@PathVariable Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("User", "id", id));
+        UserResponse resp = modelMapper.map(user, UserResponse.class);
+        return ResponseEntity.ok(ApiResponse.success(resp));
     }
 
     @PutMapping("/users/{id}/role")
-    public ResponseEntity<User> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        return userRepository.findById(id)
-                .map(user -> {
-                    user.setRole(User.Role.valueOf(request.get("role")));
-                    return ResponseEntity.ok(userRepository.save(user));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-            return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<UserResponse>> adminUpdateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String role = body.get("role");
+        User user = userRepository.findById(id).orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("User", "id", id));
+        try {
+            user.setRole(User.Role.valueOf(role));
+            userRepository.save(user);
+            return ResponseEntity.ok(ApiResponse.success(modelMapper.map(user, UserResponse.class)));
+        } catch (IllegalArgumentException ex) {
+            throw new com.cinema.exception.BadRequestException("Invalid role: " + role);
         }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== FOODS ====================
-
-    @GetMapping("/foods")
-    public ResponseEntity<List<Food>> getAllFoods() {
-        return ResponseEntity.ok(foodRepository.findAll());
-    }
-
-    @GetMapping("/foods/{id}")
-    public ResponseEntity<Food> getFoodById(@PathVariable Long id) {
-        return foodRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/foods")
-    public ResponseEntity<Food> createFood(@RequestBody Food food) {
-        return ResponseEntity.ok(foodRepository.save(food));
-    }
-
-    @PutMapping("/foods/{id}")
-    public ResponseEntity<Food> updateFood(@PathVariable Long id, @RequestBody Food food) {
-        return foodRepository.findById(id)
-                .map(existingFood -> {
-                    food.setId(id);
-                    return ResponseEntity.ok(foodRepository.save(food));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/foods/{id}")
-    public ResponseEntity<Void> deleteFood(@PathVariable Long id) {
-        if (foodRepository.existsById(id)) {
-            foodRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== PROMOTIONS ====================
-
-    @GetMapping("/promotions")
-    public ResponseEntity<List<Promotion>> getAllPromotions() {
-        return ResponseEntity.ok(promotionRepository.findAll());
-    }
-
-    @GetMapping("/promotions/{id}")
-    public ResponseEntity<Promotion> getPromotionById(@PathVariable Long id) {
-        return promotionRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/promotions")
-    public ResponseEntity<Promotion> createPromotion(@RequestBody Promotion promotion) {
-        return ResponseEntity.ok(promotionRepository.save(promotion));
-    }
-
-    @PutMapping("/promotions/{id}")
-    public ResponseEntity<Promotion> updatePromotion(@PathVariable Long id, @RequestBody Promotion promotion) {
-        return promotionRepository.findById(id)
-                .map(existingPromotion -> {
-                    promotion.setId(id);
-                    return ResponseEntity.ok(promotionRepository.save(promotion));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/promotions/{id}")
-    public ResponseEntity<Void> deletePromotion(@PathVariable Long id) {
-        if (promotionRepository.existsById(id)) {
-            promotionRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== REVIEWS ====================
-
-    @GetMapping("/reviews")
-    public ResponseEntity<List<ReviewResponse>> getAllReviews() {
-        return ResponseEntity.ok(dtoMapper.toReviewResponseList(reviewRepository.findAll()));
-    }
-
-    @DeleteMapping("/reviews/{id}")
-    public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
-        if (reviewRepository.existsById(id)) {
-            reviewRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // ==================== DASHBOARD STATS ====================
-
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalMovies", movieRepository.count());
-        stats.put("totalTheaters", theaterRepository.count());
-        stats.put("totalUsers", userRepository.count());
-        stats.put("totalBookings", bookingRepository.count());
-        stats.put("totalRevenue", bookingRepository.findAll().stream()
-                .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-        return ResponseEntity.ok(stats);
     }
 }

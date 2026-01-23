@@ -47,7 +47,6 @@ export default function CreateMoviePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       await adminMovieService.create({
         ...formData,
@@ -166,7 +165,7 @@ export default function CreateMoviePage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Ngày khởi chiếu
+                  Ngày khởi chiếu <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -174,11 +173,12 @@ export default function CreateMoviePage() {
                   value={formData.releaseDate}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Ngày kết thúc
+                  Ngày kết thúc <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -186,6 +186,7 @@ export default function CreateMoviePage() {
                   value={formData.endDate}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  required
                 />
               </div>
             </div>

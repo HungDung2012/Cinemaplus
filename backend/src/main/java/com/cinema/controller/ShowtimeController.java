@@ -61,8 +61,6 @@ public class ShowtimeController {
         return ResponseEntity.ok(ApiResponse.success(showtimes));
     }
 
-    
-    
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> getShowtimeById(@PathVariable Long id) {
         ShowtimeResponse showtime = showtimeService.getShowtimeById(id);

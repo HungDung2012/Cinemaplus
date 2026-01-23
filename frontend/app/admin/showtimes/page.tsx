@@ -57,10 +57,11 @@ export default function ShowtimesManagementPage() {
   });
   const [saving, setSaving] = useState(false);
 
+  // State quản lý tuần hiện tại
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [filters, setFilters] = useState({
     movieId: '',
     theaterId: '',
-    date: new Date().toISOString().split('T')[0], // Mặc định là hôm nay
   });
 
   const [formData, setFormData] = useState({
@@ -78,7 +79,7 @@ export default function ShowtimesManagementPage() {
 
   useEffect(() => {
     fetchShowtimes();
-  }, [filters]);
+  }, [filters, currentDate]); // Fetch lại khi filter hoặc tuần thay đổi
 
   useEffect(() => {
     if (formData.theaterId) {
@@ -101,11 +102,40 @@ export default function ShowtimesManagementPage() {
     }
   };
 
+  // Helper tính ngày đầu tuần và cuối tuần
+  const getWeekRange = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay(); // 0 (Sun) to 6 (Sat)
+    const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+    start.setDate(diff);
+    
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6); // Sunday
+    
+    return {
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0]
+    };
+  };
+
   const fetchShowtimes = async () => {
     setLoading(true);
     try {
-      // Gửi filters lên backend để lọc server-side
-      const showtimesRes = await adminShowtimeService.getAll(filters);
+      const { startDate, endDate } = getWeekRange(currentDate);
+      
+      // Gửi range date lên backend
+      const params = {
+        ...filters,
+        startDate,
+        endDate
+      };
+      
+      // Lọc bỏ các param rỗng
+      const cleanParams = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== '')
+      );
+
+      const showtimesRes = await adminShowtimeService.getAll(cleanParams);
       setShowtimes(showtimesRes);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
@@ -227,8 +257,14 @@ export default function ShowtimesManagementPage() {
     }
   };
 
-  // Dữ liệu showtimes đã được lọc từ server nên không cần filter client-side nữa
-  const filteredShowtimes = showtimes;
+  // Lọc client-side cho các bộ lọc khác (Movie, Theater) vì API range trả về hết trong tuần
+  const filteredShowtimes = showtimes.filter(s => {
+    if (filters.movieId && s.movie?.id.toString() !== filters.movieId) return false;
+    if (filters.theaterId && s.theater?.id.toString() !== filters.theaterId) return false;
+    return true;
+  });
+
+  const { startDate, endDate } = getWeekRange(currentDate);
 
   if (loading) {
     return (
@@ -259,7 +295,44 @@ export default function ShowtimesManagementPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                newDate.setDate(newDate.getDate() - 7);
+                setCurrentDate(newDate);
+              }}
+              className="p-2 hover:bg-zinc-100 rounded-full"
+            >
+              ← Tuần trước
+            </button>
+            <span className="font-medium">
+              {new Date(startDate).toLocaleDateString('vi-VN')} - {new Date(endDate).toLocaleDateString('vi-VN')}
+            </span>
+            <button 
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                newDate.setDate(newDate.getDate() + 7);
+                setCurrentDate(newDate);
+              }}
+              className="p-2 hover:bg-zinc-100 rounded-full"
+            >
+              Tuần sau →
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setFilters({ movieId: '', theaterId: '' });
+              setCurrentDate(new Date());
+            }}
+            className="px-4 py-2 text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors text-sm"
+          >
+            Về tuần này & Xóa lọc
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
             value={filters.movieId}
             onChange={(e) => setFilters({ ...filters, movieId: e.target.value })}
@@ -280,18 +353,6 @@ export default function ShowtimesManagementPage() {
               <option key={theater.id} value={theater.id}>{theater.name}</option>
             ))}
           </select>
-          <input
-            type="date"
-            value={filters.date}
-            onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-            className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
-          <button
-            onClick={() => setFilters({ movieId: '', theaterId: '', date: new Date().toISOString().split('T')[0] })}
-            className="px-4 py-2 text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
-          >
-            Xóa bộ lọc
-          </button>
         </div>
       </div>
 

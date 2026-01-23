@@ -37,6 +37,13 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, Long> {
                                               @Param("date") LocalDate date);
     
     /**
+     * Lấy lịch chiếu trong khoảng thời gian (cho Admin/Manager)
+     */
+    @Query("SELECT s FROM Showtime s WHERE s.showDate BETWEEN :startDate AND :endDate ORDER BY s.showDate ASC, s.startTime ASC")
+    List<Showtime> findByShowDateBetween(@Param("startDate") LocalDate startDate, 
+                                         @Param("endDate") LocalDate endDate);
+
+    /**
      * Lấy lịch chiếu theo rạp và ngày, sắp xếp theo phim và giờ chiếu
      */
     @Query("SELECT s FROM Showtime s " +

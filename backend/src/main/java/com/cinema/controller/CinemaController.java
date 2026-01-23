@@ -2,7 +2,7 @@ package com.cinema.controller;
 
 import com.cinema.dto.response.CinemaListResponse;
 import com.cinema.dto.response.CinemaScheduleResponse;
-import com.cinema.service.CinemaService;
+import com.cinema.service.TheaterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,7 +20,7 @@ import java.util.List;
 @Tag(name = "Cinema", description = "API quản lý rạp chiếu phim")
 public class CinemaController {
 
-    private final CinemaService cinemaService;
+    private final TheaterService cinemaService;
 
     /**
      * Lấy danh sách tất cả rạp, nhóm theo thành phố

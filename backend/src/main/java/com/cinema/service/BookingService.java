@@ -689,6 +689,42 @@ public class BookingService {
     }
     
     /**
+     * Lấy tất cả booking (dùng cho admin)
+     */
+    public List<BookingResponse> getAllBookings() {
+        List<Booking> bookings = bookingRepository.findAll();
+        return bookings.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * Cập nhật trạng thái booking theo admin request (PENDING/CONFIRMED/CANCELLED/COMPLETED/EXPIRED)
+     */
+    @Transactional
+    public BookingResponse updateBookingStatus(Long id, String statusStr) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
+
+        try {
+            Booking.BookingStatus status = Booking.BookingStatus.valueOf(statusStr.toUpperCase());
+            booking.setStatus(status);
+            booking = bookingRepository.save(booking);
+            return mapToResponse(booking);
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Invalid booking status: " + statusStr);
+        }
+    }
+
+    /**
+     * Xóa booking (admin)
+     */
+    @Transactional
+    public void deleteBooking(Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
+        bookingRepository.delete(booking);
+    }
+    
+    /**
      * Expire các booking PENDING quá thời gian giữ chỗ.
      * Được gọi bởi Scheduler định kỳ (mỗi phút).
      * 

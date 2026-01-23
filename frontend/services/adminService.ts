@@ -4,22 +4,24 @@ import api from '@/lib/axios';
 export const adminMovieService = {
   getAll: async () => {
     const response = await api.get('/admin/movies');
-    return response.data;
+    // backend returns ApiResponse { success, message, data: { content: [...] } }
+    // unwrap to return the actual movie array
+    return response.data?.data?.content ?? [];
   },
   
   getById: async (id: number | string) => {
     const response = await api.get(`/admin/movies/${id}`);
-    return response.data;
+    return response.data?.data;
   },
   
   create: async (data: any) => {
     const response = await api.post('/admin/movies', data);
-    return response.data;
+    return response.data?.data;
   },
   
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/movies/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
   
   delete: async (id: number) => {
@@ -32,7 +34,7 @@ export const adminMovieService = {
 export const adminTheaterService = {
   getAll: async () => {
     const response = await api.get('/admin/theaters');
-    return response.data;
+    return response.data?.data;
   },
   
   getById: async (id: number) => {
@@ -58,8 +60,9 @@ export const adminTheaterService = {
 
 // ===================== SHOWTIMES =====================
 export const adminShowtimeService = {
-  getAll: async () => {
-    const response = await api.get('/admin/showtimes');
+  getAll: async (params?: any) => {
+    // Sử dụng endpoint range mới tạo để lọc theo tuần
+    const response = await api.get('/admin/showtimes/range', { params });
     return response.data;
   },
   

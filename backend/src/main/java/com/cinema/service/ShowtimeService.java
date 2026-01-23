@@ -57,6 +57,12 @@ public class ShowtimeService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
+    public List<ShowtimeResponse> getShowtimesByRange(LocalDate startDate, LocalDate endDate) {
+        return showtimeRepository.findByShowDateBetween(startDate, endDate).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
     
     public ShowtimeResponse getShowtimeById(Long id) {
         Showtime showtime = showtimeRepository.findById(id)

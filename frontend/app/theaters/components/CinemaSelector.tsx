@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CinemaListResponse, CityGroup, TheaterSummary } from '@/types';
-import { cinemaService } from '@/services/cinemaService';
+import { GroupedTheaterResponse, CityGroup, TheaterSummary } from '@/types';
+import { theaterService } from '@/services/theaterService';
 
 interface CinemaSelectorProps {
   onSelectTheater: (theater: TheaterSummary, cityName?: string) => void;
@@ -10,7 +10,7 @@ interface CinemaSelectorProps {
 }
 
 export default function CinemaSelector({ onSelectTheater, selectedTheaterId }: CinemaSelectorProps) {
-  const [cinemaData, setCinemaData] = useState<CinemaListResponse | null>(null);
+  const [cinemaData, setCinemaData] = useState<GroupedTheaterResponse | null>(null);
   const [selectedCity, setSelectedCity] = useState<CityGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +22,9 @@ export default function CinemaSelector({ onSelectTheater, selectedTheaterId }: C
   const fetchCinemas = async () => {
     try {
       setLoading(true);
-      const data = await cinemaService.getAllCinemas();
+      const data = await theaterService.getTheatersGroupedByCity();
       setCinemaData(data);
-      
+
       if (data.cities.length > 0) {
         setSelectedCity(data.cities[0]);
       }
@@ -52,7 +52,7 @@ export default function CinemaSelector({ onSelectTheater, selectedTheaterId }: C
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <p className="text-red-500 font-medium mb-4">{error}</p>
-        <button 
+        <button
           onClick={fetchCinemas}
           className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
         >

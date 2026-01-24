@@ -2,7 +2,7 @@
 
 import { TheaterSummary } from '@/types';
 import { useState, useEffect } from 'react';
-import { cinemaService } from '@/services/cinemaService';
+import { theaterService } from '@/services/theaterService';
 
 interface CinemaHeaderProps {
   theater: TheaterSummary;
@@ -31,7 +31,7 @@ export default function CinemaHeader({ theater, cityName }: CinemaHeaderProps) {
     const fetchCinemaDetail = async () => {
       try {
         setLoading(true);
-        const data = await cinemaService.getTheaterDetail(theater.id);
+        const data = await theaterService.getTheaterById(theater.id);
         console.log(data);
         // Map TheaterSummary to CinemaDetailInfo
         setCinemaInfo({
@@ -128,7 +128,7 @@ export default function CinemaHeader({ theater, cityName }: CinemaHeaderProps) {
         {cinemaInfo?.roomTypes && cinemaInfo.roomTypes.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {cinemaInfo.roomTypes.map((type, index) => (
-              <span 
+              <span
                 key={index}
                 className="px-3 py-1 bg-zinc-100 text-zinc-700 text-sm rounded-full font-medium"
               >
@@ -154,7 +154,7 @@ export default function CinemaHeader({ theater, cityName }: CinemaHeaderProps) {
             className="w-full h-full"
           />
         </div>
-        
+
         {/* Map Overlay Actions */}
         <div className="absolute bottom-4 right-4 flex gap-2">
           <a

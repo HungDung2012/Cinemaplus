@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CinemaListResponse {
+public class GroupedTheaterResponse {
 
     private List<CityGroup> cities;
     private Integer totalTheaters;
@@ -28,7 +28,7 @@ public class CinemaListResponse {
     @AllArgsConstructor
     public static class CityGroup {
         private String cityName;
-        private String cityCode;          // Ha_Noi, Ho_Chi_Minh, Da_Nang...
+        private String cityCode; // Ha_Noi, Ho_Chi_Minh, Da_Nang...
         private Integer theaterCount;
         private List<TheaterSummary> theaters;
     }
@@ -46,7 +46,7 @@ public class CinemaListResponse {
         private String address;
         private String phone;
         private String imageUrl;
-        private String mapUrl;            // Google Maps URL
+        private String mapUrl; // Google Maps URL
         private Integer totalRooms;
     }
 }

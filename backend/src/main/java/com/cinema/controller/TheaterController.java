@@ -1,10 +1,14 @@
 package com.cinema.controller;
 
 import com.cinema.dto.response.ApiResponse;
+import com.cinema.dto.response.GroupedTheaterResponse;
+import com.cinema.dto.response.TheaterScheduleResponse;
 import com.cinema.dto.response.TheaterResponse;
 import com.cinema.service.TheaterService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import java.time.LocalDate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,15 +17,20 @@ import java.util.List;
 @RequestMapping("/api/theaters")
 @RequiredArgsConstructor
 public class TheaterController {
-    
+
     private final TheaterService theaterService;
-    
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<TheaterResponse>>> getAllTheaters() {
         List<TheaterResponse> theaters = theaterService.getAllTheaters();
         return ResponseEntity.ok(ApiResponse.success(theaters));
     }
-    
+
+    @GetMapping("/grouped")
+    public ResponseEntity<ApiResponse<GroupedTheaterResponse>> getTheatersGroupedByCity() {
+        return ResponseEntity.ok(ApiResponse.success(theaterService.getTheatersGroupedByCity()));
+    }
+
     @GetMapping("/city/{cityId}")
     public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheatersByCity(@PathVariable Long cityId) {
         List<TheaterResponse> theaters = theaterService.getTheatersByCity(cityId);
@@ -45,10 +54,22 @@ public class TheaterController {
         List<TheaterResponse> theaters = theaterService.getTheatersByRegionCode(regionCode);
         return ResponseEntity.ok(ApiResponse.success("Danh sách rạp theo khu vực", theaters));
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TheaterResponse>> getTheaterById(@PathVariable Long id) {
         TheaterResponse theater = theaterService.getTheaterById(id);
         return ResponseEntity.ok(ApiResponse.success(theater));
+    }
+
+    @GetMapping("/{id}/schedule")
+    public ResponseEntity<ApiResponse<TheaterScheduleResponse>> getTheaterSchedule(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        if (date == null) {
+            date = LocalDate.now();
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(theaterService.getTheaterSchedule(id, date)));
     }
 }

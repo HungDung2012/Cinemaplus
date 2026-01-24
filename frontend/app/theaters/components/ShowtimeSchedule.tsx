@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { CinemaScheduleResponse, MovieSchedule } from '@/types';
-import { cinemaService } from '@/services/cinemaService';
+import { TheaterScheduleResponse, MovieSchedule } from '@/types';
+import { theaterService } from '@/services/theaterService';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -49,7 +49,7 @@ const getAgeRatingColor = (rating?: string): string => {
 
 export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
   const router = useRouter();
-  const [schedule, setSchedule] = useState<CinemaScheduleResponse | null>(null);
+  const [schedule, setSchedule] = useState<TheaterScheduleResponse | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
     try {
       setLoading(true);
       setError(null);
-      const data = await cinemaService.getCinemaSchedule(theaterId, formatDate(selectedDate));
+      const data = await theaterService.getTheaterSchedule(theaterId, formatDate(selectedDate));
       setSchedule(data);
     } catch (err) {
       console.error('Error fetching schedule:', err);
@@ -101,7 +101,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
 
       {/* Date Picker */}
       <div className="relative bg-zinc-50 border-b border-zinc-200">
-        <button 
+        <button
           onClick={() => scrollDates('left')}
           className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg border border-zinc-200 rounded-full flex items-center justify-center hover:bg-zinc-50 transition-colors"
         >
@@ -110,7 +110,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
           </svg>
         </button>
 
-        <div 
+        <div
           id="date-scroll-container"
           className="flex overflow-x-auto scrollbar-hide px-12 py-4 gap-2"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -119,7 +119,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
             const isSelected = formatDate(date) === formatDate(selectedDate);
             const isToday = index === 0;
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-            
+
             return (
               <button
                 key={formatDate(date)}
@@ -128,7 +128,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
                   flex flex-col items-center min-w-[70px] px-3 py-3 rounded-xl transition-all duration-200
                   ${isSelected
                     ? 'bg-red-600 text-white shadow-lg scale-105'
-                    : isWeekend 
+                    : isWeekend
                       ? 'bg-white text-red-600 hover:bg-red-50 border border-zinc-200'
                       : 'bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200'}
                 `}
@@ -142,7 +142,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
           })}
         </div>
 
-        <button 
+        <button
           onClick={() => scrollDates('right')}
           className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg border border-zinc-200 rounded-full flex items-center justify-center hover:bg-zinc-50 transition-colors"
         >
@@ -165,7 +165,7 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <p className="text-red-500 mb-4 font-medium">{error}</p>
-            <button 
+            <button
               onClick={fetchSchedule}
               className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
             >
@@ -183,9 +183,9 @@ export default function ShowtimeSchedule({ theaterId }: ShowtimeScheduleProps) {
         ) : (
           <div className="space-y-8">
             {schedule.movies.map((movie) => (
-              <MovieScheduleCard 
-                key={movie.movieId} 
-                movie={movie} 
+              <MovieScheduleCard
+                key={movie.movieId}
+                movie={movie}
                 onShowtimeClick={handleShowtimeClick}
               />
             ))}
@@ -236,7 +236,7 @@ function MovieScheduleCard({ movie, onShowtimeClick }: MovieScheduleCardProps) {
                 <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                 {format.format}
               </p>
-              
+
               <div className="flex flex-wrap gap-2">
                 {format.showtimes.map((slot) => (
                   <button

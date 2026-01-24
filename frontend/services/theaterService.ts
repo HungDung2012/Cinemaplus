@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import { ApiResponse, Theater, Room, Seat, Region, City } from '@/types';
+import { ApiResponse, Theater, Room, Seat, Region, City, GroupedTheaterResponse, TheaterScheduleResponse } from '@/types';
 
 export const theaterService = {
   async getAllTheaters(): Promise<Theater[]> {
@@ -29,6 +29,17 @@ export const theaterService = {
 
   async getTheatersByRegionCode(regionCode: string): Promise<Theater[]> {
     const response = await api.get<ApiResponse<Theater[]>>(`/theaters/region/code/${regionCode}`);
+    return response.data.data;
+  },
+
+  async getTheatersGroupedByCity(): Promise<GroupedTheaterResponse> {
+    const response = await api.get<ApiResponse<GroupedTheaterResponse>>('/theaters/grouped');
+    return response.data.data;
+  },
+
+  async getTheaterSchedule(theaterId: number, date?: string): Promise<TheaterScheduleResponse> {
+    const params = date ? { date } : {};
+    const response = await api.get<ApiResponse<TheaterScheduleResponse>>(`/theaters/${theaterId}/schedule`, { params });
     return response.data.data;
   }
 };

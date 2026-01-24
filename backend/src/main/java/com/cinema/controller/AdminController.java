@@ -49,17 +49,20 @@ public class AdminController {
     // =================== MOVIES (admin proxy) ===================
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> adminGetMovies(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) com.cinema.model.Movie.MovieStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "releaseDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
 
         org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? org.springframework.data.domain.Sort.by(sortBy).ascending()
                 : org.springframework.data.domain.Sort.by(sortBy).descending();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size,
+                sort);
 
-        PageResponse<MovieResponse> response = movieService.getAllMovies(pageable);
+        PageResponse<MovieResponse> response = movieService.getAllMovies(search, status, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -70,14 +73,16 @@ public class AdminController {
     }
 
     @PostMapping("/movies")
-    public ResponseEntity<ApiResponse<MovieResponse>> adminCreateMovie(@RequestBody com.cinema.dto.request.MovieRequest request) {
+    public ResponseEntity<ApiResponse<MovieResponse>> adminCreateMovie(
+            @RequestBody com.cinema.dto.request.MovieRequest request) {
         MovieResponse movie = movieService.createMovie(request);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.success("Movie created", movie));
     }
 
     @PutMapping("/movies/{id}")
-    public ResponseEntity<ApiResponse<MovieResponse>> adminUpdateMovie(@PathVariable Long id, @RequestBody com.cinema.dto.request.MovieRequest request) {
+    public ResponseEntity<ApiResponse<MovieResponse>> adminUpdateMovie(@PathVariable Long id,
+            @RequestBody com.cinema.dto.request.MovieRequest request) {
         MovieResponse movie = movieService.updateMovie(id, request);
         return ResponseEntity.ok(ApiResponse.success("Movie updated", movie));
     }
@@ -102,7 +107,8 @@ public class AdminController {
     }
 
     @PostMapping("/theaters")
-    public ResponseEntity<ApiResponse<TheaterResponse>> adminCreateTheater(@RequestBody com.cinema.model.Theater request) {
+    public ResponseEntity<ApiResponse<TheaterResponse>> adminCreateTheater(
+            @RequestBody com.cinema.model.Theater request) {
         // reuse existing repository/service flow: simple create via repository
         throw new UnsupportedOperationException("Create theater via admin endpoint not implemented yet");
     }
@@ -121,7 +127,8 @@ public class AdminController {
     }
 
     @PutMapping("/bookings/{id}/status")
-    public ResponseEntity<ApiResponse<BookingResponse>> adminUpdateBookingStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<BookingResponse>> adminUpdateBookingStatus(@PathVariable Long id,
+            @RequestBody Map<String, String> body) {
         String status = body.get("status");
         BookingResponse updated = bookingService.updateBookingStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success(updated));
@@ -145,15 +152,18 @@ public class AdminController {
 
     @GetMapping("/users/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> adminGetUserById(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("User", "id", id));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("User", "id", id));
         UserResponse resp = modelMapper.map(user, UserResponse.class);
         return ResponseEntity.ok(ApiResponse.success(resp));
     }
 
     @PutMapping("/users/{id}/role")
-    public ResponseEntity<ApiResponse<UserResponse>> adminUpdateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<UserResponse>> adminUpdateUserRole(@PathVariable Long id,
+            @RequestBody Map<String, String> body) {
         String role = body.get("role");
-        User user = userRepository.findById(id).orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("User", "id", id));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("User", "id", id));
         try {
             user.setRole(User.Role.valueOf(role));
             userRepository.save(user);

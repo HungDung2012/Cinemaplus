@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CinemaScheduleResponse {
+public class TheaterScheduleResponse {
 
     private Long theaterId;
     private String theaterName;
@@ -53,8 +53,8 @@ public class CinemaScheduleResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FormatSchedule {
-        private String format;         // "2D Phụ đề Việt", "3D Phụ đề Anh", "4DX 3D"
-        private String roomType;       // STANDARD_2D, IMAX, etc.
+        private String format; // "2D Phụ đề Việt", "3D Phụ đề Anh", "4DX 3D"
+        private String roomType; // STANDARD_2D, IMAX, etc.
         private List<ShowtimeSlot> showtimes;
     }
 
@@ -70,7 +70,7 @@ public class CinemaScheduleResponse {
         private LocalTime startTime;
         private LocalTime endTime;
         private BigDecimal basePrice;
-        private String status;          // AVAILABLE, SOLD_OUT
+        private String status; // AVAILABLE, SOLD_OUT
         private String roomName;
         private Integer availableSeats;
     }

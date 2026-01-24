@@ -40,6 +40,7 @@ export interface Theater {
   phone?: string;
   email?: string;
   imageUrl?: string;
+  mapUrl?: string;
   description?: string;
   active: boolean;
   totalRooms: number;
@@ -270,7 +271,7 @@ export interface FoodOrderItem {
 }
 
 // Cinema types (for CGV-style cinema selector)
-export interface CinemaListResponse {
+export interface GroupedTheaterResponse {
   cities: CityGroup[];
   totalTheaters: number;
 }
@@ -292,7 +293,7 @@ export interface TheaterSummary {
   totalRooms: number;
 }
 
-export interface CinemaScheduleResponse {
+export interface TheaterScheduleResponse {
   theaterId: number;
   theaterName: string;
   theaterAddress: string;

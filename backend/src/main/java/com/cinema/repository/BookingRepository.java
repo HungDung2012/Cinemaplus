@@ -14,79 +14,102 @@ import java.util.Optional;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    
-    Optional<Booking> findByBookingCode(String bookingCode);
-    
-    Page<Booking> findByUserId(Long userId, Pageable pageable);
-    
-    List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
-    
-    List<Booking> findByShowtimeId(Long showtimeId);
 
-    @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.createdAt < :expireTime")
-    List<Booking> findPendingBookingsToExpire(@Param("status") Booking.BookingStatus status, 
-                                               @Param("expireTime") LocalDateTime expireTime);
-    
-    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId AND b.status = :status")
-    List<Booking> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Booking.BookingStatus status);
-    
-    @Query("SELECT COUNT(b) FROM Booking b WHERE b.showtime.id = :showtimeId AND b.status NOT IN ('CANCELLED', 'EXPIRED')")
-    Long countActiveBookingsByShowtime(@Param("showtimeId") Long showtimeId);
+       Optional<Booking> findByBookingCode(String bookingCode);
 
-    /**
-     * Đếm tổng số booking của user
-     */
-    Long countByUserId(Long userId);
+       Page<Booking> findByUserId(Long userId, Pageable pageable);
 
-    /**
-     * Tìm kiếm booking với filter cho transaction history
-     */
-    @Query("SELECT b FROM Booking b " +
-           "JOIN FETCH b.showtime s " +
-           "JOIN FETCH s.movie m " +
-           "JOIN FETCH s.room r " +
-           "JOIN FETCH r.theater t " +
-           "WHERE b.user.id = :userId " +
-           "AND (:search IS NULL OR " +
-           "     LOWER(m.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "     LOWER(b.bookingCode) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "     LOWER(t.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
-           "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
-           "ORDER BY b.createdAt DESC")
-    Page<Booking> findByUserIdWithFilters(
-            @Param("userId") Long userId,
-            @Param("search") String search,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
-            Pageable pageable
-    );
+       List<Booking> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    /**
-     * Lấy booking gần đây của user
-     */
-    List<Booking> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
+       List<Booking> findByShowtimeId(Long showtimeId);
 
-    /**
-     * Tính tổng chi tiêu của user từ các booking đã CONFIRMED hoặc COMPLETED
-     */
-    @Query("SELECT COALESCE(SUM(b.finalAmount), 0) FROM Booking b " +
-           "WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
-    java.math.BigDecimal calculateTotalSpendingByUserId(@Param("userId") Long userId);
+       @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.createdAt < :expireTime")
+       List<Booking> findPendingBookingsToExpire(@Param("status") Booking.BookingStatus status,
+                     @Param("expireTime") LocalDateTime expireTime);
 
-    /**
-     * Đếm số booking đã hoàn thành của user
-     */
-    @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
-    Long countCompletedBookingsByUserId(@Param("userId") Long userId);
+       @Query("SELECT b FROM Booking b WHERE b.user.id = :userId AND b.status = :status")
+       List<Booking> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Booking.BookingStatus status);
 
-    /**
-     * Lấy booking với đầy đủ thông tin showtime và movie (để tránh LazyInitializationException)
-     */
-    @Query("SELECT b FROM Booking b " +
-           "JOIN FETCH b.user u " +
-           "JOIN FETCH b.showtime s " +
-           "JOIN FETCH s.movie m " +
-           "WHERE b.id = :bookingId")
-    Optional<Booking> findByIdWithShowtimeAndMovie(@Param("bookingId") Long bookingId);
+       @Query("SELECT COUNT(b) FROM Booking b WHERE b.showtime.id = :showtimeId AND b.status NOT IN ('CANCELLED', 'EXPIRED')")
+       Long countActiveBookingsByShowtime(@Param("showtimeId") Long showtimeId);
+
+       /**
+        * Đếm tổng số booking của user
+        */
+       Long countByUserId(Long userId);
+
+       /**
+        * Tìm kiếm booking với filter cho transaction history
+        */
+       @Query("SELECT b FROM Booking b " +
+                     "JOIN FETCH b.showtime s " +
+                     "JOIN FETCH s.movie m " +
+                     "JOIN FETCH s.room r " +
+                     "JOIN FETCH r.theater t " +
+                     "WHERE b.user.id = :userId " +
+                     "AND (:search IS NULL OR " +
+                     "     LOWER(m.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "     LOWER(b.bookingCode) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "     LOWER(t.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "ORDER BY b.createdAt DESC")
+       Page<Booking> findByUserIdWithFilters(
+                     @Param("userId") Long userId,
+                     @Param("search") String search,
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate,
+                     Pageable pageable);
+
+       /**
+        * Lấy booking gần đây của user
+        */
+       List<Booking> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
+
+       /**
+        * Tính tổng chi tiêu của user từ các booking đã CONFIRMED hoặc COMPLETED
+        */
+       @Query("SELECT COALESCE(SUM(b.finalAmount), 0) FROM Booking b " +
+                     "WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
+       java.math.BigDecimal calculateTotalSpendingByUserId(@Param("userId") Long userId);
+
+       /**
+        * Đếm số booking đã hoàn thành của user
+        */
+       @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId AND b.status IN ('CONFIRMED', 'COMPLETED')")
+       Long countCompletedBookingsByUserId(@Param("userId") Long userId);
+
+       /**
+        * Lấy booking với đầy đủ thông tin showtime và movie (để tránh
+        * LazyInitializationException)
+        */
+       @Query("SELECT b FROM Booking b " +
+                     "JOIN FETCH b.user u " +
+                     "JOIN FETCH b.showtime s " +
+                     "JOIN FETCH s.movie m " +
+                     "WHERE b.id = :bookingId")
+       Optional<Booking> findByIdWithShowtimeAndMovie(@Param("bookingId") Long bookingId);
+
+       // ==================== ANALYTICS ====================
+
+       @Query("SELECT new map(SUM(b.finalAmount) as totalRevenue, COUNT(b) as totalBookings) " +
+                     "FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED')")
+       java.util.Map<String, Object> getOverallStats();
+
+       @Query("SELECT new map(m.title as movieTitle, SUM(b.finalAmount) as revenue, COUNT(b) as ticketCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.showtime s " +
+                     "JOIN s.movie m " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "GROUP BY m.id, m.title " +
+                     "ORDER BY revenue DESC")
+       List<java.util.Map<String, Object>> getRevenueByMovie(Pageable pageable);
+
+       @Query("SELECT new map(FUNCTION('DATE', b.createdAt) as date, SUM(b.finalAmount) as revenue) " +
+                     "FROM Booking b " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND b.createdAt >= :startDate " +
+                     "GROUP BY FUNCTION('DATE', b.createdAt) " +
+                     "ORDER BY date ASC")
+       List<java.util.Map<String, Object>> getRevenueByDate(@Param("startDate") LocalDateTime startDate);
 }

@@ -225,6 +225,11 @@ export const adminRoomService = {
     return response.data;
   },
 
+  getById: async (id: number) => {
+    const response = await api.get(`/admin/rooms/${id}`);
+    return response.data;
+  },
+
   create: async (data: any) => {
     const response = await api.post('/admin/rooms', data);
     return response.data;

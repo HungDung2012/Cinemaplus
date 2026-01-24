@@ -39,6 +39,9 @@ public class Room {
     @Builder.Default
     private RoomType roomType = RoomType.STANDARD_2D;
 
+    @Column(name = "seat_layout", columnDefinition = "TEXT")
+    private String seatLayout; // JSON structure for grid editor
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;

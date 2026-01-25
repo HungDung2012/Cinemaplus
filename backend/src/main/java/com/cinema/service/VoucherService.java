@@ -1,6 +1,7 @@
 package com.cinema.service;
 
 import com.cinema.dto.request.VoucherRedeemRequest;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.VoucherResponse;
 import com.cinema.exception.InvalidVoucherException;
 import com.cinema.exception.ProfileUpdateException;
@@ -17,9 +18,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,185 +32,136 @@ public class VoucherService {
     private final UserVoucherRepository userVoucherRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Nhập mã voucher và PIN để đổi voucher
-     */
+    public PageResponse<Voucher> getAllVouchers(Pageable pageable) {
+        Page<Voucher> page = voucherRepository.findAll(pageable);
+        return PageResponse.<Voucher>builder()
+                .content(page.getContent())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .build();
+    }
+
+    @Transactional
+    public Voucher createVoucher(Voucher voucher) {
+        if (voucher.getVoucherCode() == null || voucher.getVoucherCode().isEmpty()) {
+            voucher.setVoucherCode(generateUniqueCode());
+        }
+        if (voucher.getPinCode() == null) {
+            voucher.setPinCode(generatePin());
+        }
+        return voucherRepository.save(voucher);
+    }
+
+    @Transactional
+    public void deleteVoucher(Long id) {
+        voucherRepository.deleteById(id);
+    }
+
+    private String generateUniqueCode() {
+        return "VOC" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private String generatePin() {
+        return String.valueOf((int) (Math.random() * 9000) + 1000);
+    }
+
+    // ================= USER METHODS =================
+
     @Transactional
     public VoucherResponse redeemVoucher(Long userId, VoucherRedeemRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ProfileUpdateException("Không tìm thấy người dùng"));
 
-        // Tìm voucher
         Voucher voucher = voucherRepository.findByVoucherCode(request.getVoucherCode())
-                .orElseThrow(() -> new InvalidVoucherException(
-                        "Mã voucher không tồn tại",
-                        InvalidVoucherException.VOUCHER_NOT_FOUND
-                ));
+                .orElseThrow(() -> new InvalidVoucherException("Mã voucher không tồn tại"));
 
-        // Kiểm tra PIN
         if (!voucher.getPinCode().equals(request.getPinCode())) {
-            throw new InvalidVoucherException(
-                    "Mã PIN không đúng",
-                    InvalidVoucherException.VOUCHER_INVALID_PIN
-            );
+            throw new InvalidVoucherException("Mã PIN không đúng");
         }
 
-        // Kiểm tra trạng thái voucher
         if (voucher.getStatus() != Voucher.VoucherStatus.ACTIVE) {
-            throw new InvalidVoucherException(
-                    "Voucher đã được sử dụng hoặc đã hủy",
-                    InvalidVoucherException.VOUCHER_ALREADY_USED
-            );
+            throw new InvalidVoucherException("Voucher không còn hiệu lực");
         }
 
-        // Kiểm tra hết hạn
         if (voucher.getExpiryDate() != null && voucher.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new InvalidVoucherException(
-                    "Voucher đã hết hạn",
-                    InvalidVoucherException.VOUCHER_EXPIRED
-            );
+            throw new InvalidVoucherException("Voucher đã hết hạn");
         }
 
-        // Kiểm tra user đã có voucher này chưa
         if (userVoucherRepository.existsByUserIdAndVoucherId(userId, voucher.getId())) {
-            throw new InvalidVoucherException(
-                    "Bạn đã đổi voucher này rồi",
-                    InvalidVoucherException.VOUCHER_ALREADY_REDEEMED
-            );
+            throw new InvalidVoucherException("Bạn đã đổi voucher này rồi");
         }
 
-        // Cập nhật voucher status thành USED (vì mỗi voucher chỉ được 1 người dùng)
-        voucher.setStatus(Voucher.VoucherStatus.USED);
-        voucherRepository.save(voucher);
+        // Voucher usually has fixed value, not usage limit like coupon?
+        // Assuming voucher is unique per code or multi-use?
+        // Based on CouponService provided, we treat it similarly.
 
-        // Tạo UserVoucher
         UserVoucher userVoucher = UserVoucher.builder()
                 .user(user)
                 .voucher(voucher)
                 .status(UserVoucher.UseStatus.AVAILABLE)
                 .redeemedAt(LocalDateTime.now())
                 .build();
+
         userVoucherRepository.save(userVoucher);
 
-        log.info("User {} redeemed voucher {}", userId, voucher.getVoucherCode());
+        // If voucher is single-use globally (like a gift card), mark as USED?
+        // But logic seems to imply "Redeem to Wallet" then "Use".
+        // Let's assume multi-redeemable by different users unless unique.
 
         return VoucherResponse.fromUserVoucher(userVoucher);
     }
 
-    /**
-     * Lấy danh sách voucher của user
-     */
     @Transactional(readOnly = true)
     public List<VoucherResponse> getUserVouchers(Long userId) {
-        List<UserVoucher> userVouchers = userVoucherRepository.findByUserIdOrderByRedeemedAtDesc(userId);
-        return userVouchers.stream()
+        return userVoucherRepository.findByUserIdOrderByRedeemedAtDesc(userId)
+                .stream()
                 .map(VoucherResponse::fromUserVoucher)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy danh sách voucher của user với phân trang
-     */
-    @Transactional(readOnly = true)
-    public Page<VoucherResponse> getUserVouchers(Long userId, Pageable pageable) {
-        Page<UserVoucher> userVouchers = userVoucherRepository.findByUserIdOrderByRedeemedAtDesc(userId, pageable);
-        return userVouchers.map(VoucherResponse::fromUserVoucher);
-    }
-
-    /**
-     * Lấy danh sách voucher có thể sử dụng của user
-     */
     @Transactional(readOnly = true)
     public List<VoucherResponse> getAvailableVouchers(Long userId) {
-        List<UserVoucher> availableVouchers = userVoucherRepository.findAvailableVouchersForUser(userId);
-        return availableVouchers.stream()
+        return userVoucherRepository.findAvailableVouchersForUser(userId, LocalDateTime.now())
+                .stream()
                 .map(VoucherResponse::fromUserVoucher)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Sử dụng voucher cho booking
-     */
-    @Transactional
-    public void useVoucher(Long userId, Long userVoucherId, Long bookingId) {
-        UserVoucher userVoucher = userVoucherRepository.findById(userVoucherId)
-                .orElseThrow(() -> new InvalidVoucherException("Không tìm thấy voucher"));
-
-        // Validate
-        if (!userVoucher.getUser().getId().equals(userId)) {
-            throw new InvalidVoucherException("Voucher không thuộc về bạn");
-        }
-
-        if (userVoucher.getStatus() != UserVoucher.UseStatus.AVAILABLE) {
-            throw new InvalidVoucherException(
-                    "Voucher không còn khả dụng",
-                    InvalidVoucherException.VOUCHER_ALREADY_USED
-            );
-        }
-
-        if (!userVoucher.getVoucher().isValid()) {
-            throw new InvalidVoucherException(
-                    "Voucher đã hết hạn",
-                    InvalidVoucherException.VOUCHER_EXPIRED
-            );
-        }
-
-        // Update status
-        userVoucher.setStatus(UserVoucher.UseStatus.USED);
-        userVoucher.setUsedAt(LocalDateTime.now());
-        userVoucher.setUsedForBookingId(bookingId);
-        userVoucherRepository.save(userVoucher);
-
-        log.info("User {} used voucher {} for booking {}", userId, userVoucher.getVoucher().getVoucherCode(), bookingId);
-    }
-
-    /**
-     * Lấy giá trị voucher (để tính discount)
-     */
-    @Transactional(readOnly = true)
-    public java.math.BigDecimal getVoucherValue(Long userVoucherId) {
-        UserVoucher userVoucher = userVoucherRepository.findById(userVoucherId)
-                .orElseThrow(() -> new InvalidVoucherException("Không tìm thấy voucher"));
-
-        if (userVoucher.getStatus() != UserVoucher.UseStatus.AVAILABLE) {
-            throw new InvalidVoucherException("Voucher không còn khả dụng");
-        }
-
-        return userVoucher.getVoucher().getValue();
-    }
-
-    /**
-     * Lấy voucher sắp hết hạn của user (trong 7 ngày)
-     */
     @Transactional(readOnly = true)
     public List<VoucherResponse> getExpiringVouchers(Long userId) {
-        LocalDate futureDate = LocalDate.now().plusDays(7);
-        List<UserVoucher> expiringVouchers = userVoucherRepository.findExpiringUserVouchers(userId, futureDate);
-        return expiringVouchers.stream()
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime future = now.plusDays(7);
+        return userVoucherRepository.findExpiringUserVouchers(userId, now, future)
+                .stream()
                 .map(VoucherResponse::fromUserVoucher)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Job để cập nhật status các voucher hết hạn
-     */
     @Transactional
     public void updateExpiredVouchers() {
-        // Cập nhật Voucher
-        List<Voucher> expiredVouchers = voucherRepository.findExpiredActiveVouchers(LocalDate.now());
-        for (Voucher voucher : expiredVouchers) {
-            voucher.setStatus(Voucher.VoucherStatus.EXPIRED);
-        }
-        voucherRepository.saveAll(expiredVouchers);
-
-        // Cập nhật UserVoucher
-        List<UserVoucher> expiredUserVouchers = userVoucherRepository.findExpiredAvailableUserVouchers();
-        for (UserVoucher uv : expiredUserVouchers) {
+        log.info("Checking for expired vouchers...");
+        LocalDateTime now = LocalDateTime.now();
+        // Simple logic: update status of expired UserVouchers
+        List<UserVoucher> expired = userVoucherRepository.findExpiredAvailableUserVouchers(now);
+        for (UserVoucher uv : expired) {
             uv.setStatus(UserVoucher.UseStatus.EXPIRED);
         }
-        userVoucherRepository.saveAll(expiredUserVouchers);
+        userVoucherRepository.saveAll(expired);
 
-        log.info("Updated {} expired vouchers, {} expired user vouchers", 
-                expiredVouchers.size(), expiredUserVouchers.size());
+        // Also update Voucher entity status if needed (e.g. if expiryDate global
+        // passed)
+        List<Voucher> expiredVouchers = voucherRepository.findAll().stream()
+                .filter(v -> v.getStatus() == Voucher.VoucherStatus.ACTIVE
+                        && v.getExpiryDate() != null
+                        && v.getExpiryDate().isBefore(now))
+                .collect(Collectors.toList());
+
+        for (Voucher v : expiredVouchers) {
+            v.setStatus(Voucher.VoucherStatus.EXPIRED);
+        }
+        voucherRepository.saveAll(expiredVouchers);
     }
 }

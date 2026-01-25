@@ -1,0 +1,45 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.cinema:cinema-backend >----------------------
+[INFO] Building cinema-backend 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ cinema-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ cinema-backend ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 161 source files with javac [debug release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/ThucHanh/cinema/backend/src/main/java/com/cinema/service/VoucherService.java:[39,17] cannot find symbol
+  symbol:   method pageNo(int)
+  location: class com.cinema.dto.response.PageResponse.PageResponseBuilder<com.cinema.model.Voucher>
+[ERROR] /D:/ThucHanh/cinema/backend/src/main/java/com/cinema/exception/GlobalExceptionHandler.java:[166,36] cannot find symbol
+  symbol:   method getErrorCode()
+  location: variable ex of type com.cinema.exception.InvalidVoucherException
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  9.601 s
+[INFO] Finished at: 2026-01-25T14:53:58+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project cinema-backend: Compilation failure: Compilation failure: 
+[ERROR] /D:/ThucHanh/cinema/backend/src/main/java/com/cinema/service/VoucherService.java:[39,17] cannot find symbol
+[ERROR]   symbol:   method pageNo(int)
+[ERROR]   location: class com.cinema.dto.response.PageResponse.PageResponseBuilder<com.cinema.model.Voucher>
+[ERROR] /D:/ThucHanh/cinema/backend/src/main/java/com/cinema/exception/GlobalExceptionHandler.java:[166,36] cannot find symbol
+[ERROR]   symbol:   method getErrorCode()
+[ERROR]   location: variable ex of type com.cinema.exception.InvalidVoucherException
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

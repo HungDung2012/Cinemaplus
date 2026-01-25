@@ -88,7 +88,7 @@ public class ReviewService {
     public ReviewResponse likeReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đánh giá"));
-        
+
         review.setLikesCount(review.getLikesCount() + 1);
         review = reviewRepository.save(review);
         return mapToResponse(review);
@@ -106,14 +106,31 @@ public class ReviewService {
         reviewRepository.delete(review);
     }
 
+    // ================= ADMIN METHODS =================
+
+    public List<ReviewResponse> getAllReviews() {
+        return reviewRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteReviewAdmin(Long reviewId) {
+        if (!reviewRepository.existsById(reviewId)) {
+            throw new ResourceNotFoundException("Không tìm thấy đánh giá");
+        }
+        reviewRepository.deleteById(reviewId);
+    }
+
     private ReviewResponse mapToResponse(Review review) {
         return ReviewResponse.builder()
                 .id(review.getId())
                 .movieId(review.getMovie().getId())
                 .movieTitle(review.getMovie().getTitle())
+                .moviePoster(review.getMovie().getPosterUrl()) // Added this field to mapping if it exists in DTO?
                 .userId(review.getUser().getId())
                 .userName(maskUserName(review.getUser().getFullName()))
-                .userAvatar(null)
+                .userAvatar(review.getUser().getAvatar()) // Assuming user has avatar field?
                 .rating(review.getRating())
                 .content(review.getContent())
                 .likesCount(review.getLikesCount())

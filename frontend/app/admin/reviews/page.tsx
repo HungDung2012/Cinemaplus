@@ -5,19 +5,14 @@ import { adminReviewService } from '@/services/adminService';
 
 interface Review {
   id: number;
-  user: {
-    id: number;
-    fullName: string;
-    email: string;
-    avatar: string;
-  };
-  movie: {
-    id: number;
-    title: string;
-    posterUrl: string;
-  };
+  userId: number;
+  userName: string;
+  userAvatar: string;
+  movieId: number;
+  movieTitle: string;
+  moviePoster: string;
   rating: number;
-  comment: string;
+  content: string;
   createdAt: string;
 }
 
@@ -103,9 +98,9 @@ export default function ReviewsManagementPage() {
     if (filters.searchTerm) {
       const search = filters.searchTerm.toLowerCase();
       if (
-        !review.user?.fullName?.toLowerCase().includes(search) &&
-        !review.movie?.title?.toLowerCase().includes(search) &&
-        !review.comment?.toLowerCase().includes(search)
+        !review.userName?.toLowerCase().includes(search) &&
+        !review.movieTitle?.toLowerCase().includes(search) &&
+        !review.content?.toLowerCase().includes(search)
       ) {
         return false;
       }
@@ -114,7 +109,7 @@ export default function ReviewsManagementPage() {
   });
 
   // Calculate stats
-  const avgRating = reviews.length > 0 
+  const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
     : 0;
 
@@ -222,35 +217,35 @@ export default function ReviewsManagementPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-medium">
-                        {review.user?.avatar ? (
-                          <img src={review.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                        {review.userAvatar ? (
+                          <img src={review.userAvatar} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
-                          review.user?.fullName?.charAt(0).toUpperCase() || 'U'
+                          review.userName?.charAt(0).toUpperCase() || 'U'
                         )}
                       </div>
                       <div>
-                        <div className="font-medium text-zinc-900">{review.user?.fullName}</div>
-                        <div className="text-sm text-zinc-500">{review.user?.email}</div>
+                        <div className="font-medium text-zinc-900">{review.userName}</div>
+                        {/* Email not available in flat DTO, omitted */}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {review.movie?.posterUrl && (
+                      {review.moviePoster && (
                         <img
-                          src={review.movie.posterUrl}
+                          src={review.moviePoster}
                           alt=""
                           className="w-10 h-14 rounded object-cover"
                         />
                       )}
-                      <span className="font-medium text-zinc-900">{review.movie?.title}</span>
+                      <span className="font-medium text-zinc-900">{review.movieTitle}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     {renderStars(review.rating)}
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-zinc-600 line-clamp-2 max-w-xs">{review.comment}</p>
+                    <p className="text-zinc-600 line-clamp-2 max-w-xs">{review.content}</p>
                   </td>
                   <td className="px-6 py-4 text-zinc-500">
                     {formatDate(review.createdAt)}
@@ -309,39 +304,38 @@ export default function ReviewsManagementPage() {
                 </svg>
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-medium">
-                  {detailModal.review.user?.avatar ? (
-                    <img src={detailModal.review.user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  {detailModal.review.userAvatar ? (
+                    <img src={detailModal.review.userAvatar} alt="" className="w-full h-full rounded-full object-cover" />
                   ) : (
-                    detailModal.review.user?.fullName?.charAt(0).toUpperCase() || 'U'
+                    detailModal.review.userName?.charAt(0).toUpperCase() || 'U'
                   )}
                 </div>
                 <div>
-                  <div className="font-medium text-zinc-900">{detailModal.review.user?.fullName}</div>
-                  <div className="text-sm text-zinc-500">{detailModal.review.user?.email}</div>
+                  <div className="font-medium text-zinc-900">{detailModal.review.userName}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg">
-                {detailModal.review.movie?.posterUrl && (
+                {detailModal.review.moviePoster && (
                   <img
-                    src={detailModal.review.movie.posterUrl}
+                    src={detailModal.review.moviePoster}
                     alt=""
                     className="w-14 h-20 rounded object-cover"
                   />
                 )}
                 <div>
-                  <div className="font-medium text-zinc-900">{detailModal.review.movie?.title}</div>
+                  <div className="font-medium text-zinc-900">{detailModal.review.movieTitle}</div>
                   <div className="mt-1">{renderStars(detailModal.review.rating)}</div>
                 </div>
               </div>
 
               <div>
                 <div className="text-sm text-zinc-500 mb-1">Nội dung đánh giá</div>
-                <p className="text-zinc-700 whitespace-pre-wrap">{detailModal.review.comment}</p>
+                <p className="text-zinc-700 whitespace-pre-wrap">{detailModal.review.content}</p>
               </div>
 
               <div className="text-sm text-zinc-500">
@@ -358,7 +352,7 @@ export default function ReviewsManagementPage() {
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-zinc-900 mb-2">Xác nhận xóa</h3>
             <p className="text-zinc-600 mb-6">
-              Bạn có chắc chắn muốn xóa đánh giá này của <span className="font-medium">{deleteModal.review?.user?.fullName}</span>?
+              Bạn có chắc chắn muốn xóa đánh giá này của <span className="font-medium">{deleteModal.review?.userName}</span>?
               Hành động này không thể hoàn tác.
             </p>
             <div className="flex gap-3 justify-end">

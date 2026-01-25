@@ -11,6 +11,7 @@ public class ReviewResponse {
     private Long id;
     private Long movieId;
     private String movieTitle;
+    private String moviePoster;
     private Long userId;
     private String userName;
     private String userAvatar;

@@ -19,9 +19,9 @@ public class VoucherCouponExpirationScheduler {
     private final CouponService couponService;
 
     /**
-     * Chạy mỗi ngày lúc 00:05 để cập nhật voucher hết hạn
+     * Chạy mỗi ngày lúc 00:01 để cập nhật voucher hết hạn
      */
-    @Scheduled(cron = "0 5 0 * * *")
+    @Scheduled(cron = "0 1 0 * * *")
     public void updateExpiredVouchers() {
         log.info("Running voucher expiration check...");
         try {
@@ -33,9 +33,10 @@ public class VoucherCouponExpirationScheduler {
     }
 
     /**
-     * Chạy mỗi giờ để cập nhật coupon hết hạn (vì coupon có expiry time chính xác đến giờ)
+     * Chạy mỗi giờ để cập nhật coupon hết hạn (vì coupon có expiry time chính xác
+     * đến giờ)
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 1 * * * *")
     public void updateExpiredCoupons() {
         log.info("Running coupon expiration check...");
         try {

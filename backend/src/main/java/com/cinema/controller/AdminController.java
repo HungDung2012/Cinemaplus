@@ -1,5 +1,6 @@
 package com.cinema.controller;
 
+import jakarta.validation.Valid;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.ShowtimeResponse;
 import com.cinema.dto.response.MovieResponse;
@@ -36,6 +37,12 @@ public class AdminController {
     private final TheaterService theaterService;
     private final BookingService bookingService;
     private final UserRepository userRepository;
+
+    // Injected for performance optimizations (Dashboard stats)
+    private final com.cinema.repository.MovieRepository movieRepository;
+    private final com.cinema.repository.TheaterRepository theaterRepository;
+    private final com.cinema.repository.BookingRepository bookingRepository;
+
     private final ModelMapper modelMapper;
 
     @GetMapping("/showtimes/range")
@@ -44,6 +51,42 @@ public class AdminController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         List<ShowtimeResponse> showtimes = showtimeService.getShowtimesByRange(startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(showtimes));
+    }
+
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<ApiResponse<com.cinema.dto.response.DashboardStatsResponse>> getDashboardStats() {
+        long totalMovies = movieRepository.count();
+        long totalTheaters = theaterRepository.count();
+        long totalUsers = userRepository.count();
+
+        // Overall booking stats
+        Map<String, Object> overall = bookingRepository.getOverallStats();
+        long totalBookings = overall.get("totalBookings") != null ? ((Number) overall.get("totalBookings")).longValue()
+                : 0;
+        java.math.BigDecimal totalRevenue = overall.get("totalRevenue") != null
+                ? (java.math.BigDecimal) overall.get("totalRevenue")
+                : java.math.BigDecimal.ZERO;
+
+        // Today's stats
+        java.time.LocalDateTime todayStart = java.time.LocalDate.now().atStartOfDay();
+        java.time.LocalDateTime todayEnd = todayStart.plusDays(1).minusNanos(1);
+
+        long todayBookings = bookingRepository.countByCreatedAtBetween(todayStart, todayEnd);
+        java.math.BigDecimal todayRevenue = bookingRepository.sumRevenueBetween(todayStart, todayEnd);
+        if (todayRevenue == null)
+            todayRevenue = java.math.BigDecimal.ZERO;
+
+        com.cinema.dto.response.DashboardStatsResponse stats = com.cinema.dto.response.DashboardStatsResponse.builder()
+                .totalMovies(totalMovies)
+                .totalTheaters(totalTheaters)
+                .totalUsers(totalUsers)
+                .totalBookings(totalBookings)
+                .totalRevenue(totalRevenue)
+                .todayBookings(todayBookings)
+                .todayRevenue(todayRevenue)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
     // =================== MOVIES (admin proxy) ===================
@@ -108,9 +151,23 @@ public class AdminController {
 
     @PostMapping("/theaters")
     public ResponseEntity<ApiResponse<TheaterResponse>> adminCreateTheater(
-            @RequestBody com.cinema.model.Theater request) {
-        // reuse existing repository/service flow: simple create via repository
-        throw new UnsupportedOperationException("Create theater via admin endpoint not implemented yet");
+            @Valid @RequestBody com.cinema.dto.request.TheaterRequest request) {
+        TheaterResponse theater = theaterService.createTheater(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success("Theater created", theater));
+    }
+
+    @PutMapping("/theaters/{id}")
+    public ResponseEntity<ApiResponse<TheaterResponse>> adminUpdateTheater(@PathVariable Long id,
+            @Valid @RequestBody com.cinema.dto.request.TheaterRequest request) {
+        TheaterResponse theater = theaterService.updateTheater(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Theater updated", theater));
+    }
+
+    @DeleteMapping("/theaters/{id}")
+    public ResponseEntity<ApiResponse<Void>> adminDeleteTheater(@PathVariable Long id) {
+        theaterService.deleteTheater(id);
+        return ResponseEntity.ok(ApiResponse.success("Theater deleted", null));
     }
 
     // =================== BOOKINGS (admin) ===================

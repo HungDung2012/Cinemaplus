@@ -1,29 +1,48 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { adminTheaterService } from '@/services/adminService';
+import { useState, useEffect } from "react";
+import {
+  Building2,
+  MapPin,
+  Phone,
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  Armchair,
+  Filter,
+  X
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { adminTheaterService } from "@/services/adminService";
 
 interface Theater {
   id: number;
   name: string;
   address: string;
-  city: string;
   phone: string;
   email: string;
-  totalRooms?: number;
-  imageUrl?: string;
-  createdAt?: string;
+  description: string;
+  imageUrl: string;
+  active: boolean;
+  totalRooms: number;
+  cityName: string;
+  regionName: string;
 }
 
-export default function TheatersManagementPage() {
+export default function TheatersPage() {
+  const router = useRouter();
   const [theaters, setTheaters] = useState<Theater[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; theater: Theater | null }>({
-    open: false,
-    theater: null,
-  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [cityFilter, setCityFilter] = useState("All");
+  const [selectedTheater, setSelectedTheater] = useState<Theater | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [theaterToDelete, setTheaterToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTheaters();
@@ -31,174 +50,306 @@ export default function TheatersManagementPage() {
 
   const fetchTheaters = async () => {
     try {
-      const response = await adminTheaterService.getAll();
-      setTheaters(response);
+      const data = await adminTheaterService.getAll();
+      setTheaters(data);
     } catch (error) {
-      console.error('Error fetching theaters:', error);
+      console.error("Error fetching theaters:", error);
+      toast.error("Không thể tải danh sách rạp");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!deleteModal.theater) return;
+    if (!theaterToDelete) return;
 
     try {
-      await adminTheaterService.delete(deleteModal.theater.id);
-      setTheaters(theaters.filter(t => t.id !== deleteModal.theater?.id));
-      setDeleteModal({ open: false, theater: null });
-    } catch (error: any) {
-      console.error('Error deleting theater:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi xóa rạp');
+      await adminTheaterService.delete(theaterToDelete);
+      toast.success("Xóa rạp thành công");
+      fetchTheaters();
+      setShowDeleteModal(false);
+      setTheaterToDelete(null);
+    } catch (error) {
+      console.error("Error deleting theater:", error);
+      toast.error("Không thể xóa rạp");
     }
   };
 
-  const filteredTheaters = theaters.filter(theater =>
-    theater.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    theater.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    theater.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Extract unique cities for filter
+  const cities = ["All", ...Array.from(new Set(theaters.map(t => t.cityName).filter(Boolean)))];
+
+  const filteredTheaters = theaters.filter((theater) => {
+    const matchesSearch =
+      theater.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      theater.address.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCity = cityFilter === "All" || theater.cityName === cityFilter;
+
+    return matchesSearch && matchesCity;
+  });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Quản lý rạp chiếu</h1>
-          <p className="text-zinc-500 mt-1">Quản lý danh sách các rạp chiếu phim</p>
+          <h1 className="text-2xl font-bold text-gray-900">Quản lý Rạp chiếu</h1>
+          <p className="text-gray-500 mt-1">Danh sách các rạp chiếu phim trong hệ thống</p>
         </div>
         <Link
           href="/admin/theaters/create"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Thêm rạp mới
+          <Plus className="w-5 h-5" />
+          <span>Thêm rạp mới</span>
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 mb-6">
-        <div className="relative max-w-md">
+      {/* Filters and Search */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm rạp..."
+            placeholder="Tìm theo tên rạp, địa chỉ..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        </div>
+
+        <div className="flex items-center space-x-2 w-full md:w-auto">
+          <Filter className="w-5 h-5 text-gray-500" />
+          <select
+            className="border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+            {cities.map(city => (
+              <option key={city} value={city}>{city === "All" ? "Tất cả thành phố" : city}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Theaters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTheaters.map((theater) => (
-          <div
-            key={theater.id}
-            className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden hover:shadow-md transition-shadow"
-          >
-            <div className="h-40 bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-              {theater.imageUrl ? (
-                <img src={theater.imageUrl} alt={theater.name} className="w-full h-full object-cover" />
+      {/* Theaters Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên rạp</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thành phố</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa chỉ</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Phòng chiếu</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredTheaters.length > 0 ? (
+                filteredTheaters.map((theater) => (
+                  <tr key={theater.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div>
+                          <div className="font-medium text-gray-900">{theater.name}</div>
+                          <div className="text-xs text-gray-500 md:hidden">{theater.phone}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                      {theater.cityName}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 max-w-xs truncate" title={theater.address}>
+                      {theater.address}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {theater.totalRooms}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${theater.active
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                        }`}>
+                        {theater.active ? 'Hoạt động' : 'Ngừng hoạt động'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedTheater(theater);
+                            setShowDetailModal(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <Link
+                          href={`/admin/theaters/${theater.id}/rooms`}
+                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Quản lý phòng chiếu"
+                        >
+                          <Armchair className="w-5 h-5" />
+                        </Link>
+                        <Link
+                          href={`/admin/theaters/${theater.id}/edit`}
+                          className="p-1 text-gray-400 hover:text-yellow-600 transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <Pencil className="w-5 h-5" />
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setTheaterToDelete(theater.id);
+                            setShowDeleteModal(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Xóa"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
-                <svg className="w-16 h-16 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <Building2 className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                    <p>Không tìm thấy rạp chiếu nào phù hợp</p>
+                  </td>
+                </tr>
               )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedTheater && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="relative h-48 bg-gray-200">
+              {selectedTheater.imageUrl ? (
+                <img
+                  src={selectedTheater.imageUrl}
+                  alt={selectedTheater.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                  <Building2 className="w-16 h-16" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <h3 className="text-2xl font-bold">{selectedTheater.name}</h3>
+                <p className="text-white/90 flex items-center text-sm mt-1">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  {selectedTheater.cityName}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-zinc-900 mb-2">{theater.name}</h3>
-              <div className="space-y-2 text-sm text-zinc-600">
-                <div className="flex items-start gap-2">
-                  <svg className="w-4 h-4 text-zinc-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span className="line-clamp-2">{theater.address}</span>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Địa chỉ</label>
+                  <p className="text-gray-900 mt-1">{selectedTheater.address}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <span>{theater.phone || 'Chưa cập nhật'}</span>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Số điện thoại</label>
+                  <p className="text-gray-900 mt-1 flex items-center">
+                    <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                    {selectedTheater.phone}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <span>{theater.email || 'Chưa cập nhật'}</span>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Trạng thái</label>
+                  <p className="mt-1">
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${selectedTheater.active
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                      }`}>
+                      {selectedTheater.active ? 'Đang hoạt động' : 'Tạm ngưng'}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Tổng số phòng</label>
+                  <p className="text-gray-900 mt-1">{selectedTheater.totalRooms}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Khu vực</label>
+                  <p className="text-gray-900 mt-1">{selectedTheater.regionName}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
-                <Link
-                  href={`/admin/theaters/${theater.id}/edit`}
-                  className="flex-1 px-3 py-2 text-center text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  Chỉnh sửa
-                </Link>
-                <Link
-                  href={`/admin/theaters/${theater.id}/rooms`}
-                  className="flex-1 px-3 py-2 text-center text-sm text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  Phòng chiếu
-                </Link>
+
+              <div className="pt-4 border-t border-gray-100 mt-4">
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Mô tả</label>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                  {selectedTheater.description || "Chưa có mô tả"}
+                </p>
+              </div>
+
+              <div className="flex justify-end pt-4 space-x-3">
                 <button
-                  onClick={() => setDeleteModal({ open: true, theater })}
-                  className="px-3 py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Xóa
+                  Đóng
                 </button>
+                <Link
+                  href={`/admin/theaters/${selectedTheater.id}/rooms`}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Quản lý phòng chiếu
+                </Link>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-
-      {filteredTheaters.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-zinc-200">
-          <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-          <p className="text-zinc-500">Không tìm thấy rạp chiếu nào</p>
         </div>
       )}
 
       {/* Delete Modal */}
-      {deleteModal.open && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-zinc-900 mb-2">Xác nhận xóa</h3>
-            <p className="text-zinc-600 mb-6">
-              Bạn có chắc chắn muốn xóa rạp <span className="font-medium">{deleteModal.theater?.name}</span>?
-              Hành động này không thể hoàn tác.
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận xóa</h3>
+            <p className="text-gray-500 mb-6">
+              Bạn có chắc chắn muốn xóa rạp chiếu này? Hành động này không thể hoàn tác.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end space-x-3">
               <button
-                onClick={() => setDeleteModal({ open: false, theater: null })}
-                className="px-4 py-2 text-zinc-700 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Hủy
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Xóa
               </button>

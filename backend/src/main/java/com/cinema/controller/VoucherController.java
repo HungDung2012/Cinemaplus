@@ -1,9 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.dto.request.VoucherRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.PageResponse;
 import com.cinema.model.Voucher;
 import com.cinema.service.VoucherService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +29,8 @@ public class VoucherController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Voucher>> createVoucher(@RequestBody Voucher voucher) {
-        return ResponseEntity.ok(ApiResponse.success(voucherService.createVoucher(voucher)));
+    public ResponseEntity<ApiResponse<Voucher>> createVoucher(@Valid @RequestBody VoucherRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(voucherService.createVoucher(request)));
     }
 
     @DeleteMapping("/{id}")

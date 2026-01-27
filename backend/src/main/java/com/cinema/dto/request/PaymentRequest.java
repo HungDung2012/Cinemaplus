@@ -12,16 +12,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentRequest {
-    
+
     @NotNull(message = "Booking ID is required")
     private Long bookingId;
-    
+
     @NotNull(message = "Payment method is required")
     private Payment.PaymentMethod paymentMethod;
-    
+
     /**
      * Số điểm thưởng sử dụng để trừ tiền (tùy chọn)
      * 1 điểm = 1.000đ
      */
+    @jakarta.validation.constraints.Min(value = 0, message = "Points must be non-negative")
     private Integer pointsToUse;
 }

@@ -21,7 +21,7 @@ export default function EditMoviePage() {
   const router = useRouter();
   const params = useParams();
   const movieId = params.id as string;
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -73,7 +73,6 @@ export default function EditMoviePage() {
         setLoading(false);
       }
     };
-
     fetchMovie();
   }, [movieId, router]);
 

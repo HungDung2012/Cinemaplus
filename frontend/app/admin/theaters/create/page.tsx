@@ -11,7 +11,7 @@ export default function CreateTheaterPage() {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    city: '',
+    cityName: '',
     phone: '',
     email: '',
     imageUrl: '',
@@ -96,8 +96,8 @@ export default function CreateTheaterPage() {
               </label>
               <input
                 type="text"
-                name="city"
-                value={formData.city}
+                name="cityName"
+                value={formData.cityName}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"

@@ -15,7 +15,7 @@ export default function EditTheaterPage() {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    city: '',
+    cityName: '',
     phone: '',
     email: '',
     imageUrl: '',
@@ -29,7 +29,7 @@ export default function EditTheaterPage() {
         setFormData({
           name: theater.name || '',
           address: theater.address || '',
-          city: theater.city || '',
+          cityName: theater.cityName || '',
           phone: theater.phone || '',
           email: theater.email || '',
           imageUrl: theater.imageUrl || '',
@@ -43,7 +43,6 @@ export default function EditTheaterPage() {
         setLoading(false);
       }
     };
-
     fetchTheater();
   }, [theaterId, router]);
 
@@ -131,8 +130,8 @@ export default function EditTheaterPage() {
               </label>
               <input
                 type="text"
-                name="city"
-                value={formData.city}
+                name="cityName"
+                value={formData.cityName}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"

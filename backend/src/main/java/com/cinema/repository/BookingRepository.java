@@ -112,4 +112,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                      "GROUP BY FUNCTION('DATE', b.createdAt) " +
                      "ORDER BY date ASC")
        List<java.util.Map<String, Object>> getRevenueByDate(@Param("startDate") LocalDateTime startDate);
+
+       // New efficient stats methods
+       long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+       @Query("SELECT COALESCE(SUM(b.finalAmount), 0) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.createdAt BETWEEN :start AND :end")
+       java.math.BigDecimal sumRevenueBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

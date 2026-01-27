@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { adminMovieService, adminTheaterService, adminBookingService, adminUserService } from '@/services/adminService';
+import { adminMovieService, adminTheaterService, adminBookingService, adminUserService, adminDashboardService } from '@/services/adminService';
 
 interface DashboardStats {
   totalMovies: number;
@@ -36,37 +36,24 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       // Fetch stats
-      const [moviesRes, theatersRes, bookingsRes, usersRes] = await Promise.all([
-        adminMovieService.getAll().catch(() => []),
-        adminTheaterService.getAll().catch(() => []),
+      const [statsRes, bookingsRes] = await Promise.all([
+        adminDashboardService.getStats(),
         adminBookingService.getAll().catch(() => []),
-        adminUserService.getAll().catch(() => []),
       ]);
 
-      const bookings = Array.isArray(bookingsRes) ? bookingsRes : [];
-      const today = new Date().toISOString().split('T')[0];
-      
-      const todayBookings = bookings.filter((b: any) => 
-        b.createdAt?.startsWith(today)
-      );
-
-      const totalRevenue = bookings
-        .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
-        .reduce((sum: number, b: any) => sum + (b.totalAmount || 0), 0);
-
-      const todayRevenue = todayBookings
-        .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
-        .reduce((sum: number, b: any) => sum + (b.totalAmount || 0), 0);
+      const dashboardStats = statsRes?.data; // API returns ApiResponse<DashboardStatsResponse>
 
       setStats({
-        totalMovies: Array.isArray(moviesRes) ? moviesRes.length : 0,
-        totalTheaters: Array.isArray(theatersRes) ? theatersRes.length : 0,
-        totalBookings: bookings.length,
-        totalUsers: Array.isArray(usersRes) ? usersRes.length : 0,
-        totalRevenue,
-        todayBookings: todayBookings.length,
-        todayRevenue,
+        totalMovies: dashboardStats?.totalMovies || 0,
+        totalTheaters: dashboardStats?.totalTheaters || 0,
+        totalBookings: dashboardStats?.totalBookings || 0,
+        totalUsers: dashboardStats?.totalUsers || 0,
+        totalRevenue: dashboardStats?.totalRevenue || 0,
+        todayBookings: dashboardStats?.todayBookings || 0,
+        todayRevenue: dashboardStats?.todayRevenue || 0,
       });
+
+      const bookings = Array.isArray(bookingsRes) ? bookingsRes : [];
 
       // Get recent bookings
       setRecentBookings(bookings.slice(0, 10).map((b: any) => ({

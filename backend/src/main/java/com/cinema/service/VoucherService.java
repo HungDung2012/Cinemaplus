@@ -1,5 +1,6 @@
 package com.cinema.service;
 
+import com.cinema.dto.request.VoucherRequest;
 import com.cinema.dto.request.VoucherRedeemRequest;
 import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.VoucherResponse;
@@ -45,13 +46,17 @@ public class VoucherService {
     }
 
     @Transactional
-    public Voucher createVoucher(Voucher voucher) {
-        if (voucher.getVoucherCode() == null || voucher.getVoucherCode().isEmpty()) {
-            voucher.setVoucherCode(generateUniqueCode());
-        }
-        if (voucher.getPinCode() == null) {
-            voucher.setPinCode(generatePin());
-        }
+    public Voucher createVoucher(VoucherRequest request) {
+        Voucher voucher = Voucher.builder()
+                .voucherCode(request.getVoucherCode())
+                .pinCode(request.getPinCode())
+                .value(request.getValue())
+                .description(request.getDescription())
+                .expiryDate(request.getExpiryDate())
+                .minPurchaseAmount(request.getMinPurchaseAmount())
+                .status(Voucher.VoucherStatus.ACTIVE)
+                .build();
+
         return voucherRepository.save(voucher);
     }
 

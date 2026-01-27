@@ -257,4 +257,87 @@ public class TheaterService {
                         case VIP_4DX -> "4DX 3D Phụ đề Việt | Rạp 4DX";
                 };
         }
+
+        // ---------------- Admin APIs ----------------
+
+        @Transactional
+        public TheaterResponse createTheater(com.cinema.dto.request.TheaterRequest request) {
+                Theater theater = new Theater();
+                mapRequestToTheater(request, theater);
+
+                if (request.getCityId() != null) {
+                        City city = cityRepository.findById(request.getCityId())
+                                        .orElseThrow(() -> new ResourceNotFoundException("City", "id",
+                                                        request.getCityId()));
+                        theater.setCity(city);
+                } else if (request.getCityName() != null && !request.getCityName().isEmpty()) {
+                        City city = cityRepository.findByName(request.getCityName())
+                                        .orElseThrow(() -> new ResourceNotFoundException("City", "name",
+                                                        request.getCityName()));
+                        theater.setCity(city);
+                }
+
+                Theater saved = theaterRepository.save(theater);
+                return mapToResponse(saved);
+        }
+
+        @Transactional
+        public TheaterResponse updateTheater(Long id, com.cinema.dto.request.TheaterRequest request) {
+                Theater theater = theaterRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Theater", "id", id));
+
+                if (request.getName() != null)
+                        theater.setName(request.getName());
+                if (request.getAddress() != null)
+                        theater.setAddress(request.getAddress());
+                if (request.getPhone() != null) {
+                        theater.setPhone(request.getPhone());
+                        theater.setHotline(request.getPhone());
+                }
+                if (request.getEmail() != null)
+                        theater.setEmail(request.getEmail());
+                if (request.getDescription() != null)
+                        theater.setDescription(request.getDescription());
+                if (request.getImageUrl() != null)
+                        theater.setImageUrl(request.getImageUrl());
+                if (request.getMapUrl() != null)
+                        theater.setMapUrl(request.getMapUrl());
+                if (request.getActive() != null)
+                        theater.setActive(request.getActive());
+
+                if (request.getCityId() != null) {
+                        City city = cityRepository.findById(request.getCityId())
+                                        .orElseThrow(() -> new ResourceNotFoundException("City", "id",
+                                                        request.getCityId()));
+                        theater.setCity(city);
+                } else if (request.getCityName() != null && !request.getCityName().isEmpty()) {
+                        City city = cityRepository.findByName(request.getCityName())
+                                        .orElseThrow(() -> new ResourceNotFoundException("City", "name",
+                                                        request.getCityName()));
+                        theater.setCity(city);
+                }
+
+                Theater saved = theaterRepository.save(theater);
+                return mapToResponse(saved);
+        }
+
+        @Transactional
+        public void deleteTheater(Long id) {
+                if (!theaterRepository.existsById(id)) {
+                        throw new ResourceNotFoundException("Theater", "id", id);
+                }
+                theaterRepository.deleteById(id);
+        }
+
+        private void mapRequestToTheater(com.cinema.dto.request.TheaterRequest request, Theater theater) {
+                theater.setName(request.getName());
+                theater.setAddress(request.getAddress());
+                theater.setPhone(request.getPhone());
+                theater.setHotline(request.getPhone());
+                theater.setEmail(request.getEmail());
+                theater.setDescription(request.getDescription());
+                theater.setImageUrl(request.getImageUrl());
+                theater.setMapUrl(request.getMapUrl());
+                theater.setActive(request.getActive() != null ? request.getActive() : true);
+        }
 }

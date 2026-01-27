@@ -40,22 +40,22 @@ export const adminTheaterService = {
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/theaters/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   create: async (data: any) => {
     const response = await api.post('/admin/theaters', data);
-    return response.data;
+    return response.data?.data;
   },
 
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/theaters/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/theaters/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -64,27 +64,27 @@ export const adminShowtimeService = {
   getAll: async (params?: any) => {
     // Sử dụng endpoint range mới tạo để lọc theo tuần
     const response = await api.get('/admin/showtimes/range', { params });
-    return response.data;
+    return response.data?.data;
   },
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/showtimes/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   create: async (data: any) => {
     const response = await api.post('/admin/showtimes', data);
-    return response.data;
+    return response.data?.data;
   },
 
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/showtimes/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/showtimes/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -92,22 +92,22 @@ export const adminShowtimeService = {
 export const adminBookingService = {
   getAll: async () => {
     const response = await api.get('/admin/bookings');
-    return response.data;
+    return response.data?.data;
   },
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/bookings/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   updateStatus: async (id: number, status: string) => {
     const response = await api.put(`/admin/bookings/${id}/status`, { status });
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/bookings/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -115,32 +115,32 @@ export const adminBookingService = {
 export const adminUserService = {
   getAll: async () => {
     const response = await api.get('/admin/users');
-    return response.data;
+    return response.data?.data;
   },
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/users/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   create: async (data: any) => {
     const response = await api.post('/admin/users', data);
-    return response.data;
+    return response.data?.data;
   },
 
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/users/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/users/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   updateRole: async (id: number, role: string) => {
     const response = await api.put(`/admin/users/${id}/role`, { role });
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -148,27 +148,27 @@ export const adminUserService = {
 export const adminFoodService = {
   getAll: async () => {
     const response = await api.get('/admin/foods');
-    return response.data;
+    return response.data?.data;
   },
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/foods/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   create: async (data: any) => {
     const response = await api.post('/admin/foods', data);
-    return response.data;
+    return response.data?.data;
   },
 
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/foods/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/foods/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -176,27 +176,27 @@ export const adminFoodService = {
 export const adminPromotionService = {
   getAll: async () => {
     const response = await api.get('/admin/promotions');
-    return response.data;
+    return response.data?.data;
   },
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/promotions/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   create: async (data: any) => {
     const response = await api.post('/admin/promotions', data);
-    return response.data;
+    return response.data?.data;
   },
 
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/promotions/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/promotions/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -204,12 +204,12 @@ export const adminPromotionService = {
 export const adminReviewService = {
   getAll: async () => {
     const response = await api.get('/admin/reviews');
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/reviews/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 };
 
@@ -217,31 +217,39 @@ export const adminReviewService = {
 export const adminRoomService = {
   getAll: async () => {
     const response = await api.get('/admin/rooms');
-    return response.data;
+    return response.data?.data;
   },
 
   getByTheater: async (theaterId: number) => {
     const response = await api.get(`/admin/rooms/theater/${theaterId}`);
-    return response.data;
+    return response.data?.data;
   },
 
   getById: async (id: number) => {
     const response = await api.get(`/admin/rooms/${id}`);
-    return response.data;
+    return response.data?.data;
   },
 
   create: async (data: any) => {
     const response = await api.post('/admin/rooms', data);
-    return response.data;
+    return response.data?.data;
   },
 
   update: async (id: number, data: any) => {
     const response = await api.put(`/admin/rooms/${id}`, data);
-    return response.data;
+    return response.data?.data;
   },
 
   delete: async (id: number) => {
     const response = await api.delete(`/admin/rooms/${id}`);
-    return response.data;
+    return response.data?.data;
   },
+};
+
+// ===================== DASHBOARD =====================
+export const adminDashboardService = {
+  getStats: async () => {
+    const response = await api.get('/admin/dashboard-stats');
+    return response.data;
+  }
 };

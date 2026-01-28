@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { adminTheaterService } from '@/services/adminService';
+import { adminTheaterService, adminCityService } from '@/services/adminService';
 
 export default function EditTheaterPage() {
   const router = useRouter();
@@ -12,10 +12,12 @@ export default function EditTheaterPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cities, setCities] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     cityName: '',
+    cityId: '',
     phone: '',
     email: '',
     imageUrl: '',
@@ -23,30 +25,39 @@ export default function EditTheaterPage() {
   });
 
   useEffect(() => {
-    const fetchTheater = async () => {
+    const fetchData = async () => {
       try {
-        const theater = await adminTheaterService.getById(Number(theaterId));
-        setFormData({
-          name: theater.name || '',
-          address: theater.address || '',
-          cityName: theater.cityName || '',
-          phone: theater.phone || '',
-          email: theater.email || '',
-          imageUrl: theater.imageUrl || '',
-          description: theater.description || '',
-        });
+        const [theater, citiesData] = await Promise.all([
+          adminTheaterService.getById(Number(theaterId)),
+          adminCityService.getAll()
+        ]);
+
+        setCities(citiesData || []);
+
+        if (theater) {
+          setFormData({
+            name: theater.name || '',
+            address: theater.address || '',
+            cityName: theater.cityName || '',
+            cityId: theater.cityId || '',
+            phone: theater.phone || '',
+            email: theater.email || '',
+            imageUrl: theater.imageUrl || '',
+            description: theater.description || '',
+          });
+        }
       } catch (error) {
-        console.error('Error fetching theater:', error);
+        console.error('Error fetching data:', error);
         alert('Không thể tải thông tin rạp');
         router.push('/admin/theaters');
       } finally {
         setLoading(false);
       }
     };
-    fetchTheater();
+    if (theaterId) fetchData();
   }, [theaterId, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -56,7 +67,12 @@ export default function EditTheaterPage() {
     setSaving(true);
 
     try {
-      await adminTheaterService.update(Number(theaterId), formData);
+      const requestData = {
+        ...formData,
+        cityId: formData.cityId ? Number(formData.cityId) : null
+      };
+
+      await adminTheaterService.update(Number(theaterId), requestData);
       router.push('/admin/theaters');
     } catch (error: any) {
       console.error('Error updating theater:', error);
@@ -128,14 +144,20 @@ export default function EditTheaterPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Thành phố <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="cityName"
-                value={formData.cityName}
+              <select
+                name="cityId"
+                value={formData.cityId}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
+              >
+                <option value="">-- Chọn thành phố --</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

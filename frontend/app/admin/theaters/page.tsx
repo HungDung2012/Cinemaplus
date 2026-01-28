@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Building2,
   MapPin,
@@ -43,8 +44,10 @@ export default function TheatersPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [theaterToDelete, setTheaterToDelete] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     fetchTheaters();
   }, []);
 
@@ -237,8 +240,8 @@ export default function TheatersPage() {
       </div>
 
       {/* Detail Modal */}
-      {showDetailModal && selectedTheater && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {mounted && showDetailModal && selectedTheater && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="relative h-48 bg-gray-200">
               {selectedTheater.imageUrl ? (
@@ -329,12 +332,13 @@ export default function TheatersPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {mounted && showDeleteModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận xóa</h3>
             <p className="text-gray-500 mb-6">
@@ -355,7 +359,8 @@ export default function TheatersPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

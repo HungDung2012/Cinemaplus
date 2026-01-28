@@ -4,9 +4,6 @@ import api from '@/lib/axios';
 export const adminMovieService = {
   getAll: async (params?: any) => {
     const response = await api.get('/admin/movies', { params });
-    // Keep consistent return structure with original code which returned content array directly
-    // But page component will need pagination info now.
-    // Let's return the full response data which contains { content, pageNumber, ... } if requesting pagination
     return response.data?.data;
   },
 
@@ -216,17 +213,17 @@ export const adminReviewService = {
 // ===================== ROOMS =====================
 export const adminRoomService = {
   getAll: async () => {
-    const response = await api.get('/admin/rooms');
+    const response = await api.get('/rooms');
     return response.data?.data;
   },
 
   getByTheater: async (theaterId: number) => {
-    const response = await api.get(`/admin/rooms/theater/${theaterId}`);
+    const response = await api.get(`/rooms/theater/${theaterId}`);
     return response.data?.data;
   },
 
   getById: async (id: number) => {
-    const response = await api.get(`/admin/rooms/${id}`);
+    const response = await api.get(`/rooms/${id}`);
     return response.data?.data;
   },
 
@@ -251,5 +248,13 @@ export const adminDashboardService = {
   getStats: async () => {
     const response = await api.get('/admin/dashboard-stats');
     return response.data;
+  }
+};
+
+// ===================== CITIES =====================
+export const adminCityService = {
+  getAll: async () => {
+    const response = await api.get('/cities');
+    return response.data?.data;
   }
 };

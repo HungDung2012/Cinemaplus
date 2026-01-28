@@ -13,19 +13,19 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SeatService {
-    
+
     private final SeatRepository seatRepository;
     private final BookingSeatRepository bookingSeatRepository;
-    
+
     public List<SeatResponse> getSeatsByRoom(Long roomId) {
         return seatRepository.findByRoomIdOrderByRowAndNumber(roomId).stream()
                 .map(seat -> mapToResponse(seat, null))
                 .collect(Collectors.toList());
     }
-    
+
     public List<SeatResponse> getSeatsByShowtime(Long roomId, Long showtimeId) {
         List<Long> bookedSeatIds = bookingSeatRepository.findBookedSeatIdsByShowtime(showtimeId);
-        
+
         return seatRepository.findByRoomIdOrderByRowAndNumber(roomId).stream()
                 .map(seat -> {
                     SeatResponse response = mapToResponse(seat, showtimeId);
@@ -34,7 +34,7 @@ public class SeatService {
                 })
                 .collect(Collectors.toList());
     }
-    
+
     private SeatResponse mapToResponse(Seat seat, Long showtimeId) {
         return SeatResponse.builder()
                 .id(seat.getId())

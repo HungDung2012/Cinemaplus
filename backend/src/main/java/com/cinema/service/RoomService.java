@@ -13,21 +13,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class RoomService {
-    
+
     private final RoomRepository roomRepository;
-    
+
     public List<RoomResponse> getRoomsByTheater(Long theaterId) {
         return roomRepository.findByTheaterIdAndActiveTrue(theaterId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    
+
     public RoomResponse getRoomById(Long id) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room", "id", id));
         return mapToResponse(room);
     }
-    
+
     private RoomResponse mapToResponse(Room room) {
         return RoomResponse.builder()
                 .id(room.getId())

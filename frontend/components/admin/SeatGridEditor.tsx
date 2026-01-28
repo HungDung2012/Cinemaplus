@@ -116,8 +116,8 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
                         key={type}
                         onClick={() => setSelectedType(type)}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedType === type
-                                ? 'bg-zinc-900 text-white shadow-sm'
-                                : 'bg-white text-zinc-600 hover:bg-zinc-50'
+                            ? 'bg-zinc-900 text-white shadow-sm'
+                            : 'bg-white text-zinc-600 hover:bg-zinc-50'
                             }`}
                     >
                         {type}

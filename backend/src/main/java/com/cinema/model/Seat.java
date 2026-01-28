@@ -12,7 +12,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "seats", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"room_id", "row_name", "seat_number"})
+        @UniqueConstraint(columnNames = { "room_id", "row_name", "seat_number" })
 })
 @Getter
 @Setter

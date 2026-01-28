@@ -1,24 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { adminTheaterService } from '@/services/adminService';
+import { adminTheaterService, adminCityService } from '@/services/adminService';
 
 export default function CreateTheaterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [cities, setCities] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     cityName: '',
+    cityId: '',
     phone: '',
     email: '',
     imageUrl: '',
     description: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    fetchCities();
+  }, []);
+
+  const fetchCities = async () => {
+    try {
+      const data = await adminCityService.getAll();
+      setCities(data || []);
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -28,7 +43,13 @@ export default function CreateTheaterPage() {
     setLoading(true);
 
     try {
-      await adminTheaterService.create(formData);
+      // Create request object, prioritize cityId if selected
+      const requestData = {
+        ...formData,
+        cityId: formData.cityId ? Number(formData.cityId) : null
+      };
+
+      await adminTheaterService.create(requestData);
       router.push('/admin/theaters');
     } catch (error: any) {
       console.error('Error creating theater:', error);
@@ -94,15 +115,20 @@ export default function CreateTheaterPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-2">
                 Thành phố <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="cityName"
-                value={formData.cityName}
+              <select
+                name="cityId"
+                value={formData.cityId}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Nhập thành phố"
-              />
+              >
+                <option value="">-- Chọn thành phố --</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

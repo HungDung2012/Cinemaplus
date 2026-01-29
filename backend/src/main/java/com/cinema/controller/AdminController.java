@@ -136,6 +136,17 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Movie deleted", null));
     }
 
+    // =================== Rooms (admin proxy) ======================
+    @PutMapping("/rooms/{roomId}")
+    public ResponseEntity<ApiResponse<com.cinema.dto.response.RoomResponse>> adminUpdateSeatingChart(
+            @PathVariable Long theaterId,
+            @PathVariable Long roomId,
+            @RequestBody com.cinema.dto.request.SeatingChartRequest request) {
+        com.cinema.dto.response.RoomResponse updatedRoom = theaterService.updateSeatingChart(theaterId, roomId, request);
+        
+        return ResponseEntity.ok(ApiResponse.success("Seating chart updated", updatedRoom));
+    }
+
     // =================== THEATERS (admin proxy) ===================
     @GetMapping("/theaters")
     public ResponseEntity<ApiResponse<List<TheaterResponse>>> adminGetTheaters() {

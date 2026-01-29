@@ -126,6 +126,9 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
             </div>
 
             <div className="overflow-auto border rounded-xl p-8 bg-zinc-50">
+                <div className="text-center mb-8 p-4 bg-zinc-200 rounded w-full text-zinc-500 font-bold tracking-widest uppercase">
+                    Màn hình (Screen)
+                </div>
                 <div
                     className="grid gap-1 mx-auto w-fit"
                     style={{
@@ -153,9 +156,7 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
                     ))}
                 </div>
 
-                <div className="text-center mt-8 p-4 bg-zinc-200 rounded w-full text-zinc-500 font-bold tracking-widest uppercase">
-                    Màn hình (Screen)
-                </div>
+                
             </div>
 
             <div className="flex justify-end">

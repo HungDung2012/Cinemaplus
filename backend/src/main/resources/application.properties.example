@@ -15,7 +15,7 @@ spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
 
 # JWT Configuration
-jwt.secret=
+jwt.secret=qnfqkewfh9q82nfn21c9n28j217ud21y7dhn237dj2895hcdxn7rc137nxc713xcn8vgasdfgq23r2f2d23r2    3r12trf2rtfdf2d2
 jwt.expiration=
 
 # CORS Configuration

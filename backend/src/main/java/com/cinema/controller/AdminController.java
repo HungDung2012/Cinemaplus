@@ -36,6 +36,7 @@ public class AdminController {
     private final MovieService movieService;
     private final TheaterService theaterService;
     private final BookingService bookingService;
+    private final com.cinema.service.RoomService roomService;
     private final UserRepository userRepository;
 
     // Injected for performance optimizations (Dashboard stats)
@@ -137,14 +138,26 @@ public class AdminController {
     }
 
     // =================== Rooms (admin proxy) ======================
-    @PutMapping("/rooms/{roomId}")
-    public ResponseEntity<ApiResponse<com.cinema.dto.response.RoomResponse>> adminUpdateSeatingChart(
-            @PathVariable Long theaterId,
-            @PathVariable Long roomId,
-            @RequestBody com.cinema.dto.request.SeatingChartRequest request) {
-        com.cinema.dto.response.RoomResponse updatedRoom = theaterService.updateSeatingChart(theaterId, roomId, request);
-        
-        return ResponseEntity.ok(ApiResponse.success("Seating chart updated", updatedRoom));
+    @PostMapping("/rooms")
+    public ResponseEntity<ApiResponse<com.cinema.dto.RoomDTO>> adminCreateRoom(
+            @RequestBody com.cinema.dto.request.RoomRequest request) {
+        com.cinema.dto.RoomDTO room = roomService.createRoom(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success("Room created", room));
+    }
+
+    @PutMapping("/rooms/{id}")
+    public ResponseEntity<ApiResponse<com.cinema.dto.RoomDTO>> adminUpdateRoom(
+            @PathVariable Long id,
+            @RequestBody com.cinema.dto.request.RoomRequest request) {
+        com.cinema.dto.RoomDTO room = roomService.updateRoom(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Room updated", room));
+    }
+
+    @DeleteMapping("/rooms/{id}")
+    public ResponseEntity<ApiResponse<Void>> adminDeleteRoom(@PathVariable Long id) {
+        roomService.deleteRoom(id);
+        return ResponseEntity.ok(ApiResponse.success("Room deleted", null));
     }
 
     // =================== THEATERS (admin proxy) ===================

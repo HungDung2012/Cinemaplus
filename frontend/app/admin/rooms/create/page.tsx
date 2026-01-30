@@ -1,57 +1,67 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { adminRoomService } from '@/services/adminService';
 import SeatGridEditor from '@/components/admin/SeatGridEditor';
 
-export default function RoomLayoutPage({ params }: { params: { id: string } }) {
+export default function CreateRoomPage() {
     const router = useRouter();
-    const roomId = Number(params.id);
-    const [room, setRoom] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const searchParams = useSearchParams();
+    const theaterIdParam = searchParams.get('theaterId');
 
-    useEffect(() => {
-        fetchRoom();
-    }, [roomId]);
+    const [name, setName] = useState('');
+    const [roomType, setRoomType] = useState('STANDARD_2D');
+    const [loading, setLoading] = useState(false);
 
-    const fetchRoom = async () => {
+    // Initial dummy data for SeatGridEditor rows/cols logic if needed,
+    // but SeatGridEditor handles its own state for rows/cols.
+    // We just need to capture the JSON on save.
+
+    const handleSave = async (layoutJson: string) => {
+        if (!name) {
+            alert('Vui lòng nhập tên phòng');
+            return;
+        }
+        if (!theaterIdParam) {
+            alert('Thiếu thông tin rạp (theaterId)');
+            return;
+        }
+
+        const layoutObj = JSON.parse(layoutJson); // SeatGridEditor returns stringified JSON
+        // We need extracting rows/cols from the layout to save to DB fields
+        const rowsCount = layoutObj.rows;
+        const columnsCount = layoutObj.cols;
+
+        const payload = {
+            name,
+            theaterId: Number(theaterIdParam),
+            roomType,
+            rowsCount,
+            columnsCount,
+            active: true,
+            seatLayout: layoutJson // The backend now accepts string or object (we send string here)
+        };
+
+        setLoading(true);
         try {
-            const data = await adminRoomService.getById(roomId);
-            setRoom(data);
+            await adminRoomService.create(payload);
+            alert('Tạo phòng chiếu thành công!');
+            router.push(`/admin/theaters/${theaterIdParam}/rooms`); // Redirect back to room list
         } catch (error) {
-            console.error('Error fetching room:', error);
-            alert('Không thể tải thông tin phòng.');
+            console.error('Error creating room:', error);
+            alert('Có lỗi xảy ra khi tạo phòng.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSaveLayout = async (layoutJson: string) => {
-        console.log(roomId, { ...room, seatLayout: layoutJson });
-        try {
-            await adminRoomService.update(roomId, { ...room, seatLayout: layoutJson });
-            alert('Cập nhật sơ đồ ghế thành công!');
-            if (room.theaterId) {
-                router.push(`/admin/theaters/${room.theaterId}/rooms`);
-            } else {
-                router.push('/admin/theaters');
-            }
-        } catch (error) {
-            console.error('Error saving layout:', error);
-            alert('Có lỗi xảy ra khi lưu sơ đồ.');
-        }
-    };
-
-    if (loading) return <div className="p-8 text-center">Đang tải...</div>;
-    if (!room) return <div className="p-8 text-center">Không tìm thấy phòng</div>;
-
     return (
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-zinc-900">Cập nhật Phòng Chiếu</h1>
-                    <p className="text-zinc-500">Chỉnh sửa thông tin phòng và sơ đồ ghế ({room.name})</p>
+                    <h1 className="text-2xl font-bold text-zinc-900">Thêm Phòng Chiếu Mới</h1>
+                    <p className="text-zinc-500">Thiết lập thông tin và sơ đồ ghế</p>
                 </div>
                 <button
                     onClick={() => router.back()}
@@ -73,8 +83,9 @@ export default function RoomLayoutPage({ params }: { params: { id: string } }) {
                             </label>
                             <input
                                 type="text"
-                                value={room.name}
-                                onChange={(e) => setRoom({ ...room, name: e.target.value })}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Ví dụ: Phòng 01"
                                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
                             />
                         </div>
@@ -84,8 +95,8 @@ export default function RoomLayoutPage({ params }: { params: { id: string } }) {
                                 Loại phòng
                             </label>
                             <select
-                                value={room.roomType}
-                                onChange={(e) => setRoom({ ...room, roomType: e.target.value })}
+                                value={roomType}
+                                onChange={(e) => setRoomType(e.target.value)}
                                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
                             >
                                 <option value="STANDARD_2D">Standard 2D</option>
@@ -97,10 +108,11 @@ export default function RoomLayoutPage({ params }: { params: { id: string } }) {
                         </div>
 
                         <div className="p-4 bg-blue-50 text-blue-700 text-sm rounded-lg">
-                            <p className="font-medium mb-1">Thống kê hiện tại:</p>
+                            <p className="font-medium mb-1">Lưu ý:</p>
                             <ul className="list-disc list-inside space-y-1">
-                                <li><strong>{room.rowsCount}</strong> hàng x <strong>{room.columnsCount}</strong> cột</li>
-                                <li>Số lượng ghế: <strong>{room.totalSeats || room.seats?.length || 0}</strong></li>
+                                <li>Thiết lập sơ đồ ghế ở bên phải.</li>
+                                <li>Số hàng/cột sẽ được tự động cập nhật theo sơ đồ.</li>
+                                <li>Ấn nút "Lưu Sơ Đồ" ở cuối để hoàn tất tạo phòng.</li>
                             </ul>
                         </div>
                     </div>
@@ -117,9 +129,15 @@ export default function RoomLayoutPage({ params }: { params: { id: string } }) {
                         </div>
 
                         <SeatGridEditor
-                            roomId={roomId}
-                            onSave={handleSaveLayout}
+                            onSave={handleSave}
+                        // No roomId passed -> Create mode
                         />
+                        {/* Loading Overlay */}
+                        {loading && (
+                            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+                                <div className="text-zinc-900 font-medium">Đang xử lý...</div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

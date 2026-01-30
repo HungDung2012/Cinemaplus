@@ -47,7 +47,7 @@ export default function TheaterRoomsPage() {
     open: false,
     room: null,
   });
-  
+
   useEffect(() => {
     fetchData();
   }, [theaterId]);
@@ -68,6 +68,7 @@ export default function TheaterRoomsPage() {
   };
 
   const openCreateModal = () => {
+    router.push(`/admin/rooms/create?theaterId=${theaterId}`);
   };
 
   // Khi ấn chỉnh sửa, chuyển hướng sang trang layout của phòng
@@ -204,7 +205,7 @@ export default function TheaterRoomsPage() {
         </div>
       )}
 
-      
+
       {/* Delete Modal */}
       {deleteModal.open && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

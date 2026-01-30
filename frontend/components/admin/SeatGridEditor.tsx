@@ -2,51 +2,88 @@
 
 import { useState, useEffect } from 'react';
 
+import { adminRoomService } from '@/services/adminService';
+
+export interface SeatDTO {
+    id: number;
+    rowName: string;
+    seatNumber: number;
+    seatType: SeatType;
+    priceMultiplier: number;
+    active: boolean;
+}
+
+export interface RoomDTO {
+    id: number;
+    name: string;
+    rowsCount: number;
+    columnsCount: number;
+    seats: SeatDTO[];
+}
+
 export type SeatType = 'STANDARD' | 'VIP' | 'COUPLE' | 'DISABLED' | 'NONE';
 
 export interface SeatCell {
-    id: string; // e.g., "A1"
+    id: string;
     row: number;
     col: number;
     type: SeatType;
     label: string;
+    dbId?: number; // Store DB ID if exists
 }
 
 interface SeatGridEditorProps {
-    initialLayout?: string; // JSON string
-    rows?: number;
-    cols?: number;
+    roomId?: number;
     onSave: (layoutJson: string) => void;
 }
 
-export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, onSave }: SeatGridEditorProps) {
+export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) {
     const [grid, setGrid] = useState<SeatCell[][]>([]);
     const [selectedType, setSelectedType] = useState<SeatType>('STANDARD');
-    const [rowCount, setRowCount] = useState(rows);
-    const [colCount, setColCount] = useState(cols);
+    const [rowCount, setRowCount] = useState(10);
+    const [colCount, setColCount] = useState(10);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (initialLayout) {
-            try {
-                const parsed = JSON.parse(initialLayout);
-                if (parsed.grid) {
-                    setGrid(parsed.grid);
-                    setRowCount(parsed.rows);
-                    setColCount(parsed.cols);
-                    return;
-                }
-            } catch (e) {
-                console.error("Invalid layout JSON", e);
-            }
+        if (roomId) {
+            fetchRoomDetail(roomId);
+        } else {
+            initializeGrid(10, 10);
+            setLoading(false);
         }
-        initializeGrid(rows, cols);
-    }, [initialLayout]);
+    }, [roomId]);
 
-    const initializeGrid = (r: number, c: number) => {
+    const fetchRoomDetail = async (id: number) => {
+        setLoading(true);
+        try {
+            const room: RoomDTO = await adminRoomService.getById(id);
+            if (room) {
+                setRowCount(room.rowsCount);
+                setColCount(room.columnsCount);
+
+                // Initialize empty grid first
+                const newGrid = createEmptyGrid(room.rowsCount, room.columnsCount);
+
+                // Map existing seats to grid
+                if (room.seats && room.seats.length > 0) {
+                    fillGridWithSeats(newGrid, room.seats);
+                }
+                setGrid(newGrid);
+            }
+        } catch (error) {
+            console.error("Error fetching room details:", error);
+            // Fallback to default empty grid
+            initializeGrid(10, 10);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const createEmptyGrid = (r: number, c: number): SeatCell[][] => {
         const newGrid: SeatCell[][] = [];
         for (let i = 0; i < r; i++) {
             const row: SeatCell[] = [];
-            const rowLabel = String.fromCharCode(65 + i); // A, B, C...
+            const rowLabel = String.fromCharCode(65 + i);
             for (let j = 0; j < c; j++) {
                 row.push({
                     id: `${rowLabel}${j + 1}`,
@@ -58,7 +95,31 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
             }
             newGrid.push(row);
         }
-        setGrid(newGrid);
+        return newGrid;
+    };
+
+    const fillGridWithSeats = (grid: SeatCell[][], seats: SeatDTO[]) => {
+        seats.forEach(seat => {
+            // Calculate indices from rowName and seatNumber
+            // Assuming rowName is A, B, C...
+            const rowIndex = seat.rowName.charCodeAt(0) - 65;
+            const colIndex = seat.seatNumber - 1; // 1-based to 0-based
+
+            if (rowIndex >= 0 && rowIndex < grid.length && colIndex >= 0 && colIndex < grid[0].length) {
+                grid[rowIndex][colIndex] = {
+                    id: `${seat.rowName}${seat.seatNumber}`,
+                    row: rowIndex,
+                    col: colIndex,
+                    type: seat.seatType,
+                    label: `${seat.rowName}${seat.seatNumber}`,
+                    dbId: seat.id
+                };
+            }
+        });
+    };
+
+    const initializeGrid = (r: number, c: number) => {
+        setGrid(createEmptyGrid(r, c));
     };
 
     const handleCellClick = (r: number, c: number) => {
@@ -86,6 +147,8 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
         initializeGrid(rowCount, colCount);
     };
 
+    if (loading) return <div>Loading seat map...</div>;
+
     return (
         <div className="space-y-4">
             <div className="flex gap-4 items-center flex-wrap">
@@ -93,8 +156,12 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
                     <label>Rows:</label>
                     <input
                         type="number"
+                        min="1"
                         value={rowCount}
-                        onChange={(e) => setRowCount(Number(e.target.value))}
+                        onChange={(e) => {
+                            const val = Math.max(1, Number(e.target.value));
+                            setRowCount(val);
+                        }}
                         className="border rounded p-1 w-16"
                     />
                 </div>
@@ -102,8 +169,12 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
                     <label>Cols:</label>
                     <input
                         type="number"
+                        min="1"
                         value={colCount}
-                        onChange={(e) => setColCount(Number(e.target.value))}
+                        onChange={(e) => {
+                            const val = Math.max(1, Number(e.target.value));
+                            setColCount(val);
+                        }}
                         className="border rounded p-1 w-16"
                     />
                 </div>
@@ -156,7 +227,7 @@ export default function SeatGridEditor({ initialLayout, rows = 10, cols = 12, on
                     ))}
                 </div>
 
-                
+
             </div>
 
             <div className="flex justify-end">

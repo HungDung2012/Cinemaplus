@@ -15,19 +15,21 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShowtimeRequest {
-    
+
     @NotNull(message = "Movie ID is required")
     private Long movieId;
-    
+
     @NotNull(message = "Room ID is required")
     private Long roomId;
-    
+
     @NotNull(message = "Show date is required")
     private LocalDate showDate;
-    
+
     @NotNull(message = "Start time is required")
     private LocalTime startTime;
-    
+
     @NotNull(message = "Base price is required")
     private BigDecimal basePrice;
+
+    private com.cinema.model.Showtime.ShowtimeStatus status;
 }

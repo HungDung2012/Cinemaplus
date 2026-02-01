@@ -20,6 +20,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.cinema.service.MovieService;
+import com.cinema.service.TheaterService;
+import com.cinema.service.BookingService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -46,11 +49,17 @@ public class AdminController {
 
     private final ModelMapper modelMapper;
 
-    @GetMapping("/showtimes/range")
-    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getShowtimesByRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<ShowtimeResponse> showtimes = showtimeService.getShowtimesByRange(startDate, endDate);
+    @GetMapping("/showtimes")
+    public ResponseEntity<ApiResponse<PageResponse<ShowtimeResponse>>> getShowtimes(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) List<Long> theaterIds,
+            @RequestParam(required = false) List<Long> movieIds,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        PageResponse<ShowtimeResponse> showtimes = showtimeService.searchShowtimes(startDate, endDate, theaterIds,
+                movieIds, page, size);
         return ResponseEntity.ok(ApiResponse.success(showtimes));
     }
 

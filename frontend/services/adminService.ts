@@ -59,8 +59,14 @@ export const adminTheaterService = {
 // ===================== SHOWTIMES =====================
 export const adminShowtimeService = {
   getAll: async (params?: any) => {
-    // Sử dụng endpoint range mới tạo để lọc theo tuần
-    const response = await api.get('/admin/showtimes/range', { params });
+    // Params: startDate, endDate, theaterIds, movieIds, page, size
+    const response = await api.get('/admin/showtimes', {
+      params: {
+        ...params,
+        theaterIds: params?.theaterIds?.join(','), // Ensure array is sent as comma separated if needed by axios/backend default, though standard repeat is fine. Strings are safer.
+        movieIds: params?.movieIds?.join(',')
+      }
+    });
     return response.data?.data;
   },
 

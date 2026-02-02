@@ -17,13 +17,9 @@ import com.cinema.service.BookingService;
 import org.modelmapper.ModelMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import com.cinema.service.MovieService;
-import com.cinema.service.TheaterService;
-import com.cinema.service.BookingService;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;

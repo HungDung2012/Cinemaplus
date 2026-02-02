@@ -91,47 +91,27 @@ export default function ShowtimesManagementPage() {
   });
   const [calculatedEndTime, setCalculatedEndTime] = useState('');
 
-  // Initial Load (Metadata only)
+
+  // Initial Data Load
   useEffect(() => {
     fetchMetadata();
-    // Do NOT fetch showtimes automatically on mount, or fetch initial page? 
-    // User requested "Manual Trigger". But usually initial load is expected.
-    // Let's fetch initial page for better UX, but subsequent filters require button.
-    handleSearch();
+    // handleSearch(0); // Initial search is triggered by button or can be here. Button is better for "Trigger search" explicitly, but user might expect initial load. The screenshot shows result boxes, so maybe search works manually.
+    // Let's call handleSearch(0) too to show initial data.
+    handleSearch(0);
   }, []);
-
-  // Fetch Rooms when Theater changes in Form
-  useEffect(() => {
-    if (formData.theaterId) {
-      fetchRooms(formData.theaterId);
-    } else {
-      setRooms([]);
-    }
-  }, [formData.theaterId]);
-
-  // Auto-calculate End Time
-  useEffect(() => {
-    if (formData.movieId && formData.startTime) {
-      const movie = movies.find(m => m.id.toString() === formData.movieId);
-      if (movie && movie.duration) {
-        const [hours, minutes] = formData.startTime.split(':').map(Number);
-        const date = new Date();
-        date.setHours(hours, minutes + movie.duration);
-        setCalculatedEndTime(date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }));
-      }
-    } else {
-      setCalculatedEndTime('');
-    }
-  }, [formData.movieId, formData.startTime, movies]);
 
   const fetchMetadata = async () => {
     try {
       const [moviesRes, theatersRes] = await Promise.all([
-        adminMovieService.getAll(),
+        adminMovieService.getAll({ size: 1000 }),
         adminTheaterService.getAll(),
       ]);
-      setMovies(moviesRes.content || moviesRes);
-      setTheaters(theatersRes);
+
+      console.log('Movies Metadata:', moviesRes);
+      console.log('Theaters Metadata:', theatersRes);
+
+      setMovies(moviesRes.content || moviesRes || []);
+      setTheaters(Array.isArray(theatersRes) ? theatersRes : []);
     } catch (error) {
       console.error('Error fetching metadata:', error);
     }
@@ -159,6 +139,7 @@ export default function ShowtimesManagementPage() {
       };
 
       const res = await adminShowtimeService.getAll(params);
+      console.log(res);
       // Ensure backend returns PageResponse structure
       if (res && res.content) {
         setShowtimes(res.content);
@@ -343,7 +324,7 @@ export default function ShowtimesManagementPage() {
             <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
           {/* Dropdown Content */}
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden group-hover:block z-20 p-2">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden group-hover:block z-20 p-2 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-2 before:bg-transparent">
             {theaters.map(t => (
               <label key={t.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
                 <input
@@ -365,7 +346,7 @@ export default function ShowtimesManagementPage() {
             <span className="truncate">{filters.movieIds.length ? `${filters.movieIds.length} phim đã chọn` : 'Tất cả phim'}</span>
             <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
-          <div className="absolute top-full left-0 w-64 mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden group-hover:block z-20 p-2">
+          <div className="absolute top-full left-0 max-w-sm w-max mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden group-hover:block z-20 p-2 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-2 before:bg-transparent">
             {movies.map(m => (
               <label key={m.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
                 <input

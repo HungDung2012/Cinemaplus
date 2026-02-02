@@ -1,7 +1,7 @@
 package com.cinema.service;
 
 import com.cinema.dto.response.CityResponse;
-import com.cinema.exception.BadRequestException;
+
 import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.City;
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.List;
-import java.util.regex.Pattern; 
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -110,7 +110,7 @@ public class CityService {
 
         City savedCity = cityRepository.save(city);
         log.info("Created new city: {} with code: {} in region: {}", name, code, region.getName());
-        
+
         return mapToResponse(savedCity);
     }
 
@@ -126,34 +126,34 @@ public class CityService {
     @Transactional
     public int migrateTheatersToCities() {
         log.info("Starting migration: Assigning theaters without city to default cities...");
-        
+
         // Đảm bảo có City mặc định cho mỗi Region
         createDefaultCitiesForAllRegions();
-        
+
         // Tìm tất cả theaters chưa có city
         List<Theater> theatersWithoutCity = theaterRepository.findTheatersWithoutCity();
-        
+
         if (theatersWithoutCity.isEmpty()) {
             log.info("No theaters need migration. All theaters already have a city assigned.");
             return 0;
         }
-        
+
         log.info("Found {} theaters without city assignment", theatersWithoutCity.size());
-        
+
         // Lấy danh sách regions
         List<Region> regions = regionRepository.findAll();
-        
+
         // Lấy city mặc định đầu tiên (nếu có)
         City defaultCity = cityRepository.findAll().stream()
                 .filter(c -> c.getActive() != null && c.getActive())
                 .findFirst()
                 .orElse(null);
-        
+
         if (defaultCity == null) {
             log.error("No default city available for migration");
             return 0;
         }
-        
+
         int migratedCount = 0;
         for (Theater theater : theatersWithoutCity) {
             theater.setCity(defaultCity);
@@ -161,7 +161,7 @@ public class CityService {
             log.info("Migrated theater '{}' to city '{}'", theater.getName(), defaultCity.getName());
             migratedCount++;
         }
-        
+
         log.info("Migration completed. Total theaters migrated: {}", migratedCount);
         return migratedCount;
     }
@@ -172,13 +172,13 @@ public class CityService {
     @Transactional
     public void createDefaultCitiesForAllRegions() {
         log.info("Creating default cities for all regions...");
-        
+
         List<Region> regions = regionRepository.findAll();
-        
+
         for (Region region : regions) {
             String defaultCityName = getDefaultCityForRegion(region.getCode());
             String cityCode = generateCityCode(defaultCityName);
-            
+
             if (!cityRepository.existsByCode(cityCode)) {
                 City city = City.builder()
                         .name(defaultCityName)
@@ -186,7 +186,7 @@ public class CityService {
                         .region(region)
                         .active(true)
                         .build();
-                
+
                 cityRepository.save(city);
                 log.info("Created default city '{}' for region '{}'", defaultCityName, region.getName());
             }
@@ -220,12 +220,12 @@ public class CityService {
         if (cityName == null || cityName.trim().isEmpty()) {
             return "UNKNOWN";
         }
-        
+
         // Normalize Vietnamese characters and convert to code
         String normalized = Normalizer.normalize(cityName, Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
         String withoutDiacritics = pattern.matcher(normalized).replaceAll("");
-        
+
         return withoutDiacritics
                 .toUpperCase()
                 .replaceAll("[^A-Z0-9]", "_")

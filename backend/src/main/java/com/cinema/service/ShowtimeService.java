@@ -78,7 +78,7 @@ public class ShowtimeService {
 
                 return com.cinema.dto.response.PageResponse.<ShowtimeResponse>builder()
                                 .content(responses)
-                                .pageNo(page)
+                                .pageNumber(page)
                                 .pageSize(size)
                                 .totalElements(pageResult.getTotalElements())
                                 .totalPages(pageResult.getTotalPages())

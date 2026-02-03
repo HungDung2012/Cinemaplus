@@ -17,8 +17,11 @@ public class SeatResponse {
     private String rowName;
     private Integer seatNumber;
     private String seatLabel;
-    private Seat.SeatType seatType;
+    private String seatTypeCode;
+    private String seatTypeName;
     private BigDecimal priceMultiplier;
+    private BigDecimal extraFee;
+    private String seatColor;
     private Boolean active;
     private Boolean isBooked; // For showing availability in a specific showtime
 }

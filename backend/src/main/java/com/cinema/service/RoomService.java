@@ -18,6 +18,7 @@ public class RoomService {
 
     private final com.cinema.repository.RoomRepository roomRepository;
     private final com.cinema.repository.TheaterRepository theaterRepository;
+    private final com.cinema.repository.SeatTypeRepository seatTypeRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     public RoomDTO createRoom(com.cinema.dto.request.RoomRequest request) {
@@ -102,10 +103,14 @@ public class RoomService {
 
             List<com.cinema.model.Seat> newSeats = new java.util.ArrayList<>();
 
+            // Fetch all available SeatTypes to minimize DB calls
+            java.util.Map<String, com.cinema.model.SeatType> seatTypeMap = seatTypeRepository.findAll().stream()
+                    .collect(java.util.stream.Collectors.toMap(com.cinema.model.SeatType::getCode, t -> t));
+
             for (com.fasterxml.jackson.databind.JsonNode rowNode : gridNode) {
                 for (com.fasterxml.jackson.databind.JsonNode cellNode : rowNode) {
-                    String typeStr = cellNode.get("type").asText();
-                    if ("NONE".equals(typeStr))
+                    String typeCode = cellNode.get("type").asText();
+                    if ("NONE".equals(typeCode))
                         continue;
 
                     String idStr = cellNode.get("id").asText(); // "A1"
@@ -115,15 +120,25 @@ public class RoomService {
                     String rowName = String.valueOf((char) ('A' + rowIdx));
                     int seatNumber = colIdx + 1;
 
-                    com.cinema.model.Seat.SeatType type = com.cinema.model.Seat.SeatType.valueOf(typeStr);
+                    // Find or create SeatType
+                    com.cinema.model.SeatType seatTypeObj = seatTypeMap.computeIfAbsent(typeCode, k -> {
+                        // Create default if not exists (fallback)
+                        com.cinema.model.SeatType newType = com.cinema.model.SeatType.builder()
+                                .code(k)
+                                .name(k) // Default name = code
+                                .priceMultiplier(java.math.BigDecimal.ONE)
+                                .extraFee(java.math.BigDecimal.ZERO)
+                                .active(true)
+                                .build();
+                        return seatTypeRepository.save(newType);
+                    });
 
                     com.cinema.model.Seat seat = com.cinema.model.Seat.builder()
                             .room(room)
                             .rowName(rowName)
                             .seatNumber(seatNumber)
-                            .seatType(type)
+                            .seatTypeObject(seatTypeObj)
                             .active(true)
-                            .priceMultiplier(getPriceMultiplier(type))
                             .build();
 
                     newSeats.add(seat);
@@ -146,17 +161,6 @@ public class RoomService {
             return jsonNode.asText();
         }
         return jsonNode.toString();
-    }
-
-    private java.math.BigDecimal getPriceMultiplier(com.cinema.model.Seat.SeatType type) {
-        switch (type) {
-            case VIP:
-                return java.math.BigDecimal.valueOf(1.5);
-            case COUPLE:
-                return java.math.BigDecimal.valueOf(2.0);
-            default:
-                return java.math.BigDecimal.ONE;
-        }
     }
 
     public RoomDTO getRoomLayout(Long roomId) {
@@ -214,12 +218,16 @@ public class RoomService {
     }
 
     private com.cinema.dto.SeatDTO mapSeatToDTO(com.cinema.model.Seat seat) {
+        com.cinema.model.SeatType type = seat.getSeatTypeObject();
         return com.cinema.dto.SeatDTO.builder()
                 .id(seat.getId())
                 .rowName(seat.getRowName())
                 .seatNumber(seat.getSeatNumber())
-                .seatType(seat.getSeatType())
-                .priceMultiplier(seat.getPriceMultiplier())
+                .seatTypeCode(type != null ? type.getCode() : "STANDARD")
+                .seatTypeName(type != null ? type.getName() : "Ghế Thường")
+                .priceMultiplier(type != null ? type.getPriceMultiplier() : java.math.BigDecimal.ONE)
+                .extraFee(type != null ? type.getExtraFee() : java.math.BigDecimal.ZERO)
+                .seatColor(type != null ? type.getColor() : null)
                 .active(seat.getActive())
                 .build();
     }

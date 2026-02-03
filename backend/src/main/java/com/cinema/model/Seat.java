@@ -31,14 +31,18 @@ public class Seat {
     @Column(name = "seat_number", nullable = false)
     private Integer seatNumber; // 1, 2, 3...
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "seat_type", nullable = false)
-    @Builder.Default
-    private SeatType seatType = SeatType.STANDARD;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "seat_type_id", nullable = true) // Nullable for migration
+    private com.cinema.model.SeatType seatTypeObject;
 
-    @Column(name = "price_multiplier", precision = 3, scale = 2)
-    @Builder.Default
-    private BigDecimal priceMultiplier = BigDecimal.ONE; // VIP = 1.5, Couple = 2.0
+    // Temporary field for migration compatibility or fallback
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seat_type", nullable = true, insertable = false, updatable = false)
+    private SeatTypeEnum seatType;
+
+    public enum SeatTypeEnum {
+        STANDARD, VIP, COUPLE, DISABLED
+    }
 
     @Column(nullable = false)
     @Builder.Default
@@ -59,10 +63,6 @@ public class Seat {
     @OneToMany(mappedBy = "seat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<BookingSeat> bookingSeats = new ArrayList<>();
-
-    public enum SeatType {
-        STANDARD, VIP, COUPLE, DISABLED
-    }
 
     // Helper method to get seat label (e.g., "A1", "B5")
     public String getSeatLabel() {

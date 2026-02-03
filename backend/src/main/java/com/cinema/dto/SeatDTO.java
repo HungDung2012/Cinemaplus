@@ -16,8 +16,11 @@ public class SeatDTO {
     private Long id;
     private String rowName;
     private Integer seatNumber;
-    private Seat.SeatType seatType;
+    private String seatTypeCode;
+    private String seatTypeName;
     private BigDecimal priceMultiplier;
+    private BigDecimal extraFee;
+    private String seatColor;
     private Boolean active;
 
     // Calculated field

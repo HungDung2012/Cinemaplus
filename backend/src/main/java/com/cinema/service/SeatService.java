@@ -36,13 +36,17 @@ public class SeatService {
     }
 
     private SeatResponse mapToResponse(Seat seat, Long showtimeId) {
+        com.cinema.model.SeatType type = seat.getSeatTypeObject();
         return SeatResponse.builder()
                 .id(seat.getId())
                 .rowName(seat.getRowName())
                 .seatNumber(seat.getSeatNumber())
                 .seatLabel(seat.getSeatLabel())
-                .seatType(seat.getSeatType())
-                .priceMultiplier(seat.getPriceMultiplier())
+                .seatTypeCode(type != null ? type.getCode() : "STANDARD")
+                .seatTypeName(type != null ? type.getName() : "Ghế Thường")
+                .priceMultiplier(type != null ? type.getPriceMultiplier() : java.math.BigDecimal.ONE)
+                .extraFee(type != null ? type.getExtraFee() : java.math.BigDecimal.ZERO)
+                .seatColor(type != null ? type.getColor() : null)
                 .active(seat.getActive())
                 .isBooked(false)
                 .build();

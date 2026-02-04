@@ -15,6 +15,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Khởi tạo dữ liệu mẫu cho hệ thống
@@ -39,9 +40,44 @@ public class SampleDataInitializer implements CommandLineRunner {
         private final VoucherRepository voucherRepository;
         private final PromotionRepository promotionRepository;
         private final SeatTypeRepository seatTypeRepository;
+        private final BookingRepository bookingRepository;
+        private final BookingSeatRepository bookingSeatRepository;
+        private final BookingFoodRepository bookingFoodRepository;
+        private final PaymentRepository paymentRepository;
+        private final ObjectMapper objectMapper;
+
+        @org.springframework.beans.factory.annotation.Value("${app.db.reset-data:false}")
+        private boolean resetData;
 
         @Override
         public void run(String... args) {
+                if (resetData) {
+                        log.warn("RESET DATA ENABLED: Deleting all data...");
+                        // Delete in order of dependencies because of Foreign Keys
+                        reviewRepository.deleteAll();
+
+                        // Booking related
+                        paymentRepository.deleteAll();
+                        bookingSeatRepository.deleteAll();
+                        bookingFoodRepository.deleteAll();
+                        bookingRepository.deleteAll();
+
+                        showtimeRepository.deleteAll();
+                        seatRepository.deleteAll();
+                        roomRepository.deleteAll();
+                        theaterRepository.deleteAll();
+                        cityRepository.deleteAll();
+                        regionRepository.deleteAll();
+                        seatTypeRepository.deleteAll();
+                        movieRepository.deleteAll();
+                        foodRepository.deleteAll();
+                        couponRepository.deleteAll();
+                        voucherRepository.deleteAll();
+                        promotionRepository.deleteAll();
+
+                        log.info("All data deleted.");
+                }
+
                 if (regionRepository.count() == 0) {
                         initRegions();
                 }
@@ -323,7 +359,14 @@ public class SampleDataInitializer implements CommandLineRunner {
                                 .collect(java.util.stream.Collectors.toMap(SeatType::getCode,
                                                 java.util.function.Function.identity()));
 
+                // Prepare layout structure
+                java.util.Map<String, Object> layoutMap = new java.util.HashMap<>();
+                layoutMap.put("rows", totalRows);
+                layoutMap.put("cols", seatsPerRow);
+                List<List<java.util.Map<String, Object>>> grid = new ArrayList<>();
+
                 for (int row = 0; row < totalRows; row++) {
+                        List<java.util.Map<String, Object>> rowList = new ArrayList<>();
                         for (int col = 1; col <= seatsPerRow; col++) {
                                 String typeCode = "STANDARD";
 
@@ -360,18 +403,41 @@ public class SampleDataInitializer implements CommandLineRunner {
                                 if (new Random().nextInt(100) < 2)
                                         isActive = false;
 
+                                String rowName = String.valueOf(rowLabels[row]);
+                                String seatLabel = rowName + col;
+
                                 Seat seat = Seat.builder()
                                                 .room(room)
-                                                .rowName(String.valueOf(rowLabels[row]))
+                                                .rowName(rowName)
                                                 .seatNumber(col)
                                                 .seatTypeObject(seatTypeObj)
                                                 .active(isActive)
                                                 .build();
                                 seats.add(seat);
+
+                                // Add to layout grid
+                                java.util.Map<String, Object> cell = new java.util.HashMap<>();
+                                cell.put("id", seatLabel);
+                                cell.put("row", row);
+                                cell.put("col", col - 1); // Grid uses 0-based col index
+                                cell.put("type", typeCode);
+                                cell.put("label", seatLabel);
+                                // Note: we can't put dbId here yet because seat is not saved
+                                rowList.add(cell);
                         }
+                        grid.add(rowList);
                 }
 
                 seatRepository.saveAll(seats);
+
+                layoutMap.put("grid", grid);
+                try {
+                        String layoutJson = objectMapper.writeValueAsString(layoutMap);
+                        room.setSeatLayout(layoutJson);
+                        roomRepository.save(room);
+                } catch (Exception e) {
+                        log.error("Failed to serialize seat layout for room: {}", room.getName(), e);
+                }
         }
 
         private void initSampleMovies() {

@@ -31,5 +31,7 @@ public class ShowtimeRequest {
     @NotNull(message = "Base price is required")
     private BigDecimal basePrice;
 
+    private String format;
+
     private com.cinema.model.Showtime.ShowtimeStatus status;
 }

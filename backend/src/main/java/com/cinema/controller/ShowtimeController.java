@@ -83,6 +83,15 @@ public class ShowtimeController {
                 .body(ApiResponse.success("Showtime created successfully", showtime));
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> createShowtimesBulk(
+            @RequestBody List<@Valid ShowtimeRequest> requests) {
+        List<ShowtimeResponse> showtimes = showtimeService.createShowtimesBulk(requests);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Showtimes created successfully", showtimes));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowtime(

@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { adminShowtimeService, adminMovieService, adminTheaterService, adminRoomService } from '@/services/adminService';
+import ShowtimeTimeline from '@/components/admin/ShowtimeTimeline';
+import QuickScheduleModal from '@/components/admin/QuickScheduleModal';
+import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns';
+import { useToast } from '@/components/ui/Toast';
+import { adminMovieService, adminRoomService, adminShowtimeService, adminTheaterService } from '@/services/adminService';
 
 interface Showtime {
   id: number;
@@ -13,11 +16,14 @@ interface Showtime {
     id: number;
     title: string;
   };
+  theaterId: number; // Added
   theaterName: string;
+  roomId: number; // Added
   roomName: string;
   roomType: string;
   showDate: string;
   startTime: string; // HH:mm:ss
+  endTime: string; // Added for Timeline
   basePrice: number;
   status: string;
 }
@@ -37,6 +43,8 @@ interface Room {
   id: number;
   name: string;
   roomType: string;
+  theaterId?: number; // Added for filtering
+  theaterName?: string; // Added for grouping
 }
 
 interface Pagination {
@@ -47,58 +55,112 @@ interface Pagination {
   last: boolean;
 }
 
+import { useRouter } from 'next/navigation';
+
 export default function ShowtimesManagementPage() {
+  const router = useRouter();
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [theaters, setTheaters] = useState<Theater[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [allRooms, setAllRooms] = useState<Room[]>([]); // For timeline view
 
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [quickScheduleOpen, setQuickScheduleOpen] = useState(false); // New state
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list'); // New state
+
   const [editingShowtime, setEditingShowtime] = useState<Showtime | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; showtime: Showtime | null }>({
     open: false,
     showtime: null,
   });
   const [saving, setSaving] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Cache for bulk data
+  const [cachedShowtimes, setCachedShowtimes] = useState<Showtime[]>([]);
+  const [isCached, setIsCached] = useState(false);
 
   // Filters State
   const [filters, setFilters] = useState({
-    startDate: '', // yyyy-MM-dd
-    endDate: '',   // yyyy-MM-dd
+    startDate: format(new Date(), 'yyyy-MM-dd'), // Default to today for easier timeline view
+    endDate: format(new Date(), 'yyyy-MM-dd'),
     theaterIds: [] as string[],
     movieIds: [] as string[],
   });
 
+  // UI State
+  const [openFilter, setOpenFilter] = useState<'theater' | 'movie' | null>(null);
+  const theaterFilterRef = useRef<HTMLDivElement>(null);
+  const movieFilterRef = useRef<HTMLDivElement>(null);
+
   // Pagination State
   const [pagination, setPagination] = useState<Pagination>({
     pageNumber: 0,
-    pageSize: 20,
+    pageSize: 10,
     totalElements: 0,
     totalPages: 0,
-    last: true
+    last: true,
   });
 
-  // Create/Edit Form State
+  // Form Data
   const [formData, setFormData] = useState({
-    movieId: '',
     theaterId: '',
     roomId: '',
-    showDate: '',
+    movieId: '',
+    showDate: format(new Date(), 'yyyy-MM-dd'),
     startTime: '',
-    price: '',
-    status: 'AVAILABLE',
+    basePrice: 60000,
+    status: 'AVAILABLE'
   });
-  const [calculatedEndTime, setCalculatedEndTime] = useState('');
 
+  // Derived state
+  const selectedMovie = movies.find(m => m.id.toString() === formData.movieId);
+  const calculatedEndTime = selectedMovie && formData.startTime
+    ? (() => {
+      const [h, m] = formData.startTime.split(':').map(Number);
+      const total = h * 60 + m + selectedMovie.duration;
+      return `${Math.floor(total / 60) % 24}:${(total % 60).toString().padStart(2, '0')}`;
+    })()
+    : '';
+
+  // Click Outside for Filters
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (theaterFilterRef.current && !theaterFilterRef.current.contains(event.target as Node) &&
+        openFilter === 'theater') {
+        setOpenFilter(null);
+      }
+      if (movieFilterRef.current && !movieFilterRef.current.contains(event.target as Node) &&
+        openFilter === 'movie') {
+        setOpenFilter(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openFilter]);
 
   // Initial Data Load
   useEffect(() => {
     fetchMetadata();
-    // handleSearch(0); // Initial search is triggered by button or can be here. Button is better for "Trigger search" explicitly, but user might expect initial load. The screenshot shows result boxes, so maybe search works manually.
-    // Let's call handleSearch(0) too to show initial data.
-    handleSearch(0);
+    fetchAllRooms(); // Fetch all rooms initially for quick schedule / timeline
   }, []);
+
+  // Reset cache when filters change
+  useEffect(() => {
+    setIsCached(false);
+    setCachedShowtimes([]);
+  }, [filters.startDate, filters.endDate, filters.theaterIds, filters.movieIds]);
+
+  // Trigger search/refresh when switching views if needed, or rely on cache
+  useEffect(() => {
+    if (hasSearched) {
+      handleSearch(0);
+    }
+  }, [viewMode]);
+
+  // ... (keep click outside)
 
   const fetchMetadata = async () => {
     try {
@@ -106,9 +168,6 @@ export default function ShowtimesManagementPage() {
         adminMovieService.getAll({ size: 1000 }),
         adminTheaterService.getAll(),
       ]);
-
-      console.log('Movies Metadata:', moviesRes);
-      console.log('Theaters Metadata:', theatersRes);
 
       setMovies(moviesRes.content || moviesRes || []);
       setTheaters(Array.isArray(theatersRes) ? theatersRes : []);
@@ -118,6 +177,7 @@ export default function ShowtimesManagementPage() {
   };
 
   const fetchRooms = async (theaterId: string) => {
+    // Keep existing specific fetch for edit modal
     try {
       const response = await adminRoomService.getByTheater(Number(theaterId));
       setRooms(response);
@@ -126,103 +186,164 @@ export default function ShowtimesManagementPage() {
     }
   };
 
-  const handleSearch = async (pageIndex = 0) => {
-    setLoading(true);
+  const fetchAllRooms = async () => {
     try {
-      const params = {
+      const res = await adminRoomService.getAll();
+      setAllRooms(res || []);
+    } catch (e) {
+      console.error("Error fetching all rooms", e);
+    }
+  };
+
+  const { toast } = useToast();
+
+  // ... (keep state)
+
+  // ... (keep derived state)
+
+  // Auto-calculate Price based on Room Type
+  useEffect(() => {
+    if (formData.roomId) {
+      const room = rooms.find(r => r.id.toString() === formData.roomId) || allRooms.find(r => r.id.toString() === formData.roomId);
+      if (room) {
+        let price = 60000;
+        if (room.roomType === 'VIP' || room.roomType === 'PREMIUM') price = 80000;
+        if (room.roomType === 'IMAX') price = 100000;
+        setFormData(prev => ({ ...prev, basePrice: price }));
+      }
+    }
+  }, [formData.roomId, rooms, allRooms]);
+
+  // ... (keep click outside)
+
+  // ... (keep fetch functions)
+
+  const handleSearch = async (pageIndex = 0) => {
+    if (filters.theaterIds.length === 0 && filters.movieIds.length === 0 && !filters.startDate && !filters.endDate) {
+      if (viewMode === 'timeline' && !filters.startDate) {
+        toast("Vui lòng chọn ngày để xem lịch biểu", "error");
+        return;
+      }
+      if (viewMode === 'list') {
+        toast("Vui lòng chọn ít nhất một điều kiện lọc!", "error");
+        return;
+      }
+    }
+
+    setLoading(true);
+    setHasSearched(true);
+    try {
+      const fetchSize = viewMode === 'timeline' ? 2000 : pagination.pageSize;
+
+      const params: any = {
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
         theaterIds: filters.theaterIds.length > 0 ? filters.theaterIds : undefined,
         movieIds: filters.movieIds.length > 0 ? filters.movieIds : undefined,
-        page: pageIndex,
-        size: pagination.pageSize
       };
 
-      const res = await adminShowtimeService.getAll(params);
-      console.log(res);
-      // Ensure backend returns PageResponse structure
-      if (res && res.content) {
-        setShowtimes(res.content);
+      if (viewMode === 'timeline') {
+        // Fetch ALL for timeline and cache it
+        params.page = 0;
+        params.size = 2000;
+        const res = await adminShowtimeService.getAll(params);
+        const content = res.content || [];
+        setCachedShowtimes(content);
+        setIsCached(true);
+        setShowtimes(content);
         setPagination({
-          pageNumber: res.pageNumber,
-          pageSize: res.pageSize,
+          pageNumber: 0,
+          pageSize: content.length,
           totalElements: res.totalElements,
-          totalPages: res.totalPages,
-          last: res.last
+          totalPages: 1,
+          last: true
         });
       } else {
-        // Fallback if backend returns list (shouldn't happen with new API)
-        setShowtimes(res || []);
+        // List View: Use cache if available
+        const listPageSize = 20; // Enforce 20 as requested
+
+        if (isCached && cachedShowtimes.length > 0) {
+          const startIndex = pageIndex * listPageSize;
+          const endIndex = startIndex + listPageSize;
+          const data = cachedShowtimes.slice(startIndex, endIndex);
+          setShowtimes(data);
+          setPagination({
+            pageNumber: pageIndex,
+            pageSize: listPageSize,
+            totalElements: cachedShowtimes.length,
+            totalPages: Math.ceil(cachedShowtimes.length / listPageSize),
+            last: endIndex >= cachedShowtimes.length
+          });
+        } else {
+          // Server-side fetch
+          params.page = pageIndex;
+          params.size = listPageSize;
+          const res = await adminShowtimeService.getAll(params);
+          if (res) {
+            setShowtimes(res.content || []);
+            setPagination({
+              pageNumber: res.pageNumber,
+              pageSize: res.pageSize,
+              totalElements: res.totalElements,
+              totalPages: res.totalPages,
+              last: res.last
+            });
+          } else {
+            setShowtimes([]);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching showtimes:', error);
-      alert('Không thể tải dữ liệu lịch chiếu');
+      toast('Không thể tải dữ liệu lịch chiếu', "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 0 && newPage < pagination.totalPages) {
-      handleSearch(newPage);
+  const handleBulkSave = async (requests: any[]) => {
+    try {
+      await adminShowtimeService.createBulk(requests);
+      toast(`Đã tạo thành công ${requests.length} suất chiếu!`, "success");
+      handleSearch(0);
+    } catch (error: any) {
+      console.error("Bulk save error", error);
+      toast(error.response?.data?.message || "Có lỗi xảy ra khi tạo lịch chiếu (có thể do trùng lịch)", "error");
     }
   };
 
-  // Filter Handlers
-  const toggleTheaterFilter = (id: string) => {
-    setFilters(prev => {
-      const newIds = prev.theaterIds.includes(id)
-        ? prev.theaterIds.filter(tid => tid !== id)
-        : [...prev.theaterIds, id];
-      return { ...prev, theaterIds: newIds };
-    });
-  };
-
-  const toggleMovieFilter = (id: string) => {
-    setFilters(prev => {
-      const newIds = prev.movieIds.includes(id)
-        ? prev.movieIds.filter(mid => mid !== id)
-        : [...prev.movieIds, id];
-      return { ...prev, movieIds: newIds };
-    });
-  };
-
-  // Modal & Form Handlers...
   const openCreateModal = () => {
     setEditingShowtime(null);
     setFormData({
-      movieId: '',
       theaterId: '',
       roomId: '',
+      movieId: '',
       showDate: format(new Date(), 'yyyy-MM-dd'),
       startTime: '',
-      price: '',
-      status: 'AVAILABLE',
+      basePrice: 60000,
+      status: 'AVAILABLE'
     });
     setModalOpen(true);
   };
 
-  const openEditModal = async (showtime: Showtime) => {
+  const openEditModal = (showtime: Showtime) => {
     setEditingShowtime(showtime);
-    // Find theater ID from showtime (backend flat field theaterId might be needed, or we use room to find theater)
-    // Actually Backend response has theaterId.
-    // We need to typecase or use the field from response.
-    // If Backend Response has theaterId, map it.
-    // Wait, mapped response has theaterId.
-    const theaterId = (showtime as any).theaterId;
-    if (theaterId) {
-      await fetchRooms(theaterId.toString());
-    }
-
+    // Logic to populate form
     setFormData({
-      movieId: (showtime as any).movieId?.toString() || '',
-      theaterId: theaterId?.toString() || '',
-      roomId: (showtime as any).roomId?.toString() || '',
+      theaterId: '',
+      roomId: showtime.id ? '' : '',
+      movieId: showtime.movie.id.toString(),
       showDate: showtime.showDate,
-      startTime: showtime.startTime.substring(0, 5),
-      price: showtime.basePrice?.toString() || '',
-      status: showtime.status || 'AVAILABLE',
+      startTime: showtime.startTime,
+      basePrice: showtime.basePrice,
+      status: showtime.status
     });
+
+    const s = showtime as any;
+    if (s.theaterId) {
+      setFormData(prev => ({ ...prev, theaterId: s.theaterId, roomId: s.roomId }));
+      fetchRooms(s.theaterId.toString());
+    }
     setModalOpen(true);
   };
 
@@ -230,26 +351,26 @@ export default function ShowtimesManagementPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const data = {
-        movieId: parseInt(formData.movieId),
-        theaterId: parseInt(formData.theaterId),
-        roomId: parseInt(formData.roomId),
-        showDate: formData.showDate,
-        startTime: formData.startTime + ":00",
-        basePrice: parseFloat(formData.price),
-        status: formData.status,
+      // ... (payload)
+      const payload = {
+        ...formData,
+        movieId: Number(formData.movieId),
+        roomId: Number(formData.roomId),
+        basePrice: Number(formData.basePrice)
       };
 
       if (editingShowtime) {
-        await adminShowtimeService.update(editingShowtime.id, data);
+        await adminShowtimeService.update(editingShowtime.id, payload);
+        toast('Cập nhật thành công!', "success");
       } else {
-        await adminShowtimeService.create(data);
+        await adminShowtimeService.create(payload);
+        toast('Tạo mới thành công!', "success");
       }
-      handleSearch(pagination.pageNumber); // Reload current page
       setModalOpen(false);
+      handleSearch(pagination.pageNumber);
     } catch (error: any) {
-      console.error('Error saving:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra');
+      console.error(error);
+      toast(error.response?.data?.message || 'Có lỗi xảy ra', "error");
     } finally {
       setSaving(false);
     }
@@ -259,24 +380,32 @@ export default function ShowtimesManagementPage() {
     if (!deleteModal.showtime) return;
     try {
       await adminShowtimeService.delete(deleteModal.showtime.id);
-      handleSearch(pagination.pageNumber);
+      toast('Xóa thành công', "success");
       setDeleteModal({ open: false, showtime: null });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi xóa');
+      handleSearch(pagination.pageNumber);
+    } catch (error) {
+      toast('Không thể xóa suất chiếu này', "error");
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  const handlePageChange = (newPage: number) => {
+    handleSearch(newPage);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE': return 'bg-green-100 text-green-700 border border-green-200';
-      case 'FULL': return 'bg-red-100 text-red-700 border border-red-200';
-      case 'CANCELLED': return 'bg-zinc-100 text-zinc-500 border border-zinc-200 line-through';
-      default: return 'bg-zinc-100 text-zinc-700';
-    }
+  const toggleTheaterFilter = (id: string) => {
+    setFilters(prev => {
+      const exists = prev.theaterIds.includes(id);
+      const newIds = exists ? prev.theaterIds.filter(x => x !== id) : [...prev.theaterIds, id];
+      return { ...prev, theaterIds: newIds };
+    });
+  };
+
+  const toggleMovieFilter = (id: string) => {
+    setFilters(prev => {
+      const exists = prev.movieIds.includes(id);
+      const newIds = exists ? prev.movieIds.filter(x => x !== id) : [...prev.movieIds, id];
+      return { ...prev, movieIds: newIds };
+    });
   };
 
   return (
@@ -286,10 +415,32 @@ export default function ShowtimesManagementPage() {
           <h1 className="text-2xl font-bold text-zinc-900">Quản lý Lịch Chiếu</h1>
           <p className="text-sm text-zinc-500 mt-1">Tìm kiếm và quản lý suất chiếu</p>
         </div>
-        <button onClick={openCreateModal} className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors shadow-sm font-medium flex items-center gap-2">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Thêm suất chiếu
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="bg-zinc-100 p-1 rounded-lg flex text-sm font-medium">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+            >
+              Danh sách
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-3 py-1.5 rounded-md transition-all ${viewMode === 'timeline' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+            >
+              Lịch biểu
+            </button>
+          </div>
+
+          <button onClick={() => setQuickScheduleOpen(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Lập lịch nhanh
+          </button>
+
+          <button onClick={() => router.push('/admin/showtimes/create')} className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors shadow-sm font-medium flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Thêm đơn
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -316,49 +467,59 @@ export default function ShowtimesManagementPage() {
           </div>
         </div>
 
-        {/* Rạp Multi-select (Simple Dropdown Mockup) */}
-        <div className="relative group">
+        {/* Rạp Multi-select */}
+        <div className="relative" ref={theaterFilterRef}>
           <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Rạp ({filters.theaterIds.length})</label>
-          <div className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white cursor-pointer flex justify-between items-center group-hover:border-zinc-400">
+          <div
+            onClick={() => setOpenFilter(openFilter === 'theater' ? null : 'theater')}
+            className={`w-full px-3 py-2 border rounded-lg text-sm bg-white cursor-pointer flex justify-between items-center transition-colors ${openFilter === 'theater' ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-400'}`}
+          >
             <span className="truncate">{filters.theaterIds.length ? `${filters.theaterIds.length} rạp đã chọn` : 'Tất cả rạp'}</span>
-            <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            <svg className={`w-4 h-4 text-zinc-400 transition-transform ${openFilter === 'theater' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
           {/* Dropdown Content */}
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden group-hover:block z-20 p-2 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-2 before:bg-transparent">
-            {theaters.map(t => (
-              <label key={t.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.theaterIds.includes(t.id.toString())}
-                  onChange={() => toggleTheaterFilter(t.id.toString())}
-                  className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
-                />
-                <span className="text-sm text-zinc-700">{t.name}</span>
-              </label>
-            ))}
-          </div>
+          {openFilter === 'theater' && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-20 p-2">
+              {theaters.map(t => (
+                <label key={t.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.theaterIds.includes(t.id.toString())}
+                    onChange={() => toggleTheaterFilter(t.id.toString())}
+                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                  />
+                  <span className="text-sm text-zinc-700">{t.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Phim Multi-select */}
-        <div className="relative group">
+        <div className="relative" ref={movieFilterRef}>
           <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Phim ({filters.movieIds.length})</label>
-          <div className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white cursor-pointer flex justify-between items-center group-hover:border-zinc-400">
+          <div
+            onClick={() => setOpenFilter(openFilter === 'movie' ? null : 'movie')}
+            className={`w-full px-3 py-2 border rounded-lg text-sm bg-white cursor-pointer flex justify-between items-center transition-colors ${openFilter === 'movie' ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-400'}`}
+          >
             <span className="truncate">{filters.movieIds.length ? `${filters.movieIds.length} phim đã chọn` : 'Tất cả phim'}</span>
-            <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            <svg className={`w-4 h-4 text-zinc-400 transition-transform ${openFilter === 'movie' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
-          <div className="absolute top-full left-0 max-w-sm w-max mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden group-hover:block z-20 p-2 before:content-[''] before:absolute before:-top-2 before:left-0 before:right-0 before:h-2 before:bg-transparent">
-            {movies.map(m => (
-              <label key={m.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.movieIds.includes(m.id.toString())}
-                  onChange={() => toggleMovieFilter(m.id.toString())}
-                  className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
-                />
-                <span className="text-sm text-zinc-700 truncate">{m.title}</span>
-              </label>
-            ))}
-          </div>
+          {openFilter === 'movie' && (
+            <div className="absolute top-full left-0 max-w-sm w-max mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-20 p-2">
+              {movies.map(m => (
+                <label key={m.id} className="flex items-center gap-2 p-2 hover:bg-zinc-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.movieIds.includes(m.id.toString())}
+                    onChange={() => toggleMovieFilter(m.id.toString())}
+                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                  />
+                  <span className="text-sm text-zinc-700 truncate">{m.title}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
@@ -370,12 +531,33 @@ export default function ShowtimesManagementPage() {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+      {/* View Content */}
+      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden min-h-[400px]">
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
           </div>
+        ) : !hasSearched && viewMode === 'list' ? (
+          <div className="text-center py-20">
+            <div className="bg-zinc-50 inline-flex p-4 rounded-full mb-4">
+              <svg className="w-8 h-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <h3 className="text-lg font-medium text-zinc-900">Chưa có kết quả</h3>
+            <p className="text-zinc-500 mt-1 max-w-sm mx-auto">Vui lòng chọn điều kiện lọc và nhấn nút "Tìm kiếm" để xem lịch chiếu.</p>
+          </div>
+        ) : viewMode === 'timeline' ? (
+          <ShowtimeTimeline
+            rooms={
+              allRooms.length > 0
+                ? (filters.theaterIds.length > 0
+                  ? allRooms.filter(r => filters.theaterIds.includes(r.theaterId?.toString() || ''))
+                  : allRooms)
+                : rooms
+            }
+            showtimes={showtimes}
+            onShowtimeClick={openEditModal}
+            date={filters.startDate}
+          />
         ) : showtimes.length === 0 ? (
           <div className="text-center py-16 text-zinc-500">Không tìm thấy suất chiếu nào.</div>
         ) : (
@@ -385,10 +567,10 @@ export default function ShowtimesManagementPage() {
                 <thead className="bg-zinc-50 border-b border-zinc-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Phim</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Rạp / Phòng</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Rạp</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Phòng</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Thời gian</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Giá vé</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-zinc-500 uppercase">Trạng thái</th>
+
                     <th className="px-6 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Thao tác</th>
                   </tr>
                 </thead>
@@ -409,18 +591,16 @@ export default function ShowtimesManagementPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-zinc-900">{s.theaterName}</div>
-                        <div className="text-xs text-zinc-500 mt-0.5">{s.roomName} ({s.roomType})</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-zinc-900">{s.roomName}</div>
+                        <div className="text-xs text-zinc-500 mt-0.5">{s.roomType}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-zinc-900">{s.startTime ? s.startTime.substring(0, 5) : '--:--'}</div>
                         <div className="text-xs text-zinc-500 mt-0.5">{s.showDate ? format(new Date(s.showDate), 'dd/MM/yyyy') : ''}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-emerald-600">{formatPrice(s.basePrice)}</div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(s.status)}`}>{s.status}</span>
-                      </td>
+
                       <td className="px-6 py-4 text-right">
                         <button onClick={() => openEditModal(s)} className="text-blue-600 hover:text-blue-800 text-sm font-medium mr-3">Sửa</button>
                         <button onClick={() => setDeleteModal({ open: true, showtime: s })} className="text-red-600 hover:text-red-800 text-sm font-medium">Xóa</button>
@@ -460,6 +640,15 @@ export default function ShowtimesManagementPage() {
         )}
       </div>
 
+      <QuickScheduleModal
+        isOpen={quickScheduleOpen}
+        onClose={() => setQuickScheduleOpen(false)}
+        onSuccess={() => handleSearch(0)}
+        movies={movies}
+        theaters={theaters}
+        rooms={allRooms.length > 0 ? allRooms : rooms}
+      />
+
       {/* Modal and Other Popups would go here (omitted for brevity but logic is present in handlers) */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -478,7 +667,12 @@ export default function ShowtimesManagementPage() {
                   <label className="text-sm font-medium text-zinc-700 block mb-1">Rạp</label>
                   <select
                     value={formData.theaterId}
-                    onChange={e => setFormData({ ...formData, theaterId: e.target.value, roomId: '' })}
+                    onChange={e => {
+                      const id = e.target.value;
+                      setFormData({ ...formData, theaterId: id, roomId: '' });
+                      if (id) fetchRooms(id);
+                      else setRooms([]);
+                    }}
                     className="w-full border border-zinc-300 rounded p-2 text-sm" required
                   >
                     <option value="">Chọn rạp</option>
@@ -523,21 +717,6 @@ export default function ShowtimesManagementPage() {
                 <div className="col-span-1">
                   <label className="text-sm font-medium text-zinc-700 block mb-1">Kết thúc</label>
                   <div className="w-full bg-zinc-100 border border-zinc-200 rounded p-2 text-sm text-zinc-500">{calculatedEndTime || '--:--'}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Giá vé</label>
-                  <input type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} className="w-full border border-zinc-300 rounded p-2 text-sm" required min="0" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Trạng thái</label>
-                  <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className="w-full border border-zinc-300 rounded p-2 text-sm">
-                    <option value="AVAILABLE">Đang bán</option>
-                    <option value="FULL">Hết vé</option>
-                    <option value="CANCELLED">Hủy</option>
-                  </select>
                 </div>
               </div>
 

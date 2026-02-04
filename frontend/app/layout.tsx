@@ -4,6 +4,8 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 
+import { ToastProvider } from '@/components/ui/Toast';
+
 const inter = Inter({ subsets: ['latin', 'vietnamese'] });
 
 export const metadata: Metadata = {
@@ -19,9 +21,11 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50`}>
-        <AuthProvider>
-          <LayoutWrapper>{children}</LayoutWrapper>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -37,6 +37,9 @@ public class Showtime {
     @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal basePrice;
 
+    @Column(name = "format", length = 50)
+    private String format; // e.g., "2D_SUB", "2D_DUB", "3D_SUB"
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

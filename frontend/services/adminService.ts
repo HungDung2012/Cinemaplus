@@ -85,6 +85,11 @@ export const adminShowtimeService = {
     return response.data?.data;
   },
 
+  createBulk: async (data: any[]) => {
+    const response = await api.post('/admin/showtimes/bulk', data);
+    return response.data?.data;
+  },
+
   delete: async (id: number) => {
     const response = await api.delete(`/admin/showtimes/${id}`);
     return response.data?.data;
@@ -263,4 +268,59 @@ export const adminCityService = {
     const response = await api.get('/cities');
     return response.data?.data;
   }
+};
+
+// ===================== BATCH SCHEDULE =====================
+export interface TimeSlotPreview {
+  inputTime: string;
+  adsStart: string;
+  adsEnd: string;
+  featureStart: string;
+  featureEnd: string;
+  cleaningStart: string;
+  cleaningEnd: string;
+  totalDurationMinutes: number;
+  hasOverlapWithOther?: boolean;
+  overlapMessage?: string;
+}
+
+export interface PreviewResponse {
+  movieId: number;
+  movieTitle: string;
+  movieDuration: number;
+  adsDuration: number;
+  cleaningDuration: number;
+  timeSlots: TimeSlotPreview[];
+  hasInternalOverlaps: boolean;
+  validationMessage: string;
+}
+
+export interface BatchScheduleRequest {
+  movieId: number;
+  roomIds: number[];
+  startDate: string;
+  endDate: string;
+  timeSlots: string[];
+  basePrice: number;
+  adsDuration: number;
+  cleaningDuration: number;
+}
+
+export interface BatchScheduleResponse {
+  totalCreated: number;
+  totalSkipped: number;
+  conflicts: any[];
+  message: string;
+}
+
+export const adminBatchScheduleService = {
+  preview: async (request: BatchScheduleRequest): Promise<PreviewResponse> => {
+    const response = await api.post('/admin/showtimes/batch/preview', request);
+    return response.data?.data;
+  },
+
+  create: async (request: BatchScheduleRequest): Promise<BatchScheduleResponse> => {
+    const response = await api.post('/admin/showtimes/batch', request);
+    return response.data?.data;
+  },
 };

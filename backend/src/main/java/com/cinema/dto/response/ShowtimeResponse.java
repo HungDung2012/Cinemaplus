@@ -20,22 +20,23 @@ public class ShowtimeResponse {
     private LocalTime startTime;
     private LocalTime endTime;
     private BigDecimal basePrice;
+    private String format;
     private Showtime.ShowtimeStatus status;
-    
+
     // Movie info
     private Long movieId;
     private String movieTitle;
     private String moviePosterUrl;
     private Integer movieDuration;
-    
+
     // Room info
     private Long roomId;
     private String roomName;
     private String roomType;
-    
+
     // Theater info
     private Long theaterId;
     private String theaterName;
-    
+
     private Integer availableSeats;
 }

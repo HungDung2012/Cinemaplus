@@ -28,4 +28,10 @@ public class RoomController {
         RoomDTO room = roomService.getRoomLayout(id);
         return ResponseEntity.ok(ApiResponse.success(room));
     }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
+        List<RoomResponse> rooms = roomService.getAllRooms();
+        return ResponseEntity.ok(ApiResponse.success(rooms));
+    }
 }

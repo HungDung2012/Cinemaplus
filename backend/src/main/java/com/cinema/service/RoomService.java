@@ -175,6 +175,12 @@ public class RoomService {
                 .collect(Collectors.toList());
     }
 
+    public List<RoomResponse> getAllRooms() {
+        return roomRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public RoomResponse getRoomById(Long id) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room", "id", id));

@@ -67,6 +67,15 @@ export interface City {
   theaterCount: number;
 }
 
+// Pagination
+export interface Pagination {
+  pageNumber: number; // 0-indexed
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 // Room types
 export type RoomType = 'STANDARD_2D' | 'STANDARD_3D' | 'IMAX' | 'IMAX_3D' | 'VIP_4DX';
 

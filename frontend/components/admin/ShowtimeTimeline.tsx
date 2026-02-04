@@ -2,29 +2,7 @@
 
 import React, { useRef, useState, useMemo } from 'react';
 
-interface Movie {
-    id: number;
-    title: string;
-    duration: number;
-}
-
-interface Showtime {
-    id: number;
-    movieTitle: string;
-    movieDuration: number;
-    startTime: string; // HH:mm:ss
-    endTime: string;
-    roomId: number;
-    showDate?: string; // Date string yyyy-MM-dd
-}
-
-interface Room {
-    id: number;
-    name: string;
-    roomType: string;
-    theaterName?: string;
-    theaterId?: number;
-}
+import { Showtime, Room, Movie } from '@/types';
 
 interface ShowtimeTimelineProps {
     rooms: Room[];
@@ -56,6 +34,7 @@ export default function ShowtimeTimeline({
     const ROW_HEIGHT = 80;
 
     const [hoverState, setHoverState] = useState<{ roomId: number, timeStr: string, left: number } | null>(null);
+    const [hoveredShowtime, setHoveredShowtime] = useState<{ showtime: Showtime, x: number, y: number } | null>(null);
 
     // Group rooms (Previous logic)
     const roomsByTheater = useMemo(() => {
@@ -138,12 +117,12 @@ export default function ShowtimeTimeline({
     const hours = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
 
     return (
-        <div className="absolute inset-0 overflow-auto bg-white select-none">
+        <div className=" inset-0 overflow-auto bg-white select-none">
             <div style={{ width: `${Math.max(1000, 160 + TOTAL_WIDTH)}px`, height: `${totalHeight}px` }}>
 
                 {/* Header */}
-                <div className="flex sticky top-0 bg-zinc-50 border-b border-zinc-200 z-30" style={{ height: HEADER_HEIGHT }}>
-                    <div className="sticky left-0 w-40 bg-zinc-50 border-r border-zinc-200 p-2 text-xs font-semibold text-zinc-500 flex items-center justify-center shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                <div className="flex sticky top-0 bg-zinc-50 border-b border-zinc-200" style={{ height: HEADER_HEIGHT }}>
+                    <div className="sticky z-20 left-0 w-40 bg-zinc-50 border-r border-zinc-200 p-2 text-xs font-semibold text-zinc-500 flex items-center justify-center shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
                         Phòng / Thời gian
                     </div>
                     <div className="relative flex-1">
@@ -199,31 +178,49 @@ export default function ShowtimeTimeline({
 
                                     {/* Existing Showtimes */}
                                     {filteredShowtimes.filter(s => s.roomId === room.id).map(s => {
-                                        const ADS = 20; const CLEAN = 15;
-                                        const mDur = s.movieDuration || 120; // Fallback
-                                        const dur = ADS + mDur + CLEAN;
-
-                                        // Calculate exact widths for the thin bars
-                                        const adsWidth = getWidth(ADS);
-                                        const cleanWidth = getWidth(CLEAN);
+                                        const ADS = 20;
+                                        const CLEAN = 15;
+                                        const mDur = s.movieDuration || 120;
+                                        const totalDur = ADS + mDur + CLEAN;
 
                                         return (
                                             <div key={s.id}
-                                                className="absolute top-2 bottom-2 flex rounded overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-shadow bg-blue-50 border border-blue-100 hover:z-50 group"
-                                                style={{ left: getPosition(s.startTime), width: getWidth(dur) }}
+                                                className="absolute top-2 bottom-2 flex rounded shadow-sm border border-blue-200 bg-blue-100 hover:z-50 overflow-hidden group/item"
+                                                style={{
+                                                    left: getPosition(s.startTime),
+                                                    width: getWidth(totalDur),
+                                                    minWidth: '50px' // Đảm bảo không bị biến mất nếu thời gian ngắn
+                                                }}
                                                 onClick={(e) => { e.stopPropagation(); onShowtimeClick(s); }}
-                                                title={`${s.movieTitle} (${s.startTime})`}
+                                                onMouseEnter={(e) => {
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    setHoveredShowtime({
+                                                        showtime: s,
+                                                        x: rect.left + rect.width / 2, // Center horizontally relative to item
+                                                        y: rect.top // Top of the item
+                                                    });
+                                                }}
+                                                onMouseLeave={() => setHoveredShowtime(null)}
                                             >
-                                                {/* Thin ADS Bar */}
-                                                <div style={{ width: 4 }} className="bg-yellow-300 h-full flex-shrink-0" />
-
-                                                {/* Main Content */}
-                                                <div className="flex-1 px-2 py-1 text-xs text-blue-900 font-medium truncate relative flex items-center">
-                                                    {s.movieTitle || 'Showtime'}
+                                                {/* 1. Phần ADS - Màu vàng (Tăng width từ 4px lên giá trị thực) */}
+                                                <div style={{ width: getWidth(ADS) }} className="bg-yellow-400/80 h-full flex items-center justify-center text-[10px] font-bold text-yellow-900 border-r border-white/20">
+                                                    ADS
                                                 </div>
 
-                                                {/* Thin CLEAN Bar */}
-                                                <div style={{ width: 4 }} className="bg-zinc-300 h-full flex-shrink-0" />
+                                                {/* 2. Nội dung chính - Movie Title */}
+                                                <div className="flex-1 px-2 flex flex-col justify-center overflow-hidden">
+                                                    <span className="text-[11px] font-bold text-blue-900 truncate uppercase">
+                                                        {s.movieTitle}
+                                                    </span>
+                                                    <span className="text-[10px] text-blue-700 font-medium">
+                                                        {s.startTime} - {mDur}p
+                                                    </span>
+                                                </div>
+
+                                                {/* 3. Phần CLEAN - Màu xám */}
+                                                <div style={{ width: getWidth(CLEAN) }} className="bg-zinc-400/50 h-full flex items-center justify-center text-[10px] font-bold text-zinc-700">
+                                                    CLN
+                                                </div>
                                             </div>
                                         )
                                     })}
@@ -233,6 +230,53 @@ export default function ShowtimeTimeline({
                     </React.Fragment>
                 ))}
             </div>
+            {/* Tooltip Portal or Fixed Layer */}
+            {hoveredShowtime && (
+                <div
+                    className="fixed z-[100] bg-white rounded-lg shadow-xl border border-zinc-200 p-3 w-64 pointer-events-none transform -translate-x-1/2 -translate-y-[110%]"
+                    style={{ left: hoveredShowtime.x, top: hoveredShowtime.y }}
+                >
+                    <div className="flex gap-3">
+                        {/* Poster */}
+                        <div className="w-16 h-24 bg-zinc-100 rounded overflow-hidden flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {hoveredShowtime.showtime.moviePosterUrl ? (
+                                <img src={hoveredShowtime.showtime.moviePosterUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs text-zinc-400">No Image</div>
+                            )}
+                        </div>
+                        {/* Details */}
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-zinc-900 line-clamp-2 leading-tight mb-1">
+                                {hoveredShowtime.showtime.movieTitle}
+                            </div>
+                            <div className="text-xs text-zinc-500 mb-2">
+                                {hoveredShowtime.showtime.movieDuration} phút
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-zinc-500">Thời gian:</span>
+                                    <span className="font-medium text-zinc-900">{hoveredShowtime.showtime.startTime.substring(0, 5)} - {hoveredShowtime.showtime.endTime.substring(0, 5)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-zinc-500">Giá vé:</span>
+                                    <span className="font-medium text-indigo-600">
+                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(hoveredShowtime.showtime.basePrice)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-zinc-500">Trạng thái:</span>
+                                    <span className={`font-medium ${hoveredShowtime.showtime.status === 'AVAILABLE' ? 'text-green-600' : 'text-zinc-500'}`}>
+                                        {hoveredShowtime.showtime.status === 'AVAILABLE' ? 'Sẵn sàng' : hoveredShowtime.showtime.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

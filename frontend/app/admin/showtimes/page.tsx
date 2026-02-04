@@ -7,54 +7,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/Toast';
 import { adminMovieService, adminRoomService, adminShowtimeService, adminTheaterService } from '@/services/adminService';
 
-interface Showtime {
-  id: number;
-  movieTitle: string;
-  moviePosterUrl: string;
-  movieDuration: number;
-  movie: { // Fallback if nested
-    id: number;
-    title: string;
-  };
-  theaterId: number; // Added
-  theaterName: string;
-  roomId: number; // Added
-  roomName: string;
-  roomType: string;
-  showDate: string;
-  startTime: string; // HH:mm:ss
-  endTime: string; // Added for Timeline
-  basePrice: number;
-  status: string;
-}
-
-interface Movie {
-  id: number;
-  title: string;
-  duration: number;
-}
-
-interface Theater {
-  id: number;
-  name: string;
-}
-
-interface Room {
-  id: number;
-  name: string;
-  roomType: string;
-  theaterId?: number; // Added for filtering
-  theaterName?: string; // Added for grouping
-}
-
-interface Pagination {
-  pageNumber: number; // 0-indexed
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  last: boolean;
-}
-
+import { Showtime, Movie, Theater, Room, Pagination } from '@/types';
 import { useRouter } from 'next/navigation';
 
 export default function ShowtimesManagementPage() {
@@ -207,8 +160,8 @@ export default function ShowtimesManagementPage() {
       const room = rooms.find(r => r.id.toString() === formData.roomId) || allRooms.find(r => r.id.toString() === formData.roomId);
       if (room) {
         let price = 60000;
-        if (room.roomType === 'VIP' || room.roomType === 'PREMIUM') price = 80000;
-        if (room.roomType === 'IMAX') price = 100000;
+        if (room.roomType === 'VIP_4DX' || room.roomType === 'STANDARD_3D') price = 80000;
+        if (room.roomType === 'IMAX' || room.roomType === 'IMAX_3D') price = 100000;
         setFormData(prev => ({ ...prev, basePrice: price }));
       }
     }
@@ -332,7 +285,7 @@ export default function ShowtimesManagementPage() {
     setFormData({
       theaterId: '',
       roomId: showtime.id ? '' : '',
-      movieId: showtime.movie.id.toString(),
+      movieId: showtime.movieId.toString(),
       showDate: showtime.showDate,
       startTime: showtime.startTime,
       basePrice: showtime.basePrice,

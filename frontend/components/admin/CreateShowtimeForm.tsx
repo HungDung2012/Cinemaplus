@@ -6,48 +6,11 @@ import React from "react";
 import ShowtimeTimeline from "./ShowtimeTimeline"; // We will upgrade this component next
 
 // --- Types ---
-interface Movie {
-    id: number;
-    title: string;
-    posterUrl: string;
-    duration: number; // minutes
-    ageRating: string;
-}
-
-interface Theater {
-    id: number;
-    name: string;
-}
-
-interface Room {
-    id: number;
-    name: string;
-    roomType: string;
-    theaterId: number;
-    theaterName?: string;
-}
+import { Showtime, Movie, Theater, Room } from '@/types';
 
 interface TicketPrice {
     id: number;
     name: string;
-    basePrice: number;
-}
-
-interface Showtime {
-    id: number;
-    movieTitle: string;
-    moviePosterUrl: string;
-    movieDuration: number;
-    movie: { id: number; title: string; }; // Nested object from API
-    theaterId: number;
-    theaterName: string;
-    startTime: string; // HH:mm:ss
-    endTime: string;
-    status: string;
-    roomId: number;
-    roomName: string;
-    roomType: string;
-    showDate: string;
     basePrice: number;
 }
 

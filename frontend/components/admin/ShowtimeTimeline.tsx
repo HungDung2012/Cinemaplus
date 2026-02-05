@@ -14,6 +14,9 @@ interface ShowtimeTimelineProps {
     interactiveMode?: boolean;
     selectedMovie?: Movie;
     onSlotClick?: (room: Room, time: string) => void;
+    // DnD Callbacks
+    onShowtimeUpdate?: (showtime: Showtime, newRoomId: number, newStartTime: string) => Promise<void>;
+    onCreateShowtime?: (movieId: number, roomId: number, startTime: string) => Promise<void>;
 }
 
 export default function ShowtimeTimeline({
@@ -23,6 +26,8 @@ export default function ShowtimeTimeline({
     interactiveMode,
     selectedMovie,
     onSlotClick,
+    onShowtimeUpdate,
+    onCreateShowtime,
     date
 }: ShowtimeTimelineProps) {
     const START_HOUR = 8;
@@ -35,6 +40,12 @@ export default function ShowtimeTimeline({
 
     const [hoverState, setHoverState] = useState<{ roomId: number, timeStr: string, left: number } | null>(null);
     const [hoveredShowtime, setHoveredShowtime] = useState<{ showtime: Showtime, x: number, y: number } | null>(null);
+    const [dragState, setDragState] = useState<{
+        type: 'MOVIE' | 'SHOWTIME',
+        id: number,
+        duration: number,
+        title: string
+    } | null>(null);
 
     // Group rooms (Previous logic)
     const roomsByTheater = useMemo(() => {
@@ -55,55 +66,68 @@ export default function ShowtimeTimeline({
         return Math.max(0, minutesFromStart) * PIXELS_PER_MINUTE;
     };
 
-    const getTimeFromX = (x: number) => {
-        const minutesFromStart = x / PIXELS_PER_MINUTE;
-        const totalMinutes = (START_HOUR * 60) + minutesFromStart;
-        const h = Math.floor(totalMinutes / 60);
-        const m = Math.floor(totalMinutes % 60);
-        // Snap to 5 mins
-        const snappedM = Math.round(m / 5) * 5;
-        return `${h.toString().padStart(2, '0')}:${snappedM.toString().padStart(2, '0')}`;
-    };
-
     const getWidth = (mins: number) => mins * PIXELS_PER_MINUTE;
 
-    // Phantom Calculations
-    const phantom = useMemo(() => {
-        if (!selectedMovie || !hoverState) return null;
+    const getTimeFromX = (x: number) => {
+        const minutesFromStart = x / PIXELS_PER_MINUTE;
+        const totalMinutes = minutesFromStart + (START_HOUR * 60);
 
+        let h = Math.floor(totalMinutes / 60);
+        let m = Math.floor(totalMinutes % 60);
+
+        // Snap to 5 minutes
+        m = Math.round(m / 5) * 5;
+        if (m === 60) { m = 0; h += 1; }
+
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    };
+
+    // Phantom Calculations (Use dragging state if active, else hover)
+    const phantom = useMemo(() => {
         const ADS = 20;
         const CLEAN = 15;
-        const totalDur = ADS + selectedMovie.duration + CLEAN;
+        // Prioritize drag duration, if not check selectedMovie (hover mode)
+        const duration = dragState ? dragState.duration : (selectedMovie?.duration || 120);
+        const totalDur = ADS + duration + CLEAN;
+
+        const width = getWidth(totalDur);
+
+        // Conflict Detection
+        // Calculate Time Range
+        if (!hoverState) return null; // Add safety check
+
+        const startMin = hoverState.left / PIXELS_PER_MINUTE + (START_HOUR * 60);
+        const endMin = startMin + totalDur;
+
+        // Find overlaps in the SAME room
+        // If "dragState.id" is present, we must EXCLUDE it from conflict check (moving self is not conflict with self)
+        const isConflict = showtimes.some(s => {
+            // 1. Must be same room
+            if (s.roomId !== hoverState.roomId) return false;
+            // 2. Ignore self (if dragging existing showtime)
+            if (dragState && dragState.type === 'SHOWTIME' && s.id === dragState.id) return false;
+            if (!dragState && !selectedMovie) return false; // Safety
+
+            // 3. Time Overlap Check
+            // Parse s.startTime -> minutes
+            const [h, m] = s.startTime.split(':').map(Number);
+            const sStart = (h - START_HOUR) * 60 + m;
+            const sDur = (s.movieDuration || 120) + 20 + 15; // ADS + CLEAN approx or real
+            const sEnd = sStart + sDur;
+
+            return (startMin < sEnd && endMin > sStart);
+        });
 
         return {
-            width: getWidth(totalDur),
+            width,
             adsWidth: getWidth(ADS),
-            movieWidth: getWidth(selectedMovie.duration),
+            movieWidth: getWidth(duration),
             cleanWidth: getWidth(CLEAN),
-            left: hoverState.left // Align with cursor snapped
+            left: hoverState.left,
+            title: dragState ? dragState.title : selectedMovie?.title,
+            isConflict
         };
-    }, [selectedMovie, hoverState]);
-
-    const handleMouseMove = (e: React.MouseEvent, room: Room) => {
-        if (!interactiveMode || !selectedMovie) return;
-
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const timeStr = getTimeFromX(x);
-
-        // Snap left position for visual stability
-        const snappedLeft = getPosition(timeStr);
-
-        setHoverState({ roomId: room.id, timeStr, left: snappedLeft });
-    };
-
-    const handleMouseLeave = () => setHoverState(null);
-
-    const handleClick = (room: Room) => {
-        if (hoverState && onSlotClick) {
-            onSlotClick(room, hoverState.timeStr);
-        }
-    };
+    }, [selectedMovie, hoverState, dragState, showtimes]);
 
     // Filter showtimes for the specific date if provided
     // If showtime.showDate exists, compare it. If not, assume it belongs (backward compat).
@@ -115,6 +139,47 @@ export default function ShowtimeTimeline({
     // Total Height
     const totalHeight = HEADER_HEIGHT + (rooms.length * ROW_HEIGHT) + (sortedTheaterNames.length * 30);
     const hours = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i);
+
+    const handleDragOver = (e: React.DragEvent, room: Room) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const timeStr = getTimeFromX(x);
+        const snappedLeft = getPosition(timeStr);
+
+        if (!dragState) {
+            setDragState({ type: 'MOVIE', id: 0, duration: 120, title: 'New Showtime' });
+        }
+
+        setHoverState({ roomId: room.id, timeStr, left: snappedLeft });
+    };
+
+    const handleDrop = async (e: React.DragEvent, room: Room) => {
+        e.preventDefault();
+        setHoverState(null);
+        setDragState(null);
+
+        try {
+            const data = JSON.parse(e.dataTransfer.getData("application/json"));
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const timeStr = getTimeFromX(x);
+
+            if (data.type === "MOVIE") {
+                if (onCreateShowtime) {
+                    await onCreateShowtime(data.movieId, room.id, timeStr);
+                }
+            } else if (data.type === "SHOWTIME") {
+                if (onShowtimeUpdate && data.showtime) {
+                    await onShowtimeUpdate(data.showtime, room.id, timeStr);
+                }
+            }
+        } catch (error) {
+            console.error("Drop error", error);
+        }
+    };
 
     return (
         <div className=" inset-0 overflow-auto bg-white select-none">
@@ -138,11 +203,13 @@ export default function ShowtimeTimeline({
                 {/* Body */}
                 {sortedTheaterNames.map(tName => (
                     <React.Fragment key={tName}>
-                        <div className="sticky left-0 bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700 uppercase border-b border-zinc-200 z-20">
-                            {tName}
+                        <div className="sticky left-0 z-30 w-full bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-700 uppercase border-b border-zinc-200 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
+                            <span className="sticky left-3">
+                                {tName}
+                            </span>
                         </div>
                         {roomsByTheater[tName].map(room => (
-                            <div key={room.id} className="flex border-b border-zinc-100 h-[80px] hover:bg-zinc-50 relative group">
+                            <div key={room.id} className="flex border-b border-zinc-100 h-[80px] relative group z-10">
                                 {/* Room Name */}
                                 <div className="sticky left-0 w-40 flex-shrink-0 bg-white border-r border-zinc-200 p-3 flex flex-col justify-center z-20 shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
                                     <div className="font-semibold text-zinc-900 text-sm">{room.name}</div>
@@ -150,11 +217,9 @@ export default function ShowtimeTimeline({
                                 </div>
 
                                 {/* Timeline Area */}
-                                <div
-                                    className="relative flex-1 cursor-crosshair"
-                                    onMouseMove={(e) => handleMouseMove(e, room)}
-                                    onMouseLeave={handleMouseLeave}
-                                    onClick={() => handleClick(room)}
+                                <div className="relative flex-1 cursor-crosshair"
+                                    onDragOver={(e) => handleDragOver(e, room)}
+                                    onDrop={(e) => handleDrop(e, room)}
                                 >
                                     {/* Grid Lines */}
                                     {hours.map(h => (
@@ -162,17 +227,21 @@ export default function ShowtimeTimeline({
                                             style={{ left: getWidth((h - START_HOUR) * 60) }} />
                                     ))}
 
-                                    {/* Phantom Block (Hover) */}
+                                    {/* Phantom Block (Hover or Drag) */}
                                     {interactiveMode && phantom && hoverState?.roomId === room.id && (
                                         <div
-                                            className="absolute top-2 bottom-2 rounded opacity-80 pointer-events-none flex overflow-hidden z-10 animate-pulse ring-2 ring-blue-400"
+                                            className={`absolute top-2 bottom-2 rounded opacity-80 pointer-events-none flex overflow-hidden z-20 animate-pulse ring-2 ${phantom.isConflict
+                                                ? 'ring-red-500 bg-red-100' // Red if conflict
+                                                : dragState ? 'ring-green-500 bg-green-50' : 'ring-blue-400'
+                                                }`}
                                             style={{ left: phantom.left, width: phantom.width }}
                                         >
-                                            <div style={{ width: phantom.adsWidth }} className="bg-yellow-200/50 h-full flex items-center justify-center text-[10px] text-yellow-800 font-bold border-r border-white/30">ADS</div>
-                                            <div style={{ width: phantom.movieWidth }} className="bg-blue-200/50 h-full flex items-center justify-center text-[10px] text-blue-800 font-bold border-r border-white/30 truncate px-1">
-                                                {selectedMovie?.title} ({hoverState.timeStr})
+                                            <div style={{ width: phantom.adsWidth }} className="bg-yellow-200/50 h-full flex items-center justify-center text-[10px] text-yellow-800 font-bold border-r border-white/30 truncate">ADS</div>
+                                            <div style={{ width: phantom.movieWidth }} className={`h-full flex items-center justify-center text-[10px] font-bold border-r border-white/30 truncate px-1 ${phantom.isConflict ? 'text-red-800 bg-red-200/50' : 'text-blue-800 bg-blue-200/50'
+                                                }`}>
+                                                {phantom.title} ({hoverState.timeStr})
                                             </div>
-                                            <div style={{ width: phantom.cleanWidth }} className="bg-zinc-200/50 h-full flex items-center justify-center text-[10px] text-zinc-600 font-bold">CLN</div>
+                                            <div style={{ width: phantom.cleanWidth }} className="bg-zinc-200/50 h-full flex items-center justify-center text-[10px] text-zinc-600 font-bold truncate">CLN</div>
                                         </div>
                                     )}
 
@@ -191,7 +260,26 @@ export default function ShowtimeTimeline({
                                                     width: getWidth(totalDur),
                                                     minWidth: '50px' // Đảm bảo không bị biến mất nếu thời gian ngắn
                                                 }}
-                                                onClick={(e) => { e.stopPropagation(); onShowtimeClick(s); }}
+                                                draggable
+                                                onDragStart={(e) => {
+                                                    // Set drag data
+                                                    e.dataTransfer.setData("application/json", JSON.stringify({
+                                                        type: "SHOWTIME",
+                                                        showtime: s,
+                                                        duration: totalDur // Approximation
+                                                    }));
+                                                    // Set local drag state for phantom
+                                                    setDragState({
+                                                        type: 'SHOWTIME',
+                                                        id: s.id,
+                                                        duration: s.movieDuration,
+                                                        title: s.movieTitle
+                                                    });
+                                                }}
+                                                onDragEnd={() => {
+                                                    setDragState(null);
+                                                    setHoverState(null);
+                                                }}
                                                 onMouseEnter={(e) => {
                                                     const rect = e.currentTarget.getBoundingClientRect();
                                                     setHoveredShowtime({

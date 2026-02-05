@@ -341,6 +341,9 @@ export default function ShowtimesManagementPage() {
     }
   };
 
+  // Drag and Drop Handlers
+
+
   const handlePageChange = (newPage: number) => {
     handleSearch(newPage);
   };

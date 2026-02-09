@@ -44,6 +44,7 @@ public class SampleDataInitializer implements CommandLineRunner {
         private final BookingSeatRepository bookingSeatRepository;
         private final BookingFoodRepository bookingFoodRepository;
         private final PaymentRepository paymentRepository;
+        private final TicketPriceRepository ticketPriceRepository;
         private final ObjectMapper objectMapper;
 
         @org.springframework.beans.factory.annotation.Value("${app.db.reset-data:false}")
@@ -74,6 +75,7 @@ public class SampleDataInitializer implements CommandLineRunner {
                         couponRepository.deleteAll();
                         voucherRepository.deleteAll();
                         promotionRepository.deleteAll();
+                        ticketPriceRepository.deleteAll();
 
                         log.info("All data deleted.");
                 }
@@ -96,6 +98,10 @@ public class SampleDataInitializer implements CommandLineRunner {
                 }
                 if (movieRepository.count() == 0) {
                         initSampleMovies();
+                }
+                // Init ticket prices
+                if (ticketPriceRepository.count() == 0) {
+                        initTicketPrices();
                 }
                 // Init showtimes for existing movies
                 if (showtimeRepository.count() == 0 && movieRepository.count() > 0) {
@@ -825,6 +831,55 @@ public class SampleDataInitializer implements CommandLineRunner {
                                 .build();
         }
 
+        private void initTicketPrices() {
+                log.info("Initializing ticket prices...");
+                List<TicketPrice> prices = new ArrayList<>();
+
+                // 1. Base Prices (Standard Room)
+                // Mon-Thu: 65k (Morning), 85k (Day/Eve)
+                prices.add(TicketPrice.builder().name("Vé Tiêu Chuẩn - Sáng (T2-T5)").basePrice(new BigDecimal("65000"))
+                                .daysOfWeek("MONDAY,TUESDAY,WEDNESDAY,THURSDAY").startTime(LocalTime.of(8, 0))
+                                .endTime(LocalTime.of(12, 0)).roomType(Room.RoomType.STANDARD_2D).priority(1)
+                                .active(true).build());
+
+                prices.add(TicketPrice.builder().name("Vé Tiêu Chuẩn - Chiều/Tối (T2-T5)")
+                                .basePrice(new BigDecimal("85000"))
+                                .daysOfWeek("MONDAY,TUESDAY,WEDNESDAY,THURSDAY").startTime(LocalTime.of(12, 1))
+                                .endTime(LocalTime.of(23, 59)).roomType(Room.RoomType.STANDARD_2D).priority(1)
+                                .active(true).build());
+
+                // Fri-Sun: 75k (Morning), 105k (Day/Eve)
+                prices.add(TicketPrice.builder().name("Vé Cuối Tuần - Sáng (T6-CN)").basePrice(new BigDecimal("75000"))
+                                .daysOfWeek("FRIDAY,SATURDAY,SUNDAY").startTime(LocalTime.of(8, 0))
+                                .endTime(LocalTime.of(12, 0))
+                                .roomType(Room.RoomType.STANDARD_2D).priority(2).active(true).build());
+
+                prices.add(TicketPrice.builder().name("Vé Cuối Tuần - Chiều/Tối (T6-CN)")
+                                .basePrice(new BigDecimal("105000"))
+                                .daysOfWeek("FRIDAY,SATURDAY,SUNDAY").startTime(LocalTime.of(12, 1))
+                                .endTime(LocalTime.of(23, 59))
+                                .roomType(Room.RoomType.STANDARD_2D).priority(2).active(true).build());
+
+                // 2. Format Surcharges (Base varies by room type)
+                // IMAX: +50k base
+                prices.add(TicketPrice.builder().name("Vé IMAX - Mọi khung giờ").basePrice(new BigDecimal("150000"))
+                                .daysOfWeek("ALL").startTime(LocalTime.of(0, 0)).endTime(LocalTime.of(23, 59))
+                                .roomType(Room.RoomType.IMAX).priority(3).active(true).build());
+
+                // VIP/4DX: +50k base
+                prices.add(TicketPrice.builder().name("Vé 4DX - Mọi khung giờ").basePrice(new BigDecimal("160000"))
+                                .daysOfWeek("ALL").startTime(LocalTime.of(0, 0)).endTime(LocalTime.of(23, 59))
+                                .roomType(Room.RoomType.VIP_4DX).priority(3).active(true).build());
+
+                // 3D: +30k base
+                prices.add(TicketPrice.builder().name("Vé 3D - Mọi khung giờ").basePrice(new BigDecimal("120000"))
+                                .daysOfWeek("ALL").startTime(LocalTime.of(0, 0)).endTime(LocalTime.of(23, 59))
+                                .roomType(Room.RoomType.STANDARD_3D).priority(3).active(true).build());
+
+                ticketPriceRepository.saveAll(prices);
+                log.info("Created {} ticket price rules", prices.size());
+        }
+
         private void initShowtimes() {
                 log.info("Initializing showtimes...");
 
@@ -850,122 +905,122 @@ public class SampleDataInitializer implements CommandLineRunner {
                         return;
                 }
 
-                log.info("Creating showtimes for {} movies in {} rooms", nowShowingMovies.size(), rooms.size());
+                log.info("Creating showtimes for {} movies in {} rooms (Sequential Non-Overlapping)",
+                                nowShowingMovies.size(),
+                                rooms.size());
 
                 List<Showtime> showtimes = new ArrayList<>();
                 LocalDate today = LocalDate.now();
                 Random random = new Random();
 
-                // Khung giờ chiếu trong ngày
-                LocalTime[] morningTimes = { LocalTime.of(8, 0), LocalTime.of(8, 30), LocalTime.of(9, 0),
-                                LocalTime.of(9, 30), LocalTime.of(10, 0) };
-                LocalTime[] afternoonTimes = { LocalTime.of(11, 30), LocalTime.of(12, 0), LocalTime.of(13, 0),
-                                LocalTime.of(14, 0), LocalTime.of(14, 30), LocalTime.of(15, 0), LocalTime.of(15, 30) };
-                LocalTime[] eveningTimes = { LocalTime.of(17, 0), LocalTime.of(17, 30), LocalTime.of(18, 0),
-                                LocalTime.of(18, 30), LocalTime.of(19, 0), LocalTime.of(19, 30) };
-                LocalTime[] nightTimes = { LocalTime.of(20, 0), LocalTime.of(20, 30), LocalTime.of(21, 0),
-                                LocalTime.of(21, 30), LocalTime.of(22, 0), LocalTime.of(22, 30), LocalTime.of(23, 0) };
+                // Các tham số cấu hình
+                int cleaningMinutes = 45; // Thời gian dọn dẹp giữa các suất (Khoảng cách giữa các phim) -> Tăng lên 45p
+                                          // theo yêu cầu
+                LocalTime dayStartTime = LocalTime.of(9, 0); // Giờ mở cửa đầu ngày
+                LocalTime lastShowCutoff = LocalTime.of(22, 30); // Không chiếu phim sau giờ này
 
-                // Giá vé theo khung giờ
-                BigDecimal morningPrice = new BigDecimal("65000");
-                BigDecimal afternoonPrice = new BigDecimal("85000");
-                BigDecimal eveningPrice = new BigDecimal("95000");
-                BigDecimal nightPrice = new BigDecimal("105000");
-                BigDecimal weekendSurcharge = new BigDecimal("20000");
-
-                // Tạo lịch chiếu cho 14 ngày (2 tuần)
+                // Tạo lịch chiếu cho 14 ngày
                 for (int day = 0; day < 14; day++) {
                         LocalDate showDate = today.plusDays(day);
-                        boolean isWeekend = showDate.getDayOfWeek().getValue() >= 6; // Saturday = 6, Sunday = 7
+                        boolean isWeekend = showDate.getDayOfWeek().getValue() >= 5; // Fri(5), Sat(6), Sun(7)
 
                         for (Room room : rooms) {
-                                // Mỗi phòng có 5-8 suất chiếu/ngày
-                                int movieIndex = 0;
+                                LocalTime currentShiftTime = dayStartTime;
 
-                                // Suất sáng (1-2 suất)
-                                int morningSessions = 1 + random.nextInt(2);
-                                for (int i = 0; i < morningSessions; i++) {
-                                        LocalTime startTime = morningTimes[random.nextInt(morningTimes.length)];
-                                        Movie movie = nowShowingMovies.get(movieIndex % nowShowingMovies.size());
-                                        movieIndex++;
+                                // Lặp để tạo các suất chiếu nối tiếp nhau trong ngày cho phòng này
+                                while (true) {
+                                        // 1. Chọn phim ngẫu nhiên (có thể cải thiện logic chọn phim theo độ hot)
+                                        Movie movie = nowShowingMovies.get(random.nextInt(nowShowingMovies.size()));
 
-                                        BigDecimal price = morningPrice;
-                                        if (isWeekend)
-                                                price = price.add(weekendSurcharge);
-                                        if (room.getRoomType() == Room.RoomType.IMAX)
-                                                price = price.add(new BigDecimal("30000"));
-                                        if (room.getRoomType() == Room.RoomType.VIP_4DX)
-                                                price = price.add(new BigDecimal("50000"));
-                                        if (room.getRoomType() == Room.RoomType.STANDARD_3D)
-                                                price = price.add(new BigDecimal("15000"));
+                                        // 2. Tính toán thời gian
+                                        LocalTime endTime;
+                                        try {
+                                                // start + duration
+                                                endTime = currentShiftTime.plusMinutes(movie.getDuration());
+                                        } catch (Exception e) {
+                                                // Tràn qua ngày hôm sau -> dừng
+                                                break;
+                                        }
 
-                                        showtimes.add(createShowtime(movie, room, showDate, startTime, price));
-                                }
+                                        // Kiểm tra nếu giờ bắt đầu đã quá muộn
+                                        if (currentShiftTime.isAfter(lastShowCutoff)) {
+                                                break;
+                                        }
+                                        // Kiểm tra nếu giờ kết thúc trôi qua ngày hôm sau quá nhiều (ví dụ 2-3h sáng
+                                        // ok, nhưng quá thì thôi)
+                                        // LocalTime wraps around, so if endTime < startTime and endTime is late
+                                        // morning, it's weird.
+                                        // Simple logic: if startTime is late (e.g. 23:00) and duration is long, endTime
+                                        // is early morning.
+                                        // We allow late shows.
 
-                                // Suất chiều (2-3 suất)
-                                int afternoonSessions = 2 + random.nextInt(2);
-                                for (int i = 0; i < afternoonSessions; i++) {
-                                        LocalTime startTime = afternoonTimes[random.nextInt(afternoonTimes.length)];
-                                        Movie movie = nowShowingMovies.get(movieIndex % nowShowingMovies.size());
-                                        movieIndex++;
+                                        // 3. Tính giá vé (Logic đơn giản hóa dựa trên initTicketPrices)
+                                        BigDecimal price = calculateSamplePrice(room.getRoomType(), isWeekend,
+                                                        currentShiftTime);
 
-                                        BigDecimal price = afternoonPrice;
-                                        if (isWeekend)
-                                                price = price.add(weekendSurcharge);
-                                        if (room.getRoomType() == Room.RoomType.IMAX)
-                                                price = price.add(new BigDecimal("30000"));
-                                        if (room.getRoomType() == Room.RoomType.VIP_4DX)
-                                                price = price.add(new BigDecimal("50000"));
-                                        if (room.getRoomType() == Room.RoomType.STANDARD_3D)
-                                                price = price.add(new BigDecimal("15000"));
+                                        // 4. Tạo Showtime
+                                        showtimes.add(createShowtime(movie, room, showDate, currentShiftTime, price));
 
-                                        showtimes.add(createShowtime(movie, room, showDate, startTime, price));
-                                }
+                                        // 5. Cập nhật thời gian cho suất tiếp theo
+                                        // startNext = end + cleaning
+                                        LocalTime nextSlot = endTime.plusMinutes(cleaningMinutes);
+                                        // Round up to nearest 15 minutes
+                                        currentShiftTime = roundToNext15Minutes(nextSlot);
 
-                                // Suất tối (2-3 suất) - giờ vàng
-                                int eveningSessions = 2 + random.nextInt(2);
-                                for (int i = 0; i < eveningSessions; i++) {
-                                        LocalTime startTime = eveningTimes[random.nextInt(eveningTimes.length)];
-                                        Movie movie = nowShowingMovies.get(movieIndex % nowShowingMovies.size());
-                                        movieIndex++;
-
-                                        BigDecimal price = eveningPrice;
-                                        if (isWeekend)
-                                                price = price.add(weekendSurcharge);
-                                        if (room.getRoomType() == Room.RoomType.IMAX)
-                                                price = price.add(new BigDecimal("30000"));
-                                        if (room.getRoomType() == Room.RoomType.VIP_4DX)
-                                                price = price.add(new BigDecimal("50000"));
-                                        if (room.getRoomType() == Room.RoomType.STANDARD_3D)
-                                                price = price.add(new BigDecimal("15000"));
-
-                                        showtimes.add(createShowtime(movie, room, showDate, startTime, price));
-                                }
-
-                                // Suất khuya (1-2 suất)
-                                int nightSessions = 1 + random.nextInt(2);
-                                for (int i = 0; i < nightSessions; i++) {
-                                        LocalTime startTime = nightTimes[random.nextInt(nightTimes.length)];
-                                        Movie movie = nowShowingMovies.get(movieIndex % nowShowingMovies.size());
-                                        movieIndex++;
-
-                                        BigDecimal price = nightPrice;
-                                        if (isWeekend)
-                                                price = price.add(weekendSurcharge);
-                                        if (room.getRoomType() == Room.RoomType.IMAX)
-                                                price = price.add(new BigDecimal("30000"));
-                                        if (room.getRoomType() == Room.RoomType.VIP_4DX)
-                                                price = price.add(new BigDecimal("50000"));
-                                        if (room.getRoomType() == Room.RoomType.STANDARD_3D)
-                                                price = price.add(new BigDecimal("15000"));
-
-                                        showtimes.add(createShowtime(movie, room, showDate, startTime, price));
+                                        // Nếu qua ngày mới (wrap around 24h) -> break
+                                        if (currentShiftTime.isBefore(LocalTime.of(8, 0))
+                                                        && currentShiftTime.isAfter(LocalTime.of(0, 0))) {
+                                                break; // Kết thúc lịch ngày hôm nay
+                                        }
                                 }
                         }
                 }
 
                 showtimeRepository.saveAll(showtimes);
                 log.info("Created {} showtimes for 14 days across {} rooms", showtimes.size(), rooms.size());
+        }
+
+        private LocalTime roundToNext15Minutes(LocalTime time) {
+                int minute = time.getMinute();
+                int remainder = minute % 15;
+                if (remainder == 0) {
+                        return time.withSecond(0).withNano(0);
+                }
+                int minutesToAdd = 15 - remainder;
+                return time.plusMinutes(minutesToAdd).withSecond(0).withNano(0);
+        }
+
+        private BigDecimal calculateSamplePrice(Room.RoomType roomType, boolean isWeekend, LocalTime startTime) {
+                // Base calculation matching initTicketPrices logic
+                BigDecimal price;
+
+                // 1. Determine Base based on Room Type
+                if (roomType == Room.RoomType.IMAX) {
+                        price = new BigDecimal("150000"); // Base IMAX
+                } else if (roomType == Room.RoomType.VIP_4DX) {
+                        price = new BigDecimal("160000"); // Base 4DX
+                } else if (roomType == Room.RoomType.STANDARD_3D) {
+                        price = new BigDecimal("120000"); // Base 3D
+                } else {
+                        // Standard 2D
+                        // Check Weekend
+                        if (isWeekend) {
+                                // Morning (< 12:00) vs Afternoon
+                                if (startTime.isBefore(LocalTime.of(12, 0))) {
+                                        price = new BigDecimal("75000");
+                                } else {
+                                        price = new BigDecimal("105000");
+                                }
+                        } else {
+                                // Weekday
+                                if (startTime.isBefore(LocalTime.of(12, 0))) {
+                                        price = new BigDecimal("65000");
+                                } else {
+                                        price = new BigDecimal("85000");
+                                }
+                        }
+                }
+                return price;
         }
 
         private Showtime createShowtime(Movie movie, Room room, LocalDate showDate, LocalTime startTime,

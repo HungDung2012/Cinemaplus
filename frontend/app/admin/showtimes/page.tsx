@@ -1,7 +1,6 @@
 'use client';
 
 import ShowtimeTimeline from '@/components/admin/ShowtimeTimeline';
-import QuickScheduleModal from '@/components/admin/QuickScheduleModal';
 import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/Toast';
@@ -20,7 +19,6 @@ export default function ShowtimesManagementPage() {
 
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [quickScheduleOpen, setQuickScheduleOpen] = useState(false); // New state
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list'); // New state
 
   const [editingShowtime, setEditingShowtime] = useState<Showtime | null>(null);
@@ -387,14 +385,8 @@ export default function ShowtimesManagementPage() {
             </button>
           </div>
 
-          <button onClick={() => setQuickScheduleOpen(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Lập lịch nhanh
-          </button>
-
-          <button onClick={() => router.push('/admin/showtimes/create')} className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors shadow-sm font-medium flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Thêm đơn
+          <button onClick={() => router.push('/admin/showtimes/create')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm font-medium flex items-center gap-2">
+            Thay đổi lịch chiếu
           </button>
         </div>
       </div>
@@ -480,7 +472,7 @@ export default function ShowtimesManagementPage() {
 
         <button
           onClick={() => handleSearch(0)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
+          className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           Tìm kiếm
@@ -527,7 +519,7 @@ export default function ShowtimesManagementPage() {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Phòng</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-500 uppercase">Thời gian</th>
 
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Thao tác</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-zinc-500 uppercase">Thông tin vé</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
@@ -558,8 +550,15 @@ export default function ShowtimesManagementPage() {
                       </td>
 
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => openEditModal(s)} className="text-blue-600 hover:text-blue-800 text-sm font-medium mr-3">Sửa</button>
-                        <button onClick={() => setDeleteModal({ open: true, showtime: s })} className="text-red-600 hover:text-red-800 text-sm font-medium">Xóa</button>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${s.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {s.status === 'AVAILABLE' ? 'Sẵn sàng' : s.status}
+                          </span>
+                          <span className="text-sm font-semibold text-indigo-600">
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(s.basePrice)}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -595,109 +594,6 @@ export default function ShowtimesManagementPage() {
           </>
         )}
       </div>
-
-      <QuickScheduleModal
-        isOpen={quickScheduleOpen}
-        onClose={() => setQuickScheduleOpen(false)}
-        onSuccess={() => handleSearch(0)}
-        movies={movies}
-        theaters={theaters}
-        rooms={allRooms.length > 0 ? allRooms : rooms}
-      />
-
-      {/* Modal and Other Popups would go here (omitted for brevity but logic is present in handlers) */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
-              <h3 className="text-lg font-bold text-zinc-900">
-                {editingShowtime ? 'Cập nhật suất chiếu' : 'Thêm suất chiếu mới'}
-              </h3>
-              <button onClick={() => setModalOpen(false)} className="text-zinc-400 hover:text-zinc-600">×</button>
-            </div>
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Rạp</label>
-                  <select
-                    value={formData.theaterId}
-                    onChange={e => {
-                      const id = e.target.value;
-                      setFormData({ ...formData, theaterId: id, roomId: '' });
-                      if (id) fetchRooms(id);
-                      else setRooms([]);
-                    }}
-                    className="w-full border border-zinc-300 rounded p-2 text-sm" required
-                  >
-                    <option value="">Chọn rạp</option>
-                    {theaters.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Phòng</label>
-                  <select
-                    value={formData.roomId}
-                    onChange={e => setFormData({ ...formData, roomId: e.target.value })}
-                    className="w-full border border-zinc-300 rounded p-2 text-sm" required
-                    disabled={!formData.theaterId}
-                  >
-                    <option value="">Chọn phòng</option>
-                    {rooms.map(r => <option key={r.id} value={r.id}>{r.name} ({r.roomType})</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-1">Phim</label>
-                <select
-                  value={formData.movieId}
-                  onChange={e => setFormData({ ...formData, movieId: e.target.value })}
-                  className="w-full border border-zinc-300 rounded p-2 text-sm" required
-                >
-                  <option value="">Chọn phim</option>
-                  {movies.map(m => <option key={m.id} value={m.id}>{m.title} ({m.duration} phút)</option>)}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-1">
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Ngày</label>
-                  <input type="date" value={formData.showDate} onChange={e => setFormData({ ...formData, showDate: e.target.value })} className="w-full border border-zinc-300 rounded p-2 text-sm" required />
-                </div>
-                <div className="col-span-1">
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Bắt đầu</label>
-                  <input type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className="w-full border border-zinc-300 rounded p-2 text-sm" required />
-                </div>
-                <div className="col-span-1">
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Kết thúc</label>
-                  <div className="w-full bg-zinc-100 border border-zinc-200 rounded p-2 text-sm text-zinc-500">{calculatedEndTime || '--:--'}</div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 bg-zinc-100 rounded text-zinc-800 hover:bg-zinc-200">Hủy</button>
-                <button type="submit" disabled={saving} className="px-4 py-2 bg-zinc-900 text-white rounded hover:bg-zinc-800 disabled:opacity-50">Lưu</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Modal */}
-      {deleteModal.open && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-lg max-w-sm w-full">
-            <h3 className="text-lg font-bold mb-2">Xóa suất chiếu?</h3>
-            <p className="text-zinc-600 mb-6">Bạn có chắc chắn muốn xóa? Hành động này không thể hoàn tác.</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteModal({ open: false, showtime: null })} className="px-4 py-2 bg-zinc-100 rounded hover:bg-zinc-200">Hủy</button>
-              <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Xóa</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -78,7 +78,10 @@ export default function DraggableMovieSidebar({ movies, onDeleteShowtime }: Drag
                         const data = JSON.parse(e.dataTransfer.getData("application/json"));
                         if (data.type === "SHOWTIME" && onDeleteShowtime) {
                             // Confirm or just delete? Quick delete expected.
-                            onDeleteShowtime(data.showtime.id); // Assuming data.showtime object structure
+                            // execute async to avoid blocking
+                            setTimeout(() => {
+                                onDeleteShowtime(data.showtime.id);
+                            }, 0);
                         }
                     } catch (err) { console.error(err); }
                 }}

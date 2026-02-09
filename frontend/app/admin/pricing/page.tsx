@@ -148,7 +148,7 @@ export default function PricingPage() {
                     <div className="flex justify-end mb-4">
                         <button
                             onClick={() => openTicketModal()}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
                             + Thêm Giá Vé
                         </button>
@@ -194,7 +194,7 @@ export default function PricingPage() {
                     <div className="flex justify-end mb-4">
                         <button
                             onClick={() => openSeatTypeModal()}
-                            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
                             + Thêm Loại Ghế
                         </button>

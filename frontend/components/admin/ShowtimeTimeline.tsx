@@ -22,16 +22,14 @@ interface ShowtimeTimelineProps {
 export default function ShowtimeTimeline({
     rooms,
     showtimes,
-    onShowtimeClick,
     interactiveMode,
     selectedMovie,
-    onSlotClick,
     onShowtimeUpdate,
     onCreateShowtime,
     date
 }: ShowtimeTimelineProps) {
     const START_HOUR = 8;
-    const END_HOUR = 24;
+    const END_HOUR = 28; // Extend to 04:00 AM next day
     const PIXELS_PER_MINUTE = 2.5;
     const TOTAL_HOURS = END_HOUR - START_HOUR;
     const TOTAL_WIDTH = TOTAL_HOURS * 60 * PIXELS_PER_MINUTE;
@@ -62,7 +60,16 @@ export default function ShowtimeTimeline({
     const getPosition = (timeStr: string) => {
         if (!timeStr) return 0;
         const [h, m] = timeStr.split(':').map(Number);
-        const minutesFromStart = (h - START_HOUR) * 60 + m;
+        // Handle overlapping midnight times (e.g. 00:00, 01:00 should be treated as 24, 25 for positioning if they belong to this session)
+        // Ideally backend returns specific date, but here we simplify: 
+        // If time is 00:00 - 04:00, we treat it as next day (add 24h) IF currently mapped in a late slot
+
+        // HOWEVER, s.startTime usually comes as "HH:mm:ss".
+        // Simple heuristic: If hour < START_HOUR (8), add 24.
+        let hour = h;
+        if (hour < START_HOUR) hour += 24;
+
+        const minutesFromStart = (hour - START_HOUR) * 60 + m;
         return Math.max(0, minutesFromStart) * PIXELS_PER_MINUTE;
     };
 
@@ -79,7 +86,10 @@ export default function ShowtimeTimeline({
         m = Math.round(m / 5) * 5;
         if (m === 60) { m = 0; h += 1; }
 
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        // Wrap for display string (24:00 -> 00:00)
+        const displayH = h >= 24 ? h - 24 : h;
+
+        return `${displayH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
     };
 
     // Phantom Calculations (Use dragging state if active, else hover)
@@ -111,7 +121,10 @@ export default function ShowtimeTimeline({
             // 3. Time Overlap Check
             // Parse s.startTime -> minutes
             const [h, m] = s.startTime.split(':').map(Number);
-            const sStart = (h - START_HOUR) * 60 + m;
+            let sH = h;
+            if (sH < START_HOUR) sH += 24; // Handle visual position for late shows
+
+            const sStart = (sH - START_HOUR) * 60 + m;
             const sDur = (s.movieDuration || 120) + 20 + 15; // ADS + CLEAN approx or real
             const sEnd = sStart + sDur;
 
@@ -147,6 +160,10 @@ export default function ShowtimeTimeline({
         const rect = e.currentTarget.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const timeStr = getTimeFromX(x);
+
+        // When dragging, we might get "25:00" from internal calcs if we don't normalize, 
+        // but `getTimeFromX` normalizes to "01:00".
+        // `getPosition` expects "01:00" and converts back to > 24h pixel/minute logic.
         const snappedLeft = getPosition(timeStr);
 
         if (!dragState) {
@@ -186,24 +203,27 @@ export default function ShowtimeTimeline({
             <div style={{ width: `${Math.max(1000, 160 + TOTAL_WIDTH)}px`, height: `${totalHeight}px` }}>
 
                 {/* Header */}
-                <div className="flex sticky top-0 bg-zinc-50 border-b border-zinc-200" style={{ height: HEADER_HEIGHT }}>
-                    <div className="sticky z-20 left-0 w-40 bg-zinc-50 border-r border-zinc-200 p-2 text-xs font-semibold text-zinc-500 flex items-center justify-center shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                <div className="flex sticky top-0 bg-zinc-50 border-b border-zinc-200 z-[60]" style={{ height: HEADER_HEIGHT }}>
+                    <div className="sticky z-[70] left-0 w-40 bg-zinc-50 border-r border-zinc-200 p-2 text-xs font-semibold text-zinc-500 flex items-center justify-center shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
                         Phòng / Thời gian
                     </div>
                     <div className="relative flex-1">
-                        {hours.map(h => (
-                            <div key={h} className="absolute border-l border-zinc-200 text-xs text-zinc-400 pl-1 pt-1"
-                                style={{ left: getWidth((h - START_HOUR) * 60) }}>
-                                {h}:00
-                            </div>
-                        ))}
+                        {hours.map(h => {
+                            const displayH = h >= 24 ? h - 24 : h;
+                            return (
+                                <div key={h} className="absolute border-l border-zinc-200 text-xs text-zinc-400 pl-1 pt-1"
+                                    style={{ left: getWidth((h - START_HOUR) * 60) }}>
+                                    {displayH.toString().padStart(2, '0')}:00
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Body */}
                 {sortedTheaterNames.map(tName => (
                     <React.Fragment key={tName}>
-                        <div className="sticky left-0 z-30 w-full bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-700 uppercase border-b border-zinc-200 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
+                        <div className="sticky left-0 z-[65] w-full bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-700 uppercase border-b border-zinc-200 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
                             <span className="sticky left-3">
                                 {tName}
                             </span>
@@ -211,7 +231,7 @@ export default function ShowtimeTimeline({
                         {roomsByTheater[tName].map(room => (
                             <div key={room.id} className="flex border-b border-zinc-100 h-[80px] relative group z-10">
                                 {/* Room Name */}
-                                <div className="sticky left-0 w-40 flex-shrink-0 bg-white border-r border-zinc-200 p-3 flex flex-col justify-center z-20 shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
+                                <div className="sticky left-0 w-40 flex-shrink-0 bg-white border-r border-zinc-200 p-3 flex flex-col justify-center z-[60] shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
                                     <div className="font-semibold text-zinc-900 text-sm">{room.name}</div>
                                     <div className="text-xs text-zinc-500">{room.roomType}</div>
                                 </div>
@@ -347,6 +367,14 @@ export default function ShowtimeTimeline({
                                 <div className="flex justify-between items-center text-xs">
                                     <span className="text-zinc-500">Thời gian:</span>
                                     <span className="font-medium text-zinc-900">{hoveredShowtime.showtime.startTime.substring(0, 5)} - {hoveredShowtime.showtime.endTime.substring(0, 5)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-zinc-500">Quảng cáo:</span>
+                                    <span className="font-medium text-zinc-900">20 phút</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-zinc-500">Dọn phòng:</span>
+                                    <span className="font-medium text-zinc-900">15 phút</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs">
                                     <span className="text-zinc-500">Giá vé:</span>

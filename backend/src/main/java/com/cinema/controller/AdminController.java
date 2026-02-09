@@ -258,4 +258,32 @@ public class AdminController {
             throw new com.cinema.exception.BadRequestException("Invalid role: " + role);
         }
     }
+
+    // =================== SHOWTIMES (admin) ===================
+    @GetMapping("/showtimes/{id}")
+    public ResponseEntity<ApiResponse<ShowtimeResponse>> getShowtimeById(@PathVariable Long id) {
+        ShowtimeResponse showtime = showtimeService.getShowtimeById(id);
+        return ResponseEntity.ok(ApiResponse.success(showtime));
+    }
+
+    @PostMapping("/showtimes")
+    public ResponseEntity<ApiResponse<ShowtimeResponse>> createShowtime(
+            @RequestBody com.cinema.dto.request.ShowtimeRequest request) {
+        ShowtimeResponse showtime = showtimeService.createShowtime(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success("Showtime created", showtime));
+    }
+
+    @PutMapping("/showtimes/{id}")
+    public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowtime(@PathVariable Long id,
+            @RequestBody com.cinema.dto.request.ShowtimeRequest request) {
+        ShowtimeResponse showtime = showtimeService.updateShowtime(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Showtime updated", showtime));
+    }
+
+    @DeleteMapping("/showtimes/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteShowtime(@PathVariable Long id) {
+        showtimeService.deleteShowtime(id);
+        return ResponseEntity.ok(ApiResponse.success("Showtime deleted", null));
+    }
 }

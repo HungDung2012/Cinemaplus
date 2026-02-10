@@ -21,7 +21,8 @@ import java.util.List;
  * - GET /api/bookings/my-bookings: Lấy danh sách đặt vé của user
  * - GET /api/bookings/{id}: Lấy thông tin đặt vé theo ID
  * - GET /api/bookings/code/{code}: Lấy thông tin đặt vé theo mã
- * - GET /api/bookings/showtime/{showtimeId}/booked-seats: Lấy danh sách ghế đã đặt
+ * - GET /api/bookings/showtime/{showtimeId}/booked-seats: Lấy danh sách ghế đã
+ * đặt
  * - POST /api/bookings/{id}/cancel: Hủy đặt vé
  * - POST /api/bookings/{id}/confirm: Xác nhận đặt vé (sau thanh toán)
  */
@@ -30,9 +31,10 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class BookingController {
-    
+
     private final BookingService bookingService;
-    
+    private final com.cinema.service.PricingService pricingService;
+
     /**
      * Tạo đặt vé mới.
      * 
@@ -43,13 +45,13 @@ public class BookingController {
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest request) {
         log.info("API: Tạo booking mới cho suất chiếu {}", request.getShowtimeId());
-        
+
         BookingResponse booking = bookingService.createBooking(request);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Đặt vé thành công! Vui lòng thanh toán trong 15 phút.", booking));
     }
-    
+
     /**
      * Lấy danh sách đặt vé của user hiện tại.
      * Yêu cầu authentication.
@@ -59,12 +61,12 @@ public class BookingController {
     @GetMapping("/my-bookings")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getUserBookings() {
         log.info("API: Lấy danh sách booking của user");
-        
+
         List<BookingResponse> bookings = bookingService.getUserBookings();
-        
+
         return ResponseEntity.ok(ApiResponse.success(bookings));
     }
-    
+
     /**
      * Lấy thông tin đặt vé theo ID.
      * 
@@ -74,12 +76,12 @@ public class BookingController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id) {
         log.info("API: Lấy booking theo ID: {}", id);
-        
+
         BookingResponse booking = bookingService.getBookingById(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success(booking));
     }
-    
+
     /**
      * Lấy thông tin đặt vé theo mã booking.
      * 
@@ -90,12 +92,12 @@ public class BookingController {
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingByCode(
             @PathVariable String bookingCode) {
         log.info("API: Lấy booking theo code: {}", bookingCode);
-        
+
         BookingResponse booking = bookingService.getBookingByCode(bookingCode);
-        
+
         return ResponseEntity.ok(ApiResponse.success(booking));
     }
-    
+
     /**
      * Lấy danh sách ID ghế đã được đặt cho suất chiếu.
      * Dùng để hiển thị sơ đồ ghế trên UI.
@@ -106,12 +108,12 @@ public class BookingController {
     @GetMapping("/showtime/{showtimeId}/booked-seats")
     public ResponseEntity<ApiResponse<List<Long>>> getBookedSeats(@PathVariable Long showtimeId) {
         log.info("API: Lấy danh sách ghế đã đặt cho suất chiếu {}", showtimeId);
-        
+
         List<Long> bookedSeatIds = bookingService.getBookedSeatIds(showtimeId);
-        
+
         return ResponseEntity.ok(ApiResponse.success(bookedSeatIds));
     }
-    
+
     /**
      * Hủy đặt vé.
      * Chỉ cho phép hủy booking của chính mình và chưa bắt đầu chiếu.
@@ -122,12 +124,12 @@ public class BookingController {
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(@PathVariable Long id) {
         log.info("API: Hủy booking ID: {}", id);
-        
+
         BookingResponse booking = bookingService.cancelBooking(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Đã hủy đặt vé thành công", booking));
     }
-    
+
     /**
      * Xác nhận đặt vé sau khi thanh toán.
      * Kiểm tra thời gian giữ chỗ trước khi xác nhận.
@@ -138,12 +140,12 @@ public class BookingController {
     @PostMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@PathVariable Long id) {
         log.info("API: Xác nhận booking ID: {}", id);
-        
+
         BookingResponse booking = bookingService.confirmBooking(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Đặt vé đã được xác nhận", booking));
     }
-    
+
     /**
      * Đánh dấu booking hoàn thành.
      * Thường được gọi sau khi khách xem phim xong.
@@ -154,9 +156,25 @@ public class BookingController {
     @PostMapping("/{id}/complete")
     public ResponseEntity<ApiResponse<BookingResponse>> completeBooking(@PathVariable Long id) {
         log.info("API: Hoàn thành booking ID: {}", id);
-        
+
         BookingResponse booking = bookingService.completeBooking(id);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Booking đã hoàn thành", booking));
+    }
+
+    /**
+     * Tính toán giá vé trước khi đặt.
+     * 
+     * @param request Thông tin ghế và suất chiếu
+     * @return CalculatedPriceResponse với tổng tiền và chi tiết
+     */
+    @PostMapping("/calculate-price")
+    public ResponseEntity<ApiResponse<com.cinema.dto.response.CalculatedPriceResponse>> calculatePrice(
+            @RequestBody com.cinema.dto.request.CalculatePriceRequest request) {
+        // userId is optional in request, or we can get from context if authenticated
+        // For now trusting request
+        return ResponseEntity.ok(ApiResponse.success(
+                pricingService.calculateBookingPrice(request.getShowtimeId(), request.getSeatIds(),
+                        request.getUserId())));
     }
 }

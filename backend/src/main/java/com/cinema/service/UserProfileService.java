@@ -7,7 +7,6 @@ import com.cinema.dto.response.UserProfileResponse;
 import com.cinema.exception.InvalidPasswordException;
 import com.cinema.exception.ProfileUpdateException;
 import com.cinema.model.Booking;
-import com.cinema.model.PointHistory;
 import com.cinema.model.User;
 import com.cinema.repository.BookingRepository;
 import com.cinema.repository.PointHistoryRepository;
@@ -53,22 +52,23 @@ public class UserProfileService {
 
         // Tính tổng chi tiêu thực tế từ các booking đã CONFIRMED/COMPLETED
         BigDecimal actualTotalSpending = bookingRepository.calculateTotalSpendingByUserId(userId);
-        
+
         // Cập nhật totalSpending và membershipLevel nếu có thay đổi
         boolean needsUpdate = false;
         if (user.getTotalSpending() == null || user.getTotalSpending().compareTo(actualTotalSpending) != 0) {
             user.setTotalSpending(actualTotalSpending);
             needsUpdate = true;
         }
-        
+
         // Tính toán và cập nhật membership level
         User.MembershipLevel correctLevel = calculateMembershipLevelFromSpending(actualTotalSpending);
         if (user.getMembershipLevel() != correctLevel) {
-            log.info("Cập nhật hạng thành viên cho user {}: {} -> {}", user.getEmail(), user.getMembershipLevel(), correctLevel);
+            log.info("Cập nhật hạng thành viên cho user {}: {} -> {}", user.getEmail(), user.getMembershipLevel(),
+                    correctLevel);
             user.setMembershipLevel(correctLevel);
             needsUpdate = true;
         }
-        
+
         if (needsUpdate) {
             userRepository.save(user);
         }
@@ -76,7 +76,7 @@ public class UserProfileService {
         Long totalBookings = bookingRepository.countCompletedBookingsByUserId(userId);
         Long totalVouchers = userVoucherRepository.countByUserId(userId);
         Long totalCoupons = userCouponRepository.countByUserId(userId);
-        
+
         // Tính toán membership progress
         MembershipProgress progress = calculateMembershipProgress(user);
 
@@ -89,7 +89,8 @@ public class UserProfileService {
                 .avatar(user.getAvatar())
                 .gender(user.getGender())
                 .dateOfBirth(user.getDateOfBirth())
-                .membershipLevel(user.getMembershipLevel() != null ? user.getMembershipLevel() : User.MembershipLevel.NORMAL)
+                .membershipLevel(
+                        user.getMembershipLevel() != null ? user.getMembershipLevel() : User.MembershipLevel.NORMAL)
                 .totalSpending(actualTotalSpending)
                 .currentPoints(user.getCurrentPoints() != null ? user.getCurrentPoints() : 0)
                 .totalPointsEarned(user.getTotalPointsEarned() != null ? user.getTotalPointsEarned() : 0)
@@ -103,7 +104,7 @@ public class UserProfileService {
                 .nextLevelName(progress.nextLevelName)
                 .build();
     }
-    
+
     /**
      * Tính toán hạng thành viên dựa trên tổng chi tiêu
      */
@@ -190,11 +191,9 @@ public class UserProfileService {
             String search,
             LocalDateTime startDate,
             LocalDateTime endDate,
-            Pageable pageable
-    ) {
+            Pageable pageable) {
         Page<Booking> bookings = bookingRepository.findByUserIdWithFilters(
-                userId, search, startDate, endDate, pageable
-        );
+                userId, search, startDate, endDate, pageable);
 
         return bookings.map(this::mapToTransactionHistory);
     }
@@ -266,17 +265,18 @@ public class UserProfileService {
         String paymentMethod = null;
         String paymentStatus = null;
         if (booking.getPayment() != null) {
-            paymentMethod = booking.getPayment().getPaymentMethod() != null 
-                    ? booking.getPayment().getPaymentMethod().name() : null;
-            paymentStatus = booking.getPayment().getStatus() != null 
-                    ? booking.getPayment().getStatus().name() : null;
+            paymentMethod = booking.getPayment().getPaymentMethod() != null
+                    ? booking.getPayment().getPaymentMethod().name()
+                    : null;
+            paymentStatus = booking.getPayment().getStatus() != null
+                    ? booking.getPayment().getStatus().name()
+                    : null;
         }
 
         // Combine date and time for showtime
         LocalDateTime showtimeStart = LocalDateTime.of(
                 booking.getShowtime().getShowDate(),
-                booking.getShowtime().getStartTime()
-        );
+                booking.getShowtime().getStartTime());
 
         // Lấy điểm tích lũy và điểm đã sử dụng thực tế từ database
         Integer pointsEarned = pointHistoryRepository.getPointsEarnedByBookingId(booking.getId());
@@ -319,7 +319,8 @@ public class UserProfileService {
 
     private MembershipProgress calculateMembershipProgress(User user) {
         BigDecimal spending = user.getTotalSpending() != null ? user.getTotalSpending() : BigDecimal.ZERO;
-        User.MembershipLevel currentLevel = user.getMembershipLevel() != null ? user.getMembershipLevel() : User.MembershipLevel.NORMAL;
+        User.MembershipLevel currentLevel = user.getMembershipLevel() != null ? user.getMembershipLevel()
+                : User.MembershipLevel.NORMAL;
 
         return switch (currentLevel) {
             case NORMAL -> {
@@ -328,8 +329,7 @@ public class UserProfileService {
                 yield new MembershipProgress(
                         Math.min(progress.intValue(), 100),
                         VIP_THRESHOLD.subtract(spending).max(BigDecimal.ZERO),
-                        "VIP"
-                );
+                        "VIP");
             }
             case VIP -> {
                 BigDecimal progressAmount = spending.subtract(VIP_THRESHOLD);
@@ -339,12 +339,12 @@ public class UserProfileService {
                 yield new MembershipProgress(
                         Math.min(progress.intValue(), 100),
                         PLATINUM_THRESHOLD.subtract(spending).max(BigDecimal.ZERO),
-                        "PLATINUM"
-                );
+                        "PLATINUM");
             }
             case PLATINUM -> new MembershipProgress(100, BigDecimal.ZERO, null);
         };
     }
 
-    private record MembershipProgress(Integer progressPercent, BigDecimal amountToNext, String nextLevelName) {}
+    private record MembershipProgress(Integer progressPercent, BigDecimal amountToNext, String nextLevelName) {
+    }
 }

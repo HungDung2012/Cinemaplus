@@ -203,7 +203,7 @@ export default function ShowtimeTimeline({
             <div style={{ width: `${Math.max(1000, 160 + TOTAL_WIDTH)}px`, height: `${totalHeight}px` }}>
 
                 {/* Header */}
-                <div className="flex sticky top-0 bg-zinc-50 border-b border-zinc-200 z-[60]" style={{ height: HEADER_HEIGHT }}>
+                <div className="flex sticky top-0 bg-zinc-50 border-b border-zinc-200" style={{ height: HEADER_HEIGHT }}>
                     <div className="sticky z-[70] left-0 w-40 bg-zinc-50 border-r border-zinc-200 p-2 text-xs font-semibold text-zinc-500 flex items-center justify-center shadow-[4px_0_4px_-2px_rgba(0,0,0,0.05)]">
                         Phòng / Thời gian
                     </div>
@@ -223,7 +223,7 @@ export default function ShowtimeTimeline({
                 {/* Body */}
                 {sortedTheaterNames.map(tName => (
                     <React.Fragment key={tName}>
-                        <div className="sticky left-0 z-[65] w-full bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-700 uppercase border-b border-zinc-200 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
+                        <div className="sticky left-0 w-full bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-700 uppercase border-b border-zinc-200 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
                             <span className="sticky left-3">
                                 {tName}
                             </span>

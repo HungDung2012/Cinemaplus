@@ -58,6 +58,7 @@ public class BookingService {
     private final FoodRepository foodRepository;
     private final UserRepository userRepository;
     private final PricingService pricingService;
+    private final CouponRepository couponRepository;
 
     // ==================== MAIN BOOKING METHODS ====================
 
@@ -114,7 +115,7 @@ public class BookingService {
         log.info("Đã lock và validate {} ghế thành công", seats.size());
 
         // ===== STEP 5: Tính tổng tiền ghế =====
-        BigDecimal seatTotalAmount = calculateSeatTotal(seats, showtime);
+        BigDecimal seatTotalAmount = calculateSeatTotal(seats, showtime, user);
         log.debug("Tổng tiền ghế: {}", seatTotalAmount);
 
         // ===== STEP 6: Xử lý đồ ăn (nếu có) =====
@@ -158,7 +159,7 @@ public class BookingService {
         log.info("Đã tạo booking ID: {}, Code: {}", booking.getId(), bookingCode);
 
         // ===== STEP 9: Tạo BookingSeat records =====
-        createBookingSeats(booking, seats, showtime);
+        createBookingSeats(booking, seats, showtime, user);
 
         // ===== STEP 10: Tạo BookingFood records (nếu có) =====
         if (foodMap != null && !request.getFoodItems().isEmpty()) {
@@ -414,12 +415,20 @@ public class BookingService {
      * @param showtime Suất chiếu (để lấy giá cơ bản)
      * @return Tổng tiền ghế
      */
-    private BigDecimal calculateSeatTotal(List<Seat> seats, Showtime showtime) {
+    /**
+     * Tính tổng tiền cho các ghế đã chọn.
+     * 
+     * @param seats    Danh sách ghế đã chọn
+     * @param showtime Suất chiếu
+     * @param user     Người dùng đặt vé (để tính giá theo đối tượng)
+     * @return Tổng tiền ghế
+     */
+    private BigDecimal calculateSeatTotal(List<Seat> seats, Showtime showtime, User user) {
         BigDecimal total = BigDecimal.ZERO;
 
         for (Seat seat : seats) {
             // Giá vé được tính linh hoạt qua PricingService
-            BigDecimal seatPrice = pricingService.calculateTicketPrice(showtime, seat);
+            BigDecimal seatPrice = pricingService.calculateTicketPrice(showtime, seat, user);
             total = total.add(seatPrice);
 
             log.debug("Ghế {}: {} VND", seat.getSeatLabel(), seatPrice);
@@ -432,54 +441,76 @@ public class BookingService {
     /**
      * Tính tổng tiền đồ ăn.
      * 
-     * <p>
-     * <b>Công thức:</b>
-     * </p>
-     * 
-     * <pre>
-     * Tổng = Σ (giá món × số lượng)
-     * </pre>
-     * 
-     * @param foodItems Danh sách đồ ăn từ request
-     * @param foodMap   Map từ Food ID đến Food entity
+     * @param foodItems Danh sách đồ ăn được chọn
+     * @param foodMap   Map chứa thông tin Food entity
      * @return Tổng tiền đồ ăn
      */
-    private BigDecimal calculateFoodTotal(List<BookingRequest.FoodItem> foodItems,
-            Map<Long, Food> foodMap) {
+    private BigDecimal calculateFoodTotal(List<BookingRequest.FoodItem> foodItems, Map<Long, Food> foodMap) {
         BigDecimal total = BigDecimal.ZERO;
 
         for (BookingRequest.FoodItem item : foodItems) {
             Food food = foodMap.get(item.getFoodId());
-            BigDecimal itemTotal = food.getPrice()
-                    .multiply(BigDecimal.valueOf(item.getQuantity()));
-            total = total.add(itemTotal);
-
-            log.debug("Đồ ăn {}: {} × {} = {} VND",
-                    food.getName(), food.getPrice(), item.getQuantity(), itemTotal);
+            if (food != null) {
+                BigDecimal itemTotal = food.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                total = total.add(itemTotal);
+            }
         }
-
-        log.debug("Tổng tiền đồ ăn: {} VND", total);
         return total;
     }
 
     /**
-     * Tính số tiền giảm giá từ mã khuyến mãi.
-     * TODO: Implement logic áp dụng mã giảm giá
+     * Tính tiền giảm giá dựa trên mã code.
      * 
-     * @param discountCode Mã giảm giá (có thể null)
+     * @param discountCode Mã giảm giá
      * @param totalAmount  Tổng tiền trước giảm giá
      * @return Số tiền được giảm
      */
     private BigDecimal calculateDiscount(String discountCode, BigDecimal totalAmount) {
-        // TODO: Implement discount logic khi có bảng DiscountCode
-        if (discountCode != null && !discountCode.isEmpty()) {
-            log.debug("Áp dụng mã giảm giá: {}", discountCode);
-            // Tạm thời return 0, sẽ implement sau
+        if (discountCode == null || discountCode.trim().isEmpty()) {
+            return BigDecimal.ZERO;
         }
-        return BigDecimal.ZERO;
-    }
 
-    // ==================== CREATE RELATED RECORDS ====================
+        return couponRepository.findByCouponCode(discountCode)
+                .map(coupon -> {
+                    // Kiểm tra cơ bản: có active không
+                    if (coupon.getStatus() != Coupon.CouponStatus.ACTIVE) {
+                        return BigDecimal.ZERO;
+                    }
+
+                    // Kiểm tra ngày hiệu lực (nếu có)
+                    LocalDateTime now = LocalDateTime.now();
+                    if (coupon.getStartDate() != null && coupon.getStartDate().isAfter(now)) {
+                        return BigDecimal.ZERO;
+                    }
+                    if (coupon.getExpiryDate() != null && coupon.getExpiryDate().isBefore(now)) {
+                        return BigDecimal.ZERO;
+                    }
+
+                    // Kiểm tra giá trị đơn hàng tối thiểu
+                    if (coupon.getMinPurchaseAmount() != null
+                            && totalAmount.compareTo(coupon.getMinPurchaseAmount()) < 0) {
+                        return BigDecimal.ZERO;
+                    }
+
+                    // Tính toán
+                    BigDecimal discount = BigDecimal.ZERO;
+                    if (coupon.getDiscountType() == Coupon.DiscountType.PERCENTAGE) {
+                        discount = totalAmount.multiply(coupon.getDiscountValue())
+                                .divide(new BigDecimal("100"));
+
+                        if (coupon.getMaxDiscountAmount() != null
+                                && discount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+                            discount = coupon.getMaxDiscountAmount();
+                        }
+                    } else {
+                        discount = coupon.getDiscountValue();
+                    }
+
+                    // Không giảm quá tổng tiền
+                    return discount.min(totalAmount);
+                })
+                .orElse(BigDecimal.ZERO);
+    }
 
     /**
      * Tạo các bản ghi BookingSeat cho booking.
@@ -488,10 +519,11 @@ public class BookingService {
      * @param booking  Booking entity đã được lưu
      * @param seats    Danh sách ghế đã đặt
      * @param showtime Suất chiếu
+     * @param user     Người dùng đặt vé
      */
-    private void createBookingSeats(Booking booking, List<Seat> seats, Showtime showtime) {
+    private void createBookingSeats(Booking booking, List<Seat> seats, Showtime showtime, User user) {
         for (Seat seat : seats) {
-            BigDecimal seatPrice = pricingService.calculateTicketPrice(showtime, seat);
+            BigDecimal seatPrice = pricingService.calculateTicketPrice(showtime, seat, user);
 
             BookingSeat bookingSeat = BookingSeat.builder()
                     .booking(booking)

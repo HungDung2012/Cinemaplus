@@ -13,7 +13,6 @@ import com.cinema.repository.CityRepository;
 import com.cinema.repository.ShowtimeRepository;
 import com.cinema.repository.TheaterRepository;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 public class TheaterService {
 
         private final TheaterRepository theaterRepository;
-        private final ModelMapper modelMapper;
         private final ShowtimeRepository showtimeRepository;
         private final CityRepository cityRepository;
 
@@ -225,27 +223,6 @@ public class TheaterService {
                                 .mapUrl(theater.getMapUrl())
                                 .totalRooms(theater.getRooms() != null ? theater.getRooms().size() : 0)
                                 .build();
-        }
-
-        private String convertToCityCode(String cityName) {
-                if (cityName == null)
-                        return "";
-                return cityName
-                                .replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a")
-                                .replaceAll("[èéẹẻẽêềếệểễ]", "e")
-                                .replaceAll("[ìíịỉĩ]", "i")
-                                .replaceAll("[òóọỏõôồốộổỗơờớợởỡ]", "o")
-                                .replaceAll("[ùúụủũưừứựửữ]", "u")
-                                .replaceAll("[ỳýỵỷỹ]", "y")
-                                .replaceAll("[đ]", "d")
-                                .replaceAll("[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]", "A")
-                                .replaceAll("[ÈÉẸẺẼÊỀẾỆỂỄ]", "E")
-                                .replaceAll("[ÌÍỊỈĨ]", "I")
-                                .replaceAll("[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]", "O")
-                                .replaceAll("[ÙÚỤỦŨƯỪỨỰỬỮ]", "U")
-                                .replaceAll("[ỲÝỴỶỸ]", "Y")
-                                .replaceAll("[Đ]", "D")
-                                .replaceAll("\\s+", "_");
         }
 
         private String getFormatDisplay(Room.RoomType roomType) {

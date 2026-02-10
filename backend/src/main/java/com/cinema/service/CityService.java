@@ -12,7 +12,6 @@ import com.cinema.repository.RegionRepository;
 import com.cinema.repository.TheaterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +28,6 @@ public class CityService {
     private final CityRepository cityRepository;
     private final RegionRepository regionRepository;
     private final TheaterRepository theaterRepository;
-    private final ModelMapper modelMapper;
 
     /**
      * Lấy tất cả thành phố đang hoạt động
@@ -139,9 +137,6 @@ public class CityService {
         }
 
         log.info("Found {} theaters without city assignment", theatersWithoutCity.size());
-
-        // Lấy danh sách regions
-        List<Region> regions = regionRepository.findAll();
 
         // Lấy city mặc định đầu tiên (nếu có)
         City defaultCity = cityRepository.findAll().stream()

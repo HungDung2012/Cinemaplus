@@ -366,3 +366,57 @@ export interface PromotionTypeOption {
   value: string;
   label: string;
 }
+
+// Pricing types (Rate Card System)
+export type CustomerType = 'ADULT' | 'STUDENT' | 'MEMBER';
+export type DayType = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY';
+export type TimeSlot = 'MORNING' | 'DAY' | 'EVENING' | 'LATE';
+
+export interface PriceHeader {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  priority: number;
+  active: boolean;
+}
+
+export interface PriceLine {
+  id?: number;
+  priceHeaderId?: number;
+  customerType: CustomerType;
+  dayType: DayType;
+  timeSlot: TimeSlot;
+  roomType: RoomType;
+  price: number;
+}
+
+export type SurchargeType = 'SEAT_TYPE' | 'MOVIE_TYPE' | 'DATE_TYPE' | 'FORMAT_3D';
+
+export interface Surcharge {
+  id: number;
+  name: string;
+  type: SurchargeType;
+  targetId: string; // e.g., 'VIP', 'BLOCKBUSTER'
+  amount: number;
+  active: boolean;
+}
+
+// Price Calculation
+export interface CalculatePriceRequest {
+  showtimeId: number;
+  seatIds: number[];
+  userId?: number;
+}
+
+export interface CalculatedPriceResponse {
+  totalPrice: number;
+  details: PriceDetail[];
+}
+
+export interface PriceDetail {
+  seatCode: string;
+  originalPrice: number;
+  finalPrice: number;
+  description: string;
+}

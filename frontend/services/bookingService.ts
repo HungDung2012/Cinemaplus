@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import { ApiResponse, Booking, BookingRequest, Payment, PaymentRequest } from '@/types';
+import { ApiResponse, Booking, BookingRequest, Payment, PaymentRequest, CalculatePriceRequest, CalculatedPriceResponse } from '@/types';
 
 export const bookingService = {
   async createBooking(data: BookingRequest): Promise<Booking> {
@@ -24,6 +24,11 @@ export const bookingService = {
 
   async cancelBooking(id: number): Promise<Booking> {
     const response = await api.post<ApiResponse<Booking>>(`/bookings/${id}/cancel`);
+    return response.data.data;
+  },
+
+  async calculatePrice(data: CalculatePriceRequest): Promise<CalculatedPriceResponse> {
+    const response = await api.post<ApiResponse<CalculatedPriceResponse>>('/bookings/calculate-price', data);
     return response.data.data;
   }
 };

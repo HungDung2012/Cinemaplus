@@ -1,6 +1,5 @@
 package com.cinema.dto;
 
-import com.cinema.model.Seat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

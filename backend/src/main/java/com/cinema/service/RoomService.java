@@ -4,7 +4,7 @@ import com.cinema.dto.RoomDTO;
 import com.cinema.dto.response.RoomResponse;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Room;
-import com.cinema.repository.RoomRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -97,7 +97,6 @@ public class RoomService {
             // To properly update, we should fetch existing seats, map them, and
             // update/create/delete
             // But strict replacement:
-            List<com.cinema.model.Seat> existingSeats = room.getSeats();
             room.getSeats().clear();
             roomRepository.saveAndFlush(room); // Flush delete to avoid unique constraint violation
 
@@ -113,7 +112,6 @@ public class RoomService {
                     if ("NONE".equals(typeCode))
                         continue;
 
-                    String idStr = cellNode.get("id").asText(); // "A1"
                     int rowIdx = cellNode.get("row").asInt();
                     int colIdx = cellNode.get("col").asInt();
 

@@ -8,6 +8,7 @@ import { adminMovieService, adminRoomService, adminShowtimeService, adminTheater
 
 import { Showtime, Movie, Theater, Room, Pagination } from '@/types';
 import { useRouter } from 'next/navigation';
+import { movieService } from '@/services';
 
 export default function ShowtimesManagementPage() {
   const router = useRouter();
@@ -66,16 +67,6 @@ export default function ShowtimesManagementPage() {
     status: 'AVAILABLE'
   });
 
-  // Derived state
-  const selectedMovie = movies.find(m => m.id.toString() === formData.movieId);
-  const calculatedEndTime = selectedMovie && formData.startTime
-    ? (() => {
-      const [h, m] = formData.startTime.split(':').map(Number);
-      const total = h * 60 + m + selectedMovie.duration;
-      return `${Math.floor(total / 60) % 24}:${(total % 60).toString().padStart(2, '0')}`;
-    })()
-    : '';
-
   // Click Outside for Filters
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -116,11 +107,11 @@ export default function ShowtimesManagementPage() {
   const fetchMetadata = async () => {
     try {
       const [moviesRes, theatersRes] = await Promise.all([
-        adminMovieService.getAll({ size: 1000 }),
+        movieService.getNowShowingMovies(),
         adminTheaterService.getAll(),
       ]);
 
-      setMovies(moviesRes.content || moviesRes || []);
+      setMovies(moviesRes || []);
       setTheaters(Array.isArray(theatersRes) ? theatersRes : []);
     } catch (error) {
       console.error('Error fetching metadata:', error);
@@ -252,31 +243,6 @@ export default function ShowtimesManagementPage() {
     }
   };
 
-  const handleBulkSave = async (requests: any[]) => {
-    try {
-      await adminShowtimeService.createBulk(requests);
-      toast(`Đã tạo thành công ${requests.length} suất chiếu!`, "success");
-      handleSearch(0);
-    } catch (error: any) {
-      console.error("Bulk save error", error);
-      toast(error.response?.data?.message || "Có lỗi xảy ra khi tạo lịch chiếu (có thể do trùng lịch)", "error");
-    }
-  };
-
-  const openCreateModal = () => {
-    setEditingShowtime(null);
-    setFormData({
-      theaterId: '',
-      roomId: '',
-      movieId: '',
-      showDate: format(new Date(), 'yyyy-MM-dd'),
-      startTime: '',
-      basePrice: 60000,
-      status: 'AVAILABLE'
-    });
-    setModalOpen(true);
-  };
-
   const openEditModal = (showtime: Showtime) => {
     setEditingShowtime(showtime);
     // Logic to populate form
@@ -326,21 +292,6 @@ export default function ShowtimesManagementPage() {
       setSaving(false);
     }
   };
-
-  const handleDelete = async () => {
-    if (!deleteModal.showtime) return;
-    try {
-      await adminShowtimeService.delete(deleteModal.showtime.id);
-      toast('Xóa thành công', "success");
-      setDeleteModal({ open: false, showtime: null });
-      handleSearch(pagination.pageNumber);
-    } catch (error) {
-      toast('Không thể xóa suất chiếu này', "error");
-    }
-  };
-
-  // Drag and Drop Handlers
-
 
   const handlePageChange = (newPage: number) => {
     handleSearch(newPage);
@@ -394,30 +345,73 @@ export default function ShowtimesManagementPage() {
       {/* Filter Bar */}
       <div className="bg-white p-5 rounded-xl shadow-sm border border-zinc-200 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
         {/* Date Range */}
+        {/* Date Range or Single Date */}
         <div className="md:col-span-2 grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Từ ngày</label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-              className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Đến ngày</label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-              className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-            />
-          </div>
+          {viewMode === 'timeline' ? (
+            <div className="col-span-2 flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Ngày chiếu</label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const d = new Date(filters.startDate);
+                      d.setDate(d.getDate() - 1);
+                      const s = format(d, 'yyyy-MM-dd');
+                      setFilters({ ...filters, startDate: s, endDate: s });
+                    }}
+                    className="p-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 text-zinc-600"
+                    title="Ngày trước"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                  </button>
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={e => setFilters({ ...filters, startDate: e.target.value, endDate: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none text-center font-medium h-[38px]"
+                  />
+                  <button
+                    onClick={() => {
+                      const d = new Date(filters.startDate);
+                      d.setDate(d.getDate() + 1);
+                      const s = format(d, 'yyyy-MM-dd');
+                      setFilters({ ...filters, startDate: s, endDate: s });
+                    }}
+                    className="p-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 text-zinc-600"
+                    title="Ngày sau"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Từ ngày</label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={e => setFilters({ ...filters, startDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Đến ngày</label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={e => setFilters({ ...filters, endDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Rạp Multi-select */}
         <div className="relative" ref={theaterFilterRef}>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Rạp ({filters.theaterIds.length})</label>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Rạp</label>
           <div
             onClick={() => setOpenFilter(openFilter === 'theater' ? null : 'theater')}
             className={`w-full px-3 py-2 border rounded-lg text-sm bg-white cursor-pointer flex justify-between items-center transition-colors ${openFilter === 'theater' ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-400'}`}
@@ -445,7 +439,7 @@ export default function ShowtimesManagementPage() {
 
         {/* Phim Multi-select */}
         <div className="relative" ref={movieFilterRef}>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Phim ({filters.movieIds.length})</label>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5 uppercase">Phim</label>
           <div
             onClick={() => setOpenFilter(openFilter === 'movie' ? null : 'movie')}
             className={`w-full px-3 py-2 border rounded-lg text-sm bg-white cursor-pointer flex justify-between items-center transition-colors ${openFilter === 'movie' ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-400'}`}

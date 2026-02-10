@@ -98,9 +98,10 @@ export default function CreateShowtimeForm() {
         const room = rooms.find(r => r.id === roomId);
         if (!movie || !room || !selectedDate) return;
 
-        let price = 60000;
-        if (room.roomType === 'VIP_4DX' || room.roomType === 'STANDARD_3D') price = 80000;
-        if (room.roomType === 'IMAX' || room.roomType === 'IMAX_3D') price = 100000;
+        // Dynamic Pricing: Base price is now handled by Rate Cards (PriceHeader).
+        // We set 0 here to indicate that the system should calculate it.
+        // If a fallback is needed, the backend handle it or we could fetch a default.
+        let price = 0;
 
         // Create Temp ID (negative)
         const tempId = -Date.now();

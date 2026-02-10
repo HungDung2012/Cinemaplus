@@ -3,15 +3,15 @@
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Showtime, Seat, Booking, PaymentMethod, Food, FoodOrderItem } from '@/types';
+import { Showtime, Seat, Booking, PaymentMethod, Food, FoodOrderItem, CalculatePriceRequest, CalculatedPriceResponse } from '@/types';
 import { RewardPoints, Voucher, Coupon } from '@/types/profile';
 import { showtimeService } from '@/services/showtimeService';
 import { seatService } from '@/services/theaterService';
 import { bookingService, paymentService } from '@/services/bookingService';
 import { foodService } from '@/services/foodService';
-import { 
-  getRewardPoints, 
-  getAvailableVouchers, 
+import {
+  getRewardPoints,
+  getAvailableVouchers,
   getAvailableCoupons,
   redeemVoucher,
   redeemCoupon
@@ -45,41 +45,41 @@ const STEPS = [
 
 // Payment method icons and info
 const PAYMENT_METHODS = [
-  { 
-    id: 'CREDIT_CARD' as PaymentMethod, 
-    name: 'ATM card (Thẻ nội địa)', 
+  {
+    id: 'CREDIT_CARD' as PaymentMethod,
+    name: 'ATM card (Thẻ nội địa)',
     color: 'bg-blue-600',
     icon: '🏧'
   },
-  { 
-    id: 'DEBIT_CARD' as PaymentMethod, 
-    name: 'Thẻ quốc tế (Visa, Master, Amex, JCB)', 
+  {
+    id: 'DEBIT_CARD' as PaymentMethod,
+    name: 'Thẻ quốc tế (Visa, Master, Amex, JCB)',
     color: 'bg-blue-800',
     icon: '💳'
   },
-  { 
-    id: 'MOMO' as PaymentMethod, 
-    name: 'Ví MoMo', 
+  {
+    id: 'MOMO' as PaymentMethod,
+    name: 'Ví MoMo',
     color: 'bg-pink-500',
     icon: '📱',
     promo: 'Giảm 5K cho đơn từ 50K'
   },
-  { 
-    id: 'ZALOPAY' as PaymentMethod, 
-    name: 'ZaloPay', 
+  {
+    id: 'ZALOPAY' as PaymentMethod,
+    name: 'ZaloPay',
     color: 'bg-blue-500',
     icon: '💙',
     promo: 'Giảm 5K mọi đơn lần đầu'
   },
-  { 
-    id: 'VNPAY' as PaymentMethod, 
-    name: 'VNPay', 
+  {
+    id: 'VNPAY' as PaymentMethod,
+    name: 'VNPay',
     color: 'bg-red-600',
     icon: '🔴'
   },
-  { 
-    id: 'BANK_TRANSFER' as PaymentMethod, 
-    name: 'ShopeePay', 
+  {
+    id: 'BANK_TRANSFER' as PaymentMethod,
+    name: 'ShopeePay',
     color: 'bg-orange-500',
     icon: '🧡',
     promo: 'Giảm đến 50.000đ!'
@@ -143,6 +143,30 @@ function BookingContent() {
 
   // Terms agreement
   const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Dynamic Pricing State
+  const [calculatedPrice, setCalculatedPrice] = useState<CalculatedPriceResponse | null>(null);
+
+  // Calculate Price Effect
+  useEffect(() => {
+    const calculate = async () => {
+      if (selectedSeats.length === 0 || !showtimeId) {
+        setCalculatedPrice(null);
+        return;
+      }
+      try {
+        const response = await bookingService.calculatePrice({
+          showtimeId,
+          seatIds: selectedSeats.map(s => s.id),
+        });
+        setCalculatedPrice(response);
+      } catch (err) {
+        console.error("Price calculation failed", err);
+        // Fallback or error handling
+      }
+    };
+    calculate();
+  }, [selectedSeats, showtimeId]);
 
   // ===== UX FIX: Scroll to top when step changes =====
   useEffect(() => {
@@ -278,7 +302,7 @@ function BookingContent() {
         })),
       });
       setBooking(bookingData);
-      
+
       setStep(3);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Không thể tạo đơn đặt vé';
@@ -297,7 +321,7 @@ function BookingContent() {
   // Handle voucher redeem
   const handleRedeemVoucher = async () => {
     if (!voucherCode || !voucherPin) return;
-    
+
     try {
       setLoadingVoucher(true);
       setVoucherError(null);
@@ -317,7 +341,7 @@ function BookingContent() {
   // Handle coupon redeem
   const handleRedeemCoupon = async () => {
     if (!couponCode || !couponPin) return;
-    
+
     try {
       setLoadingCoupon(true);
       setCouponError(null);
@@ -358,7 +382,7 @@ function BookingContent() {
       });
 
       await paymentService.processPayment(payment.id);
-      
+
       // Cập nhật điểm thưởng sau khi thanh toán thành công
       const earnedPoints = Math.floor((totalAmount - totalDiscount) / 10000);
       setUserPoints(prev => {
@@ -366,13 +390,13 @@ function BookingContent() {
         const newPoints = prev.currentPoints - (usePoints ? pointsToUse : 0) + earnedPoints;
         return { ...prev, currentPoints: newPoints };
       });
-      
+
       setStep(4);
     } catch (err: any) {
       console.error('Payment error:', err);
       // Giả lập thanh toán thành công khi API lỗi
       console.log('Simulating successful payment...');
-      
+
       // Cập nhật điểm thưởng (giả lập)
       const earnedPoints = Math.floor((totalAmount - totalDiscount) / 10000);
       setUserPoints(prev => {
@@ -380,7 +404,7 @@ function BookingContent() {
         const newPoints = prev.currentPoints - (usePoints ? pointsToUse : 0) + earnedPoints;
         return { ...prev, currentPoints: newPoints };
       });
-      
+
       // Chuyển sang bước thành công
       setStep(4);
     } finally {
@@ -418,9 +442,8 @@ function BookingContent() {
   };
 
   // Calculate totals
-  const seatTotal = selectedSeats.reduce((sum, seat) => {
-    return sum + (showtime?.basePrice || 0) * seat.priceMultiplier;
-  }, 0);
+  // Use calculated price from backend if available, otherwise 0 (or fallback)
+  const seatTotal = calculatedPrice?.totalPrice || 0;
 
   const foodTotal = foodOrders.reduce((sum, item) => {
     const food = foods.find((f) => f.id === item.foodId);
@@ -444,9 +467,9 @@ function BookingContent() {
   const couponDiscount = selectedCoupon ? (
     selectedCoupon.discountType === 'PERCENTAGE'
       ? Math.min(
-          (totalAmount * selectedCoupon.discountValue) / 100,
-          selectedCoupon.maxDiscountAmount || Infinity
-        )
+        (totalAmount * selectedCoupon.discountValue) / 100,
+        selectedCoupon.maxDiscountAmount || Infinity
+      )
       : selectedCoupon.discountValue
   ) : 0;
 
@@ -509,10 +532,10 @@ function BookingContent() {
       {timerStarted && step > 1 && step < 4 && (
         <div className={`
           fixed top-16 left-0 right-0 z-40 px-4 py-2 flex items-center justify-center gap-3 text-white transition-colors shadow-lg
-          ${getTimerUrgency() === 'critical' 
-            ? 'bg-red-600 animate-pulse' 
-            : getTimerUrgency() === 'warning' 
-              ? 'bg-amber-500' 
+          ${getTimerUrgency() === 'critical'
+            ? 'bg-red-600 animate-pulse'
+            : getTimerUrgency() === 'warning'
+              ? 'bg-amber-500'
               : 'bg-zinc-800'}
         `}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,8 +545,8 @@ function BookingContent() {
             {formatTime(timeLeft)}
           </span>
           <span className="text-sm opacity-90">
-            {getTimerUrgency() === 'critical' 
-              ? 'Sắp hết giờ!' 
+            {getTimerUrgency() === 'critical'
+              ? 'Sắp hết giờ!'
               : 'thời gian giữ chỗ'}
           </span>
         </div>
@@ -536,17 +559,17 @@ function BookingContent() {
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <h1 className="text-lg font-semibold text-zinc-900">Đặt vé</h1>
-              
+
               {/* Minimal Stepper */}
               <div className="flex items-center gap-1">
                 {STEPS.map((s, idx) => (
                   <div key={s.num} className="flex items-center">
                     <div className={`
                       w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all
-                      ${step > s.num 
-                        ? 'bg-zinc-800 text-white' 
-                        : step === s.num 
-                          ? 'bg-zinc-800 text-white ring-2 ring-zinc-300 ring-offset-2' 
+                      ${step > s.num
+                        ? 'bg-zinc-800 text-white'
+                        : step === s.num
+                          ? 'bg-zinc-800 text-white ring-2 ring-zinc-300 ring-offset-2'
                           : 'bg-zinc-200 text-zinc-500'}
                     `}>
                       {step > s.num ? (
@@ -579,7 +602,7 @@ function BookingContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
           {/* Main Content Area */}
           <div className="lg:col-span-2 ">
-            
+
             {/* ===== STEP 1: SEAT SELECTION ===== */}
             {step === 1 && showtime && (
               <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
@@ -587,7 +610,7 @@ function BookingContent() {
                   <h2 className="text-lg font-semibold text-zinc-900">Chọn ghế ngồi</h2>
                   <p className="text-sm text-zinc-500 mt-1">Chạm vào ghế để chọn</p>
                 </div>
-                
+
                 <div className="p-5">
                   <SeatMap
                     seats={seats}
@@ -595,7 +618,7 @@ function BookingContent() {
                     onSelectionChange={handleSeatSelection}
                   />
                 </div>
-                
+
                 <div className="p-5 border-t border-zinc-100 bg-zinc-50">
                   <Button
                     onClick={handleContinueToFood}
@@ -670,14 +693,14 @@ function BookingContent() {
                       {filteredFoods.map((food) => {
                         const quantity = getFoodQuantity(food.id);
                         const isSelected = quantity > 0;
-                        
+
                         return (
                           <div
                             key={food.id}
                             className={`
                               group p-4 rounded-xl border transition-all
-                              ${isSelected 
-                                ? 'border-zinc-900 bg-zinc-50' 
+                              ${isSelected
+                                ? 'border-zinc-900 bg-zinc-50'
                                 : 'border-zinc-200 hover:border-zinc-300'}
                             `}
                           >
@@ -705,7 +728,7 @@ function BookingContent() {
                                 {food.description && (
                                   <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{food.description}</p>
                                 )}
-                                
+
                                 {/* Price */}
                                 <div className="mt-2 flex items-baseline gap-2">
                                   <span className="font-semibold text-zinc-900">{formatCurrency(food.price)}</span>
@@ -836,28 +859,26 @@ function BookingContent() {
                           </svg>
                         </div>
                       </button>
-                      
+
                       {showVoucherDropdown && (
                         <div className="px-4 pb-4 bg-zinc-50">
                           {/* Mode Toggle */}
                           <div className="flex gap-2 mb-3">
                             <button
                               onClick={() => setVoucherInputMode('select')}
-                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
-                                voucherInputMode === 'select' 
-                                  ? 'bg-zinc-800 text-white' 
-                                  : 'bg-white border border-zinc-200 text-zinc-700'
-                              }`}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${voucherInputMode === 'select'
+                                ? 'bg-zinc-800 text-white'
+                                : 'bg-white border border-zinc-200 text-zinc-700'
+                                }`}
                             >
                               Chọn voucher
                             </button>
                             <button
                               onClick={() => setVoucherInputMode('input')}
-                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
-                                voucherInputMode === 'input' 
-                                  ? 'bg-zinc-800 text-white' 
-                                  : 'bg-white border border-zinc-200 text-zinc-700'
-                              }`}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${voucherInputMode === 'input'
+                                ? 'bg-zinc-800 text-white'
+                                : 'bg-white border border-zinc-200 text-zinc-700'
+                                }`}
                             >
                               Nhập mã
                             </button>
@@ -869,9 +890,8 @@ function BookingContent() {
                                 <p className="text-sm text-zinc-500 text-center py-3">Bạn chưa có voucher nào</p>
                               ) : (
                                 <>
-                                  <label className={`flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all ${
-                                    !selectedVoucher ? 'border-zinc-800' : 'border-zinc-200'
-                                  }`}>
+                                  <label className={`flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all ${!selectedVoucher ? 'border-zinc-800' : 'border-zinc-200'
+                                    }`}>
                                     <input
                                       type="radio"
                                       name="voucher"
@@ -884,9 +904,8 @@ function BookingContent() {
                                   {userVouchers.map((v) => (
                                     <label
                                       key={v.id}
-                                      className={`flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer transition-all ${
-                                        selectedVoucher?.id === v.id ? 'border-zinc-800' : 'border-zinc-200'
-                                      }`}
+                                      className={`flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer transition-all ${selectedVoucher?.id === v.id ? 'border-zinc-800' : 'border-zinc-200'
+                                        }`}
                                     >
                                       <div className="flex items-center gap-3">
                                         <input
@@ -953,7 +972,7 @@ function BookingContent() {
                         <div className="flex items-center gap-2">
                           {selectedCoupon && (
                             <span className="text-green-600 text-sm">
-                              {selectedCoupon.discountType === 'PERCENTAGE' 
+                              {selectedCoupon.discountType === 'PERCENTAGE'
                                 ? `-${selectedCoupon.discountValue}%`
                                 : `-${formatCurrency(selectedCoupon.discountValue)}`}
                             </span>
@@ -963,28 +982,26 @@ function BookingContent() {
                           </svg>
                         </div>
                       </button>
-                      
+
                       {showCouponDropdown && (
                         <div className="px-4 pb-4 bg-zinc-50">
                           {/* Mode Toggle */}
                           <div className="flex gap-2 mb-3">
                             <button
                               onClick={() => setCouponInputMode('select')}
-                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
-                                couponInputMode === 'select' 
-                                  ? 'bg-zinc-800 text-white' 
-                                  : 'bg-white border border-zinc-200 text-zinc-700'
-                              }`}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${couponInputMode === 'select'
+                                ? 'bg-zinc-800 text-white'
+                                : 'bg-white border border-zinc-200 text-zinc-700'
+                                }`}
                             >
                               Chọn coupon
                             </button>
                             <button
                               onClick={() => setCouponInputMode('input')}
-                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
-                                couponInputMode === 'input' 
-                                  ? 'bg-zinc-800 text-white' 
-                                  : 'bg-white border border-zinc-200 text-zinc-700'
-                              }`}
+                              className={`flex-1 py-2 text-sm rounded-lg transition-colors ${couponInputMode === 'input'
+                                ? 'bg-zinc-800 text-white'
+                                : 'bg-white border border-zinc-200 text-zinc-700'
+                                }`}
                             >
                               Nhập mã
                             </button>
@@ -996,9 +1013,8 @@ function BookingContent() {
                                 <p className="text-sm text-zinc-500 text-center py-3">Bạn chưa có coupon nào</p>
                               ) : (
                                 <>
-                                  <label className={`flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all ${
-                                    !selectedCoupon ? 'border-zinc-800' : 'border-zinc-200'
-                                  }`}>
+                                  <label className={`flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all ${!selectedCoupon ? 'border-zinc-800' : 'border-zinc-200'
+                                    }`}>
                                     <input
                                       type="radio"
                                       name="coupon"
@@ -1011,9 +1027,8 @@ function BookingContent() {
                                   {userCoupons.map((c) => (
                                     <label
                                       key={c.id}
-                                      className={`flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer transition-all ${
-                                        selectedCoupon?.id === c.id ? 'border-zinc-800' : 'border-zinc-200'
-                                      }`}
+                                      className={`flex items-center justify-between p-3 bg-white rounded-lg border cursor-pointer transition-all ${selectedCoupon?.id === c.id ? 'border-zinc-800' : 'border-zinc-200'
+                                        }`}
                                     >
                                       <div className="flex items-center gap-3">
                                         <input
@@ -1029,7 +1044,7 @@ function BookingContent() {
                                         </div>
                                       </div>
                                       <span className="text-green-600 font-semibold">
-                                        {c.discountType === 'PERCENTAGE' 
+                                        {c.discountType === 'PERCENTAGE'
                                           ? `-${c.discountValue}%`
                                           : `-${formatCurrency(c.discountValue)}`}
                                       </span>
@@ -1092,7 +1107,7 @@ function BookingContent() {
                           </svg>
                         </div>
                       </button>
-                      
+
                       {showPointsDropdown && (
                         <div className="px-4 pb-4 bg-zinc-50">
                           {userPoints ? (
@@ -1105,7 +1120,7 @@ function BookingContent() {
                                 </div>
                                 <p className="text-xs text-zinc-500 mt-1">1 điểm = 1.000đ</p>
                               </div>
-                              
+
                               {/* Ô nhập số điểm muốn dùng */}
                               {userPoints.currentPoints > 0 && (
                                 <div className="p-3 bg-white rounded-lg border border-zinc-200">
@@ -1155,9 +1170,8 @@ function BookingContent() {
                     {PAYMENT_METHODS.map((method) => (
                       <label
                         key={method.id}
-                        className={`flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors ${
-                          paymentMethod === method.id ? 'bg-zinc-100' : ''
-                        }`}
+                        className={`flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors ${paymentMethod === method.id ? 'bg-zinc-100' : ''
+                          }`}
                       >
                         <input
                           type="radio"
@@ -1230,7 +1244,7 @@ function BookingContent() {
                     Mã đặt vé: <span className="font-mono font-semibold text-zinc-900">{booking.bookingCode}</span>
                   </p>
                 </div>
-                
+
                 <div className="mx-5 p-4 bg-zinc-50 rounded-xl mb-5">
                   <h3 className="font-medium text-zinc-900 mb-3">Thông tin vé</h3>
                   <div className="space-y-2 text-sm">
@@ -1315,7 +1329,7 @@ function BookingContent() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Order Details */}
                   <div className="p-4 space-y-3 text-sm">
                     {selectedSeats.length > 0 && (
@@ -1324,14 +1338,14 @@ function BookingContent() {
                         <span className="text-zinc-900">{selectedSeats.map((s) => s.seatLabel).join(', ')}</span>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Vé</span>
                       <span className="text-zinc-900">
                         {formatCurrency(booking?.seatAmount || seatTotal)}
                       </span>
                     </div>
-                    
+
                     {(foodOrders.length > 0 || (booking?.foodAmount && booking.foodAmount > 0)) && (
                       <>
                         <div className="border-t border-zinc-100 pt-3 space-y-2">
@@ -1388,7 +1402,7 @@ function BookingContent() {
                         {formatCurrency(booking?.totalAmount || totalAmount)}
                       </span>
                     </div>
-                    
+
                     {/* Final payment amount with discounts */}
                     {step === 3 && totalDiscount > 0 && (
                       <>
@@ -1404,7 +1418,7 @@ function BookingContent() {
                         </div>
                       </>
                     )}
-                    
+
                     {booking?.discountAmount != null && booking.discountAmount > 0 && (
                       <>
                         <div className="flex justify-between items-center mt-2 text-sm text-green-600">
@@ -1413,7 +1427,7 @@ function BookingContent() {
                         </div>
                       </>
                     )}
-                    
+
                     {/* Points to earn info */}
                     {step >= 2 && pointsToEarn > 0 && (
                       <div className="mt-3 pt-3 border-t border-zinc-200 flex items-center gap-2 text-xs text-zinc-600">

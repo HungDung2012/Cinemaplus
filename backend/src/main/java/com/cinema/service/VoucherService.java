@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -63,14 +62,6 @@ public class VoucherService {
     @Transactional
     public void deleteVoucher(Long id) {
         voucherRepository.deleteById(id);
-    }
-
-    private String generateUniqueCode() {
-        return "VOC" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-    }
-
-    private String generatePin() {
-        return String.valueOf((int) (Math.random() * 9000) + 1000);
     }
 
     // ================= USER METHODS =================

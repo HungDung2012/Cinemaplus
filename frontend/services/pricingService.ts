@@ -1,24 +1,5 @@
 import api from '@/lib/axios';
-import { PriceHeader, PriceLine, Surcharge, SeatType } from '@/types';
-
-// SeatType interface is now in @/types/index.ts (wait, check if it is there)
-// Checking types/index.ts, SeatType is defined as 'STANDARD' | 'VIP' ... string union type.
-// But we need the Entity interface for the admin page management.
-// Let's redefine it here or in types/index.ts if missing.
-// In types/index.ts: export interface Seat { ... seatType: SeatType ... }
-// But we need the SeatType configuration object (with color, multiplier, etc).
-// It was defined locally in previous pricingService.ts.
-// Let's define it here again if it's not in types/index.ts.
-
-export interface SeatTypeConfig {
-    id?: number;
-    code: string;
-    name: string;
-    priceMultiplier: number;
-    extraFee: number;
-    seatColor: string;
-    active: boolean;
-}
+import { PriceHeader, PriceLine, Surcharge, SeatTypeConfig } from '@/types';
 
 export const pricingService = {
     // Price Headers (Rate Cards)
@@ -65,18 +46,49 @@ export const pricingService = {
     },
 
     // Seat Types (Config)
-    getAllSeatTypes: async () => {
+    getAllSeatTypes: async (): Promise<SeatTypeConfig[]> => {
         const response = await api.get('/admin/pricing/seat-types');
-        return response.data?.data || [];
+        // Map Surcharge[] to SeatTypeConfig[]
+        return response.data?.data?.map((s: Surcharge) => ({
+            id: s.id,
+            code: s.code || s.targetId,
+            name: s.name,
+            priceMultiplier: 1, // Deprecated, default to 1
+            extraFee: s.amount,
+            seatColor: s.color || '#000000',
+            active: s.active
+        })) || [];
     },
 
-    createSeatType: async (data: SeatTypeConfig) => {
-        const response = await api.post('/admin/pricing/seat-types', data);
-        return response.data?.data;
+    createSeatType: async (data: SeatTypeConfig): Promise<SeatTypeConfig | null> => {
+        // Map SeatTypeConfig to SurchargeRequest
+        const payload = {
+            name: data.name,
+            code: data.code,
+            type: 'SEAT_TYPE',
+            targetId: data.code,
+            amount: data.extraFee,
+            color: data.seatColor,
+            active: data.active
+        };
+        const response = await api.post('/admin/pricing/surcharges', payload);
+        // Return mapped config
+        const s = response.data?.data;
+        if (!s) return null;
+        return {
+            id: s.id,
+            code: s.code || s.targetId,
+            name: s.name,
+            priceMultiplier: 1,
+            extraFee: s.amount,
+            seatColor: s.color || '#000000',
+            active: s.active
+        };
     },
 
     deleteSeatType: async (id: number) => {
-        const response = await api.delete(`/admin/pricing/seat-types/${id}`);
+        // Seat Types are Surcharges now
+        const response = await api.delete(`/admin/pricing/surcharges/${id}`);
         return response.data;
     }
 };

@@ -18,7 +18,8 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     List<Seat> findByRoomIdAndActiveTrue(Long roomId);
 
     // Changed to use Entity
-    List<Seat> findByRoomIdAndSeatTypeObject(Long roomId, com.cinema.model.SeatType seatType);
+    // Changed to use Entity
+    List<Seat> findByRoomIdAndSeatType(Long roomId, com.cinema.model.Surcharge seatType);
 
     @Query("SELECT s FROM Seat s WHERE s.room.id = :roomId ORDER BY s.rowName, s.seatNumber")
     List<Seat> findByRoomIdOrderByRowAndNumber(@Param("roomId") Long roomId);

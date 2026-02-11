@@ -88,9 +88,13 @@ public class PricingService {
         for (Surcharge s : surcharges) {
             switch (s.getType()) {
                 case SEAT_TYPE:
-                    // Check if seat matches target
-                    if (seat.getSeatTypeObject() != null &&
-                            seat.getSeatTypeObject().getCode().equalsIgnoreCase(s.getTargetId())) {
+                    // Logic change: Seat has a direct link to a Surcharge (which is its type)
+                    // We just need to check if the seat's assigned surcharge ID matches this
+                    // surcharge ID
+                    if (seat.getSeatType() != null && seat.getSeatType().getId().equals(s.getId())) {
+                        // The seat IS this surcharge type, so add the amount
+                        // Note: Surcharge logic usually iterates all active surcharges.
+                        // Only add if it matches.
                         totalSurcharge = totalSurcharge.add(s.getAmount());
                     }
                     break;
@@ -178,10 +182,15 @@ public class PricingService {
             PriceLine.CustomerType cType = deriveCustomerType(user);
             PriceLine.DayType dType = determineDayType(showtime.getShowDate());
             PriceLine.TimeSlot tSlot = determineTimeSlot(showtime.getStartTime());
+            com.cinema.model.Room.RoomType roomType = showtime.getRoom().getRoomType();
 
-            String desc = cType + " | " + dType + " | " + tSlot;
-            if (seat.getSeatTypeObject() != null) {
-                desc += " | " + seat.getSeatTypeObject().getName();
+            String desc = cType + " | " + dType + " | " + tSlot + " | " + roomType;
+            if (seat.getSeatType() != null) {
+                desc += " | " + seat.getSeatType().getName();
+
+                // Add seat type surcharge directly here if strict calculation needed,
+                // but calculateTicketPrice already includes it via calculateSurcharges.
+                // However, logic in calculateSurcharges needs update.
             }
 
             details.add(com.cinema.dto.response.CalculatedPriceResponse.PriceDetail.builder()

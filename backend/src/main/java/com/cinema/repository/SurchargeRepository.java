@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface SurchargeRepository extends JpaRepository<Surcharge, Long> {
     List<Surcharge> findByActiveTrue();
+
+    List<Surcharge> findByType(Surcharge.SurchargeType type);
 }

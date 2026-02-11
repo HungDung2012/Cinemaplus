@@ -31,13 +31,14 @@ public class Seat {
     private Integer seatNumber; // 1, 2, 3...
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "seat_type_id", nullable = true) // Nullable for migration
-    private com.cinema.model.SeatType seatTypeObject;
+    @JoinColumn(name = "surcharge_id")
+    private com.cinema.model.Surcharge seatType; // Defines VIP, Standard, etc.
 
     // Temporary field for migration compatibility or fallback
-    @Enumerated(EnumType.STRING)
-    @Column(name = "seat_type", nullable = true, insertable = false, updatable = false)
-    private SeatTypeEnum seatType;
+    // @Enumerated(EnumType.STRING)
+    // @Column(name = "seat_type", nullable = true, insertable = false, updatable =
+    // false)
+    // private SeatTypeEnum seatTypeEnum; // Commenting out to avoid confusion
 
     public enum SeatTypeEnum {
         STANDARD, VIP, COUPLE, DISABLED

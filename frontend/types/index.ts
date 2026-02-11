@@ -105,6 +105,16 @@ export interface Seat {
   isBooked: boolean;
 }
 
+export interface SeatTypeConfig {
+  id?: number;
+  code: string;
+  name: string;
+  priceMultiplier: number;
+  extraFee: number;
+  seatColor: string;
+  active: boolean;
+}
+
 // Showtime types
 export type ShowtimeStatus = 'AVAILABLE' | 'SOLD_OUT' | 'CANCELLED';
 
@@ -396,9 +406,11 @@ export type SurchargeType = 'SEAT_TYPE' | 'MOVIE_TYPE' | 'DATE_TYPE' | 'FORMAT_3
 export interface Surcharge {
   id: number;
   name: string;
+  code?: string;
   type: SurchargeType;
   targetId: string; // e.g., 'VIP', 'BLOCKBUSTER'
   amount: number;
+  color?: string;
   active: boolean;
 }
 

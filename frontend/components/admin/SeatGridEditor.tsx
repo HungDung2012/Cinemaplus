@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
 import { adminRoomService } from '@/services/adminService';
+import { pricingService } from '@/services/pricingService';
+import { SeatTypeConfig } from '@/types';
 
 export interface SeatDTO {
     id: number;
     rowName: string;
     seatNumber: number;
-    seatType: SeatType;
+    seatType: string; // Changed from enum to string
     priceMultiplier: number;
     active: boolean;
+    // We might need color here if provided by backend, 
+    // but usually backend RoomDTO -> SeatDTO doesn't have color details directly unless mapped.
+    // We will rely on fetching seat types config to know colors.
 }
 
 export interface RoomDTO {
@@ -21,7 +25,7 @@ export interface RoomDTO {
     seats: SeatDTO[];
 }
 
-export type SeatType = 'STANDARD' | 'VIP' | 'COUPLE' | 'DISABLED' | 'NONE';
+export type SeatType = string;
 
 export interface SeatCell {
     id: string;
@@ -29,7 +33,7 @@ export interface SeatCell {
     col: number;
     type: SeatType;
     label: string;
-    dbId?: number; // Store DB ID if exists
+    dbId?: number;
 }
 
 interface SeatGridEditorProps {
@@ -43,15 +47,33 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
     const [rowCount, setRowCount] = useState(10);
     const [colCount, setColCount] = useState(10);
     const [loading, setLoading] = useState(true);
+    const [seatTypes, setSeatTypes] = useState<SeatTypeConfig[]>([]);
+
+    useEffect(() => {
+        fetchSeatTypes();
+    }, []);
 
     useEffect(() => {
         if (roomId) {
             fetchRoomDetail(roomId);
         } else {
             initializeGrid(10, 10);
-            setLoading(false);
+            if (seatTypes.length > 0) setLoading(false);
         }
-    }, [roomId]);
+    }, [roomId, seatTypes.length]); // Wait for seat types to be loaded
+
+    const fetchSeatTypes = async () => {
+        try {
+            const types = await pricingService.getAllSeatTypes();
+            setSeatTypes(types);
+            // Ensure STANDARD exists or pick first
+            if (types.length > 0 && !types.find((t: SeatTypeConfig) => t.code === 'STANDARD')) {
+                // If standard not in DB, we rely on what is there
+            }
+        } catch (error) {
+            console.error("Error fetching seat types:", error);
+        }
+    };
 
     const fetchRoomDetail = async (id: number) => {
         setLoading(true);
@@ -61,10 +83,8 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                 setRowCount(room.rowsCount);
                 setColCount(room.columnsCount);
 
-                // Initialize empty grid first
                 const newGrid = createEmptyGrid(room.rowsCount, room.columnsCount);
 
-                // Map existing seats to grid
                 if (room.seats && room.seats.length > 0) {
                     fillGridWithSeats(newGrid, room.seats);
                 }
@@ -72,7 +92,6 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
             }
         } catch (error) {
             console.error("Error fetching room details:", error);
-            // Fallback to default empty grid
             initializeGrid(10, 10);
         } finally {
             setLoading(false);
@@ -89,7 +108,7 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                     id: `${rowLabel}${j + 1}`,
                     row: i,
                     col: j,
-                    type: 'STANDARD',
+                    type: 'STANDARD', // Default to STANDARD, assume exists
                     label: `${rowLabel}${j + 1}`
                 });
             }
@@ -100,17 +119,15 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
 
     const fillGridWithSeats = (grid: SeatCell[][], seats: SeatDTO[]) => {
         seats.forEach(seat => {
-            // Calculate indices from rowName and seatNumber
-            // Assuming rowName is A, B, C...
             const rowIndex = seat.rowName.charCodeAt(0) - 65;
-            const colIndex = seat.seatNumber - 1; // 1-based to 0-based
+            const colIndex = seat.seatNumber - 1;
 
             if (rowIndex >= 0 && rowIndex < grid.length && colIndex >= 0 && colIndex < grid[0].length) {
                 grid[rowIndex][colIndex] = {
                     id: `${seat.rowName}${seat.seatNumber}`,
                     row: rowIndex,
                     col: colIndex,
-                    type: seat.seatType,
+                    type: seat.seatType, // This is the code string
                     label: `${seat.rowName}${seat.seatNumber}`,
                     dbId: seat.id
                 };
@@ -147,6 +164,12 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
         initializeGrid(rowCount, colCount);
     };
 
+    const getSeatColor = (typeCode: string) => {
+        if (typeCode === 'NONE') return 'transparent';
+        const type = seatTypes.find(t => t.code === typeCode);
+        return type ? type.seatColor : '#ccc'; // Default gray
+    };
+
     if (loading) return <div>Loading seat map...</div>;
 
     return (
@@ -181,19 +204,29 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                 <button onClick={resetGrid} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Reset Grid</button>
             </div>
 
-            <div className="flex gap-2 p-2 bg-gray-100 rounded-lg">
-                {(['STANDARD', 'VIP', 'COUPLE', 'DISABLED', 'NONE'] as SeatType[]).map(type => (
+            <div className="flex gap-2 p-2 bg-gray-100 rounded-lg flex-wrap">
+                {seatTypes.map(type => (
                     <button
-                        key={type}
-                        onClick={() => setSelectedType(type)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedType === type
+                        key={type.code}
+                        onClick={() => setSelectedType(type.code)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors border flex items-center gap-2 ${selectedType === type.code
                             ? 'bg-zinc-900 text-white shadow-sm'
                             : 'bg-white text-zinc-600 hover:bg-zinc-50'
                             }`}
                     >
-                        {type}
+                        <div className="w-4 h-4 rounded-full border shadow-sm" style={{ backgroundColor: type.seatColor }}></div>
+                        {type.name}
                     </button>
                 ))}
+                <button
+                    onClick={() => setSelectedType('NONE')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors border ${selectedType === 'NONE'
+                        ? 'bg-zinc-900 text-white shadow-sm'
+                        : 'bg-white text-zinc-600 hover:bg-zinc-50'
+                        }`}
+                >
+                    Trống (None)
+                </button>
             </div>
 
             <div className="overflow-auto border rounded-xl p-8 bg-zinc-50">
@@ -213,12 +246,13 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                                 onClick={() => handleCellClick(i, j)}
                                 className={`
                   w-10 h-10 rounded flex items-center justify-center text-xs font-bold transition-all
-                  ${cell.type === 'STANDARD' ? 'bg-white border-2 border-zinc-300 text-zinc-900 hover:border-blue-500' : ''}
-                  ${cell.type === 'VIP' ? 'bg-yellow-100 border-2 border-yellow-400 text-yellow-800' : ''}
-                  ${cell.type === 'COUPLE' ? 'bg-pink-100 border-2 border-pink-400 text-pink-800 col-span-1' : ''}
-                  ${cell.type === 'DISABLED' ? 'bg-blue-100 border-2 border-blue-400 text-blue-800' : ''}
-                  ${cell.type === 'NONE' ? 'opacity-0 pointer-events-none' : ''}
+                  ${cell.type === 'NONE' ? 'opacity-0 pointer-events-none' : 'shadow-sm border border-gray-200'}
                 `}
+                                style={{
+                                    backgroundColor: cell.type !== 'NONE' ? getSeatColor(cell.type) : 'transparent',
+                                    color: cell.type !== 'NONE' ? '#fff' : 'inherit', // Should ideally contrast text
+                                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                }}
                                 title={`${cell.label} (${cell.type})`}
                             >
                                 {cell.type !== 'NONE' && cell.label}
@@ -226,8 +260,6 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                         ))
                     ))}
                 </div>
-
-
             </div>
 
             <div className="flex justify-end">

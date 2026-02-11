@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { pricingService, SeatTypeConfig } from '@/services/pricingService';
-import { PriceHeader, PriceLine, Surcharge, CustomerType, DayType, TimeSlot, RoomType, SurchargeType } from '@/types';
+import { pricingService } from '@/services/pricingService';
+import { PriceHeader, PriceLine, Surcharge, CustomerType, DayType, TimeSlot, RoomType, SurchargeType, SeatTypeConfig } from '@/types';
 import { toast } from 'react-hot-toast';
 
 export default function PricingPage() {
@@ -41,7 +41,7 @@ export default function PricingPage() {
     const [seatTypeForm, setSeatTypeForm] = useState<SeatTypeConfig>({
         code: '',
         name: '',
-        priceMultiplier: 1.0,
+        priceMultiplier: 1,
         extraFee: 0,
         seatColor: '#000000',
         active: true
@@ -72,8 +72,8 @@ export default function PricingPage() {
                 setSelectedHeaderId(headersRes[0].id);
             }
         } catch (error) {
-            console.error('Error fetching data:', error);
-            toast.error('Failed to load pricing data');
+            console.error('Lỗi tải dữ liệu:', error);
+            toast.error('Không thể tải dữ liệu giá');
         } finally {
             setLoading(false);
         }
@@ -84,8 +84,8 @@ export default function PricingPage() {
             const lines = await pricingService.getPriceLinesByHeader(headerId);
             setPriceLines(lines);
         } catch (error) {
-            console.error('Error fetching price lines:', error);
-            toast.error('Failed to load price lines');
+            console.error('Lỗi tải bảng giá chi tiết:', error);
+            toast.error('Không thể tải bảng giá chi tiết');
         }
     };
 
@@ -96,9 +96,9 @@ export default function PricingPage() {
             const newHeader = await pricingService.createPriceHeader(headerForm as PriceHeader);
             setHeaders([...headers, newHeader]);
             setIsHeaderModalOpen(false);
-            toast.success('Rate Card Created');
+            toast.success('Đã tạo bảng giá mới');
         } catch (error) {
-            toast.error('Error creating rate card');
+            toast.error('Lỗi khi tạo bảng giá');
         }
     };
 
@@ -112,8 +112,6 @@ export default function PricingPage() {
     ) => {
         if (!selectedHeaderId) return;
 
-        // Optimistic update? Or direct API call?
-        // Let's check if line exists
         const existingLine = priceLines.find(l =>
             l.customerType === customerType &&
             l.dayType === dayType &&
@@ -132,11 +130,8 @@ export default function PricingPage() {
         };
 
         try {
-            // If price is 0 or empty, maybe delete? 
-            // For now, always create/update
             const savedLine = await pricingService.createPriceLine(selectedHeaderId, lineData);
 
-            // Update local state
             setPriceLines(prev => {
                 const filtered = prev.filter(l =>
                     !(l.customerType === customerType &&
@@ -146,9 +141,9 @@ export default function PricingPage() {
                 );
                 return [...filtered, savedLine];
             });
-            toast.success('Price updated');
+            toast.success('Đã cập nhật giá');
         } catch (error) {
-            toast.error('Failed to update price');
+            toast.error('Lỗi cập nhật giá');
         }
     };
 
@@ -159,20 +154,20 @@ export default function PricingPage() {
             const newSurcharge = await pricingService.createSurcharge(surchargeForm as Surcharge);
             setSurcharges([...surcharges, newSurcharge]);
             setIsSurchargeModalOpen(false);
-            toast.success('Surcharge Created');
+            toast.success('Đã tạo phụ thu mới');
         } catch (error) {
-            toast.error('Error creating surcharge');
+            toast.error('Lỗi khi tạo phụ thu');
         }
     };
 
     const handleDeleteSurcharge = async (id: number) => {
-        if (!confirm('Are you sure?')) return;
+        if (!confirm('Bạn có chắc chắn muốn xóa?')) return;
         try {
             await pricingService.deleteSurcharge(id);
             setSurcharges(surcharges.filter(s => s.id !== id));
-            toast.success('Surcharge deleted');
+            toast.success('Đã xóa phụ thu');
         } catch (error) {
-            toast.error('Error deleting surcharge');
+            toast.error('Lỗi khi xóa phụ thu');
         }
     };
 
@@ -181,40 +176,57 @@ export default function PricingPage() {
         e.preventDefault();
         try {
             const newSeatType = await pricingService.createSeatType(seatTypeForm);
-            setSeatTypes([...seatTypes, newSeatType]);
-            setIsSeatTypeModalOpen(false);
-            toast.success('Seat Type Created');
+            if (newSeatType) {
+                setSeatTypes([...seatTypes, newSeatType]);
+                setIsSeatTypeModalOpen(false);
+                toast.success('Đã tạo loại ghế mới');
+            } else {
+                toast.error('Lỗi: Không nhận được phản hồi từ server');
+            }
         } catch (error) {
-            toast.error('Error creating seat type');
+            toast.error('Lỗi khi tạo loại ghế');
         }
     };
 
     const handleDeleteSeatType = async (id: number) => {
-        if (!confirm('Are you sure?')) return;
+        if (!confirm('Bạn có chắc chắn muốn xóa?')) return;
         try {
             await pricingService.deleteSeatType(id);
             setSeatTypes(seatTypes.filter(s => s.id !== id));
-            toast.success('Seat type deleted');
+            toast.success('Đã xóa loại ghế');
         } catch (error) {
-            toast.error('Error deleting seat type');
+            toast.error('Lỗi khi xóa loại ghế');
         }
     };
 
     // --- Render Helpers ---
     const renderMatrix = (roomType: RoomType, dayType: DayType) => {
-        // Rows: Customer Types, Cols: Time Slots
         const customerTypes: CustomerType[] = ['ADULT', 'STUDENT', 'MEMBER'];
         const timeSlots: TimeSlot[] = ['MORNING', 'DAY', 'EVENING', 'LATE'];
+
+        // Translations for UI display
+        const customerLabels: Record<CustomerType, string> = {
+            'ADULT': 'Người lớn',
+            'STUDENT': 'HSSV/U22',
+            'MEMBER': 'Thành viên'
+        };
+
+        const timeSlotLabels: Record<TimeSlot, string> = {
+            'MORNING': 'Sáng',
+            'DAY': 'Ngày',
+            'EVENING': 'Tối',
+            'LATE': 'Khuya'
+        };
 
         return (
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 border">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đối Tượng</th>
                             {timeSlots.map(slot => (
                                 <th key={slot} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    {slot}
+                                    {timeSlotLabels[slot]}
                                 </th>
                             ))}
                         </tr>
@@ -222,7 +234,7 @@ export default function PricingPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {customerTypes.map(customer => (
                             <tr key={customer}>
-                                <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{customer}</td>
+                                <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{customerLabels[customer]}</td>
                                 {timeSlots.map(slot => {
                                     const line = priceLines.find(l =>
                                         l.customerType === customer &&
@@ -250,11 +262,17 @@ export default function PricingPage() {
         );
     };
 
-    if (loading) return <div className="p-8 text-center">Loading...</div>;
+    if (loading) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
+
+    const dayTypeLabels: Record<DayType, string> = {
+        'WEEKDAY': 'Ngày thường (T2-T5)',
+        'WEEKEND': 'Cuối tuần (T6-CN)',
+        'HOLIDAY': 'Ngày lễ'
+    };
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Pricing Management</h1>
+            <h1 className="text-2xl font-bold mb-6">Quản Lý Giá Vé</h1>
 
             {/* Tabs */}
             <div className="flex border-b mb-6">
@@ -262,19 +280,19 @@ export default function PricingPage() {
                     className={`px-4 py-2 ${activeTab === 'rate-card' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
                     onClick={() => setActiveTab('rate-card')}
                 >
-                    Rate Cards
+                    Bảng Giá
                 </button>
                 <button
                     className={`px-4 py-2 ${activeTab === 'surcharge' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
                     onClick={() => setActiveTab('surcharge')}
                 >
-                    Surcharges
+                    Phụ Thu
                 </button>
                 <button
                     className={`px-4 py-2 ${activeTab === 'seat-type' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
                     onClick={() => setActiveTab('seat-type')}
                 >
-                    Seat Types
+                    Loại Ghế
                 </button>
             </div>
 
@@ -282,34 +300,37 @@ export default function PricingPage() {
             {activeTab === 'rate-card' && (
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
-                        <select
-                            className="p-2 border rounded-lg min-w-[200px]"
-                            value={selectedHeaderId || ''}
-                            onChange={(e) => setSelectedHeaderId(Number(e.target.value))}
-                        >
-                            {headers.map(h => (
-                                <option key={h.id} value={h.id}>{h.name}</option>
-                            ))}
-                        </select>
+                        <div className="flex items-center gap-4">
+                            <label className="font-medium text-gray-700">Chọn Bảng Giá:</label>
+                            <select
+                                className="p-2 border rounded-lg min-w-[300px]"
+                                value={selectedHeaderId || ''}
+                                onChange={(e) => setSelectedHeaderId(Number(e.target.value))}
+                            >
+                                {headers.map(h => (
+                                    <option key={h.id} value={h.id}>{h.name}</option>
+                                ))}
+                            </select>
+                        </div>
                         <button
                             onClick={() => setIsHeaderModalOpen(true)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
-                            + New Rate Card
+                            + Tạo Bảng Giá Mới
                         </button>
                     </div>
 
                     {selectedHeaderId && (
                         <div className="space-y-8">
-                            {/* We need filters for Room Type and Day Type or show multiple tables */}
-                            {/* Let's show tabs/sections for Day Types */}
                             {(['WEEKDAY', 'WEEKEND', 'HOLIDAY'] as DayType[]).map(dayType => (
-                                <div key={dayType} className="border rounded-lg p-4 bg-gray-50">
-                                    <h3 className="font-bold text-lg mb-4 text-gray-700">{dayType} Pricing</h3>
-                                    <div className="space-y-4">
-                                        {(['STANDARD_2D', 'STANDARD_3D', 'IMAX'] as RoomType[]).map(roomType => (
-                                            <div key={roomType} className="bg-white p-4 rounded border">
-                                                <h4 className="font-medium mb-2 text-gray-600">{roomType}</h4>
+                                <div key={dayType} className="border rounded-lg p-4 bg-gray-50 shadow-sm">
+                                    <h3 className="font-bold text-lg mb-4 border-b pb-2">{dayTypeLabels[dayType]}</h3>
+                                    <div className="space-y-6">
+                                        {(['STANDARD_2D', 'STANDARD_3D', 'IMAX', 'IMAX_3D', 'VIP_4DX'] as RoomType[]).map(roomType => (
+                                            <div key={roomType} className="bg-white p-4 rounded border hover:shadow-md transition-shadow">
+                                                <h4 className="font-bold mb-3 text-gray-700 flex items-center gap-2">
+                                                    {roomType}
+                                                </h4>
                                                 {renderMatrix(roomType, dayType)}
                                             </div>
                                         ))}
@@ -327,42 +348,49 @@ export default function PricingPage() {
                     <div className="flex justify-end mb-4">
                         <button
                             onClick={() => setIsSurchargeModalOpen(true)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
-                            + New Surcharge
+                            + Tạo Phụ Thu Mới
                         </button>
                     </div>
-                    <table className="w-full bg-white border rounded-lg">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left">Name</th>
-                                <th className="px-6 py-3 text-left">Type</th>
-                                <th className="px-6 py-3 text-left">Target ID</th>
-                                <th className="px-6 py-3 text-left">Amount</th>
-                                <th className="px-6 py-3 text-left">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {surcharges.map(s => (
-                                <tr key={s.id} className="border-t">
-                                    <td className="px-6 py-4">{s.name}</td>
-                                    <td className="px-6 py-4">{s.type}</td>
-                                    <td className="px-6 py-4">{s.targetId}</td>
-                                    <td className="px-6 py-4 font-bold text-red-600">
-                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(s.amount)}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <button
-                                            onClick={() => handleDeleteSurcharge(s.id)}
-                                            className="text-red-600 hover:text-red-800"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
+                    <div className="overflow-hidden border rounded-lg shadow-sm">
+                        <table className="w-full bg-white">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Tên Phụ Thu</th>
+                                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Loại</th>
+                                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Mã Đối Tượng</th>
+                                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Số Tiền</th>
+                                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Thao Tác</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {surcharges.map(s => (
+                                    <tr key={s.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 font-medium">{s.name}</td>
+                                        <td className="px-6 py-4 text-gray-600">{s.type}</td>
+                                        <td className="px-6 py-4 font-mono text-sm bg-gray-50 rounded px-2 py-1 mx-6 w-fit inline-block mt-3">{s.targetId}</td>
+                                        <td className="px-6 py-4">
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(s.amount)}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => handleDeleteSurcharge(s.id)}
+                                                className="text-red-600 hover:text-red-800 font-medium"
+                                            >
+                                                Xóa
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {surcharges.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Chưa có dữ liệu phụ thu</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -372,27 +400,26 @@ export default function PricingPage() {
                     <div className="flex justify-end mb-4">
                         <button
                             onClick={() => setIsSeatTypeModalOpen(true)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
-                            + New Seat Type
+                            + Tạo Loại Ghế Mới
                         </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {seatTypes.map(st => (
-                            <div key={st.id} className="border rounded-xl p-6 relative overflow-hidden bg-white shadow-sm">
-                                <div className="absolute top-0 right-0 w-16 h-16 transform translate-x-8 -translate-y-8 rotate-45"
+                            <div key={st.id} className="border rounded-xl p-6 relative overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                                <div className="absolute top-0 right-0 w-16 h-16 transform translate-x-8 -translate-y-8 rotate-45 border-b border-l shadow-sm"
                                     style={{ backgroundColor: st.seatColor }} />
-                                <h3 className="text-lg font-bold">{st.name}</h3>
-                                <p className="text-gray-500">Code: {st.code}</p>
-                                <div className="mt-4 text-sm text-gray-600">
-                                    <p>Multiplier: x{st.priceMultiplier}</p>
-                                    <p>Extra Fee: {st.extraFee}</p>
+                                <h3 className="text-lg font-bold text-gray-800">{st.name}</h3>
+                                <div className="mt-2 space-y-1 text-sm text-gray-600">
+                                    <p><span className="font-semibold">Mã ghế:</span> {st.code}</p>
+                                    <p><span className="font-semibold">Phụ thu:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(st.extraFee)}</p>
                                 </div>
                                 <button
                                     onClick={() => st.id && handleDeleteSeatType(st.id)}
-                                    className="mt-4 text-red-600 text-sm hover:underline"
+                                    className="mt-4 text-red-600 text-sm hover:text-red-800 font-medium hover:underline"
                                 >
-                                    Delete
+                                    Xóa Loại Ghế
                                 </button>
                             </div>
                         ))}
@@ -402,20 +429,24 @@ export default function PricingPage() {
 
             {/* Modals */}
             {isHeaderModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg w-96">
-                        <h2 className="text-xl font-bold mb-4">New Rate Card</h2>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Tạo Bảng Giá Mới</h2>
                         <form onSubmit={handleHeaderSubmit}>
-                            <input
-                                className="w-full mb-3 p-2 border rounded"
-                                placeholder="Name (e.g. Standard 2024)"
-                                value={headerForm.name}
-                                onChange={e => setHeaderForm({ ...headerForm, name: e.target.value })}
-                                required
-                            />
-                            <div className="flex justify-end gap-2">
-                                <button type="button" onClick={() => setIsHeaderModalOpen(false)} className="px-4 py-2 text-gray-600">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">create</button>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Bảng Giá</label>
+                                <input
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: Bảng Giá Tiêu Chuẩn 2024"
+                                    value={headerForm.name}
+                                    onChange={e => setHeaderForm({ ...headerForm, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            {/* Add date fields if needed, currently reusing logic */}
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button type="button" onClick={() => setIsHeaderModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Hủy</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Tạo Mới</button>
                             </div>
                         </form>
                     </div>
@@ -423,44 +454,58 @@ export default function PricingPage() {
             )}
 
             {isSurchargeModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg w-96">
-                        <h2 className="text-xl font-bold mb-4">New Surcharge</h2>
-                        <form onSubmit={handleSurchargeSubmit} className="space-y-3">
-                            <input
-                                className="w-full p-2 border rounded"
-                                placeholder="Name (e.g. VIP Seat)"
-                                value={surchargeForm.name}
-                                onChange={e => setSurchargeForm({ ...surchargeForm, name: e.target.value })}
-                                required
-                            />
-                            <select
-                                className="w-full p-2 border rounded"
-                                value={surchargeForm.type}
-                                onChange={e => setSurchargeForm({ ...surchargeForm, type: e.target.value as SurchargeType })}
-                            >
-                                <option value="SEAT_TYPE">Seat Type</option>
-                                <option value="format_3d">3D Format</option>
-                                <option value="DATE_TYPE">Date Type</option>
-                            </select>
-                            <input
-                                className="w-full p-2 border rounded"
-                                placeholder="Target ID (e.g. VIP)"
-                                value={surchargeForm.targetId}
-                                onChange={e => setSurchargeForm({ ...surchargeForm, targetId: e.target.value })}
-                                required
-                            />
-                            <input
-                                type="number"
-                                className="w-full p-2 border rounded"
-                                placeholder="Amount"
-                                value={surchargeForm.amount}
-                                onChange={e => setSurchargeForm({ ...surchargeForm, amount: Number(e.target.value) })}
-                                required
-                            />
-                            <div className="flex justify-end gap-2 mt-4">
-                                <button type="button" onClick={() => setIsSurchargeModalOpen(false)} className="px-4 py-2 text-gray-600">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Tạo Phụ Thu Mới</h2>
+                        <form onSubmit={handleSurchargeSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Phụ Thu</label>
+                                <input
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: Phụ Thu Ghế VIP"
+                                    value={surchargeForm.name}
+                                    onChange={e => setSurchargeForm({ ...surchargeForm, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Loại Phụ Thu</label>
+                                <select
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={surchargeForm.type}
+                                    onChange={e => setSurchargeForm({ ...surchargeForm, type: e.target.value as SurchargeType })}
+                                >
+                                    <option value="SEAT_TYPE">Loại Ghế</option>
+                                    <option value="FORMAT_3D">Định dạng 3D</option>
+                                    <option value="DATE_TYPE">Loại Ngày</option>
+                                    <option value="MOVIE_TYPE">Loại Phim</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mã Đối Tượng</label>
+                                <input
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: VIP, BLOCKBUSTER"
+                                    value={surchargeForm.targetId}
+                                    onChange={e => setSurchargeForm({ ...surchargeForm, targetId: e.target.value })}
+                                    required
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Nhập mã định danh của đối tượng áp dụng phụ thu.</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Số Tiền (VNĐ)</label>
+                                <input
+                                    type="number"
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: 10000"
+                                    value={surchargeForm.amount}
+                                    onChange={e => setSurchargeForm({ ...surchargeForm, amount: Number(e.target.value) })}
+                                    required
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button type="button" onClick={() => setIsSurchargeModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Hủy</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Tạo Mới</button>
                             </div>
                         </form>
                     </div>
@@ -468,33 +513,52 @@ export default function PricingPage() {
             )}
 
             {isSeatTypeModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg w-96">
-                        <h2 className="text-xl font-bold mb-4">New Seat Type</h2>
-                        <form onSubmit={handleSeatTypeSubmit} className="space-y-3">
-                            <input
-                                className="w-full p-2 border rounded"
-                                placeholder="Code (e.g. VIP)"
-                                value={seatTypeForm.code}
-                                onChange={e => setSeatTypeForm({ ...seatTypeForm, code: e.target.value })}
-                                required
-                            />
-                            <input
-                                className="w-full p-2 border rounded"
-                                placeholder="Name"
-                                value={seatTypeForm.name}
-                                onChange={e => setSeatTypeForm({ ...seatTypeForm, name: e.target.value })}
-                                required
-                            />
-                            <input
-                                type="color"
-                                className="w-full h-10 p-1 border rounded"
-                                value={seatTypeForm.seatColor}
-                                onChange={e => setSeatTypeForm({ ...seatTypeForm, seatColor: e.target.value })}
-                            />
-                            <div className="flex justify-end gap-2 mt-4">
-                                <button type="button" onClick={() => setIsSeatTypeModalOpen(false)} className="px-4 py-2 text-gray-600">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Tạo Loại Ghế Mới</h2>
+                        <form onSubmit={handleSeatTypeSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mã Ghế</label>
+                                <input
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: VIP"
+                                    value={seatTypeForm.code}
+                                    onChange={e => setSeatTypeForm({ ...seatTypeForm, code: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Loại Ghế</label>
+                                <input
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: Ghế VIP Sang Trọng"
+                                    value={seatTypeForm.name}
+                                    onChange={e => setSeatTypeForm({ ...seatTypeForm, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Màu Sắc</label>
+                                <input
+                                    type="color"
+                                    className="w-full h-10 p-1 border rounded cursor-pointer"
+                                    value={seatTypeForm.seatColor}
+                                    onChange={e => setSeatTypeForm({ ...seatTypeForm, seatColor: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phụ Thu (VNĐ)</label>
+                                <input
+                                    type="number"
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="VD: 10000"
+                                    value={seatTypeForm.extraFee}
+                                    onChange={e => setSeatTypeForm({ ...seatTypeForm, extraFee: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-6">
+                                <button type="button" onClick={() => setIsSeatTypeModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Hủy</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Tạo Mới</button>
                             </div>
                         </form>
                     </div>

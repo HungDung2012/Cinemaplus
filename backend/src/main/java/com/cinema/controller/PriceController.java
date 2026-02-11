@@ -7,8 +7,6 @@ import com.cinema.model.Surcharge;
 import com.cinema.repository.PriceHeaderRepository;
 import com.cinema.repository.PriceLineRepository;
 import com.cinema.repository.SurchargeRepository;
-import com.cinema.repository.SeatTypeRepository;
-import com.cinema.model.SeatType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,15 +14,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/admin/pricing") // Changed path to include /pricing subset or keep /admin? The previous was
-                                         // /api/v1/admin
+@RequestMapping("/api/admin/pricing")
+// /api/v1/admin
 @RequiredArgsConstructor
 public class PriceController {
 
     private final PriceHeaderRepository priceHeaderRepository;
     private final PriceLineRepository priceLineRepository;
     private final SurchargeRepository surchargeRepository;
-    private final SeatTypeRepository seatTypeRepository;
 
     // ================== Price Headers (Rate Cards) ==================
     @GetMapping("/headers")
@@ -32,28 +29,52 @@ public class PriceController {
         return ResponseEntity.ok(ApiResponse.success(priceHeaderRepository.findAll()));
     }
 
-    // ... (unchanged methods) ...
-
     @PostMapping("/headers")
-    public ResponseEntity<ApiResponse<PriceHeader>> createPriceHeader(@RequestBody PriceHeader priceHeader) {
-        return ResponseEntity.ok(ApiResponse.success(priceHeaderRepository.save(priceHeader)));
+    public ResponseEntity<ApiResponse<PriceHeader>> createPriceHeader(
+            @RequestBody com.cinema.dto.request.PriceHeaderRequest request) {
+        PriceHeader header = new PriceHeader();
+        header.setName(request.getName());
+        header.setStartDate(request.getStartDate());
+        header.setEndDate(request.getEndDate());
+        header.setPriority(request.getPriority());
+        header.setActive(request.getActive());
+
+        return ResponseEntity.ok(ApiResponse.success(priceHeaderRepository.save(header)));
     }
 
     // ================== Price Lines ==================
     @GetMapping("/headers/{headerId}/lines")
     public ResponseEntity<ApiResponse<List<PriceLine>>> getPriceLinesByHeader(@PathVariable Long headerId) {
         if (!priceHeaderRepository.existsById(headerId)) {
-            throw new RuntimeException("Price header not found");
+            throw new com.cinema.exception.ResourceNotFoundException("PriceHeader", "id", headerId);
         }
         return ResponseEntity.ok(ApiResponse.success(priceLineRepository.findByPriceHeaderId(headerId)));
     }
 
     @PostMapping("/headers/{headerId}/lines")
-    public ResponseEntity<ApiResponse<PriceLine>> createPriceLine(@PathVariable Long headerId,
-            @RequestBody PriceLine priceLine) {
+    public ResponseEntity<ApiResponse<PriceLine>> createOrUpdatePriceLine(
+            @PathVariable Long headerId,
+            @RequestBody com.cinema.dto.request.PriceLineRequest request) {
+
         PriceHeader header = priceHeaderRepository.findById(headerId)
-                .orElseThrow(() -> new RuntimeException("Price header not found"));
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("PriceHeader", "id", headerId));
+
+        // Check if line exists (Upsert Logic)
+        PriceLine priceLine = priceLineRepository.findByPriceHeaderIdAndCustomerTypeAndDayTypeAndTimeSlotAndRoomType(
+                headerId,
+                request.getCustomerType(),
+                request.getDayType(),
+                request.getTimeSlot(),
+                request.getRoomType()).orElse(new PriceLine());
+
+        // Update fields
         priceLine.setPriceHeader(header);
+        priceLine.setCustomerType(request.getCustomerType());
+        priceLine.setDayType(request.getDayType());
+        priceLine.setTimeSlot(request.getTimeSlot());
+        priceLine.setRoomType(request.getRoomType());
+        priceLine.setPrice(request.getPrice());
+
         return ResponseEntity.ok(ApiResponse.success(priceLineRepository.save(priceLine)));
     }
 
@@ -63,14 +84,27 @@ public class PriceController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // ================== Surcharges ==================
+    // ================== Surcharges (Including Seat Types) ==================
     @GetMapping("/surcharges")
     public ResponseEntity<ApiResponse<List<Surcharge>>> getAllSurcharges() {
         return ResponseEntity.ok(ApiResponse.success(surchargeRepository.findAll()));
     }
 
     @PostMapping("/surcharges")
-    public ResponseEntity<ApiResponse<Surcharge>> createSurcharge(@RequestBody Surcharge surcharge) {
+    public ResponseEntity<ApiResponse<Surcharge>> createSurcharge(
+            @RequestBody com.cinema.dto.request.SurchargeRequest request) {
+        Surcharge surcharge = new Surcharge();
+        surcharge.setName(request.getName());
+        surcharge.setType(request.getType());
+        surcharge.setTargetId(request.getTargetId());
+        surcharge.setAmount(request.getAmount());
+        surcharge.setColor(request.getColor()); // Set color from DTO
+        surcharge.setCode(request.getCode());
+        surcharge.setActive(request.getActive());
+        // Handle color if present (needs DTO update or just set from request if
+        // flexible)
+        // Since I'm using DTO, I should update DTO too.
+
         return ResponseEntity.ok(ApiResponse.success(surchargeRepository.save(surcharge)));
     }
 
@@ -81,20 +115,17 @@ public class PriceController {
     }
 
     // ================== Seat Types (Configuration) ==================
+    // Now handled via Surcharges with type=SEAT_TYPE
+    // We can keep these endpoints for frontend compatibility but map them to
+    // Surcharge logic
+
     @GetMapping("/seat-types")
-    public ResponseEntity<ApiResponse<List<SeatType>>> getAllSeatTypes() {
-        return ResponseEntity.ok(ApiResponse.success(seatTypeRepository.findAll()));
+    public ResponseEntity<ApiResponse<List<Surcharge>>> getAllSeatTypes() {
+        // Return only surcharges of type SEAT_TYPE
+        return ResponseEntity
+                .ok(ApiResponse.success(surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE)));
     }
 
-    @PostMapping("/seat-types")
-    public ResponseEntity<ApiResponse<SeatType>> createSeatType(@RequestBody SeatType seatType) {
-        return ResponseEntity.ok(ApiResponse.success(seatTypeRepository.save(seatType)));
-    }
-
-    @DeleteMapping("/seat-types/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteSeatType(@PathVariable Long id) {
-        seatTypeRepository.deleteById(id);
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
+    // NOTE: SurchargeRepository needs findByType method
 
 }

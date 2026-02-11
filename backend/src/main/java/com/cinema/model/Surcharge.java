@@ -21,6 +21,9 @@ public class Surcharge {
     @Column(nullable = false)
     private String name; // e.g. "VIP Seat", "Blockbuster", "Tet Holiday"
 
+    @Column(unique = true)
+    private String code; // e.g. "VIP", "STANDARD" - mostly for SeatTypes
+
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
     private SurchargeType type;
@@ -30,6 +33,9 @@ public class Surcharge {
 
     @Column(nullable = false)
     private BigDecimal amount;
+
+    @Column(length = 20)
+    private String color; // Used when Type is SEAT_TYPE (e.g. Gold for VIP)
 
     @Builder.Default
     private Boolean active = true;

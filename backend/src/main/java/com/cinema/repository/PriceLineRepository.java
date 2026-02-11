@@ -9,4 +9,11 @@ import java.util.List;
 @Repository
 public interface PriceLineRepository extends JpaRepository<PriceLine, Long> {
     List<PriceLine> findByPriceHeaderId(Long headerId);
+
+    java.util.Optional<PriceLine> findByPriceHeaderIdAndCustomerTypeAndDayTypeAndTimeSlotAndRoomType(
+            Long headerId,
+            PriceLine.CustomerType customerType,
+            PriceLine.DayType dayType,
+            PriceLine.TimeSlot timeSlot,
+            com.cinema.model.Room.RoomType roomType);
 }

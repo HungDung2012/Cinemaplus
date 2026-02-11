@@ -39,7 +39,6 @@ public class SampleDataInitializer implements CommandLineRunner {
         private final CouponRepository couponRepository;
         private final VoucherRepository voucherRepository;
         private final PromotionRepository promotionRepository;
-        private final SeatTypeRepository seatTypeRepository;
         private final BookingRepository bookingRepository;
         private final BookingSeatRepository bookingSeatRepository;
         private final BookingFoodRepository bookingFoodRepository;
@@ -72,7 +71,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         theaterRepository.deleteAll();
                         cityRepository.deleteAll();
                         regionRepository.deleteAll();
-                        seatTypeRepository.deleteAll();
                         movieRepository.deleteAll();
                         foodRepository.deleteAll();
                         couponRepository.deleteAll();
@@ -95,7 +93,7 @@ public class SampleDataInitializer implements CommandLineRunner {
                 if (theaterRepository.count() == 0) {
                         initTheaters();
                 }
-                if (seatTypeRepository.count() == 0) {
+                if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).isEmpty()) {
                         initSeatTypes();
                 }
                 // Tạo rooms và seats nếu có theaters nhưng không có rooms
@@ -197,18 +195,43 @@ public class SampleDataInitializer implements CommandLineRunner {
         }
 
         private void initSeatTypes() {
-                log.info("Initializing seat types...");
-                List<SeatType> types = new ArrayList<>();
+                log.info("Initializing seat types as surcharges...");
+                List<Surcharge> surcharges = new ArrayList<>();
 
-                types.add(SeatType.builder().code("STANDARD").name("Ghế Thường").priceMultiplier(BigDecimal.ONE)
-                                .extraFee(BigDecimal.ZERO).color("#718096").active(true).build());
-                types.add(SeatType.builder().code("VIP").name("Ghế VIP").priceMultiplier(new BigDecimal("1.2"))
-                                .extraFee(BigDecimal.ZERO).color("#D69E2E").active(true).build());
-                types.add(SeatType.builder().code("COUPLE").name("Ghế Đôi").priceMultiplier(new BigDecimal("2.0"))
-                                .extraFee(BigDecimal.ZERO).color("#E53E3E").active(true).build());
+                // VIP Seat Surcharge
+                if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).isEmpty()) {
+                        // Standard - usually 0 surcharge
+                        surcharges.add(Surcharge.builder()
+                                        .name("Ghế Thường")
+                                        .code("STANDARD")
+                                        .type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .amount(BigDecimal.ZERO)
+                                        .active(true)
+                                        .build());
 
-                seatTypeRepository.saveAll(types);
-                log.info("Created {} seat types", types.size());
+                        // VIP - Add 10000
+                        surcharges.add(Surcharge.builder()
+                                        .name("Ghế VIP")
+                                        .code("VIP")
+                                        .type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .amount(new BigDecimal("10000"))
+                                        .active(true)
+                                        .color("#D69E2E")
+                                        .build());
+
+                        // Couple - Add 50000
+                        surcharges.add(Surcharge.builder()
+                                        .name("Ghế Đôi")
+                                        .code("COUPLE")
+                                        .type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .amount(new BigDecimal("50000"))
+                                        .active(true)
+                                        .color("#E53E3E")
+                                        .build());
+
+                        surchargeRepository.saveAll(surcharges);
+                        log.info("Created {} seat type surcharges", surcharges.size());
+                }
         }
 
         private void initTheaters() {
@@ -366,10 +389,17 @@ public class SampleDataInitializer implements CommandLineRunner {
                 int seatsPerRow = room.getColumnsCount();
                 Room.RoomType roomType = room.getRoomType();
 
-                // Pre-load seat types
-                java.util.Map<String, SeatType> seatTypeMap = seatTypeRepository.findAll().stream()
-                                .collect(java.util.stream.Collectors.toMap(SeatType::getCode,
+                // Pre-load seat surcharges
+                java.util.Map<String, Surcharge> seatTypeMap = surchargeRepository
+                                .findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
+                                .collect(java.util.stream.Collectors.toMap(
+                                                s -> s.getCode() != null ? s.getCode() : s.getName(),
                                                 java.util.function.Function.identity()));
+
+                // Ensure STANDARD exists
+                if (!seatTypeMap.containsKey("STANDARD")) {
+                        // Create duplicate safe check handled by initSeatTypes but just in case
+                }
 
                 // Prepare layout structure
                 java.util.Map<String, Object> layoutMap = new java.util.HashMap<>();
@@ -408,7 +438,11 @@ public class SampleDataInitializer implements CommandLineRunner {
                                         }
                                 }
 
-                                SeatType seatTypeObj = seatTypeMap.getOrDefault(typeCode, seatTypeMap.get("STANDARD"));
+                                Surcharge seatTypeObj = seatTypeMap.getOrDefault(typeCode, seatTypeMap.get("STANDARD"));
+                                // Fallback if STANDARD missing (should not happen if init ran)
+                                if (seatTypeObj == null) {
+                                        seatTypeObj = seatTypeMap.values().stream().findFirst().orElse(null);
+                                }
 
                                 // Tạo một số ghế không khả dụng (đã hỏng, bảo trì)
                                 boolean isActive = true;
@@ -422,7 +456,7 @@ public class SampleDataInitializer implements CommandLineRunner {
                                                 .room(room)
                                                 .rowName(rowName)
                                                 .seatNumber(col)
-                                                .seatTypeObject(seatTypeObj)
+                                                .seatType(seatTypeObj)
                                                 .active(isActive)
                                                 .build();
                                 seats.add(seat);

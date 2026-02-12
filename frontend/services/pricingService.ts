@@ -13,35 +13,29 @@ export const pricingService = {
         return response.data?.data;
     },
 
+    deletePriceHeader: async (headerId: number) => {
+        const response = await api.delete(`/admin/pricing/headers/${headerId}`);
+        return response.data;
+    },
+
     // Price Lines
     getPriceLinesByHeader: async (headerId: number) => {
         const response = await api.get(`/admin/pricing/headers/${headerId}/lines`);
         return response.data?.data || [];
     },
 
-    createPriceLine: async (headerId: number, data: PriceLine) => {
-        const response = await api.post(`/admin/pricing/headers/${headerId}/lines`, data);
-        return response.data?.data;
+    createPriceLine: async (headerId: number, line: PriceLine) => {
+        const response = await api.post(`/admin/pricing/headers/${headerId}/lines`, line);
+        return response.data.data;
+    },
+
+    updatePriceLinesBatch: async (headerId: number, lines: PriceLine[]) => {
+        const response = await api.post(`/admin/pricing/headers/${headerId}/lines/batch`, lines);
+        return response.data.data;
     },
 
     deletePriceLine: async (lineId: number) => {
         const response = await api.delete(`/admin/pricing/lines/${lineId}`);
-        return response.data;
-    },
-
-    // Surcharges
-    getAllSurcharges: async () => {
-        const response = await api.get('/admin/pricing/surcharges');
-        return response.data?.data || [];
-    },
-
-    createSurcharge: async (data: Surcharge) => {
-        const response = await api.post('/admin/pricing/surcharges', data);
-        return response.data?.data;
-    },
-
-    deleteSurcharge: async (id: number) => {
-        const response = await api.delete(`/admin/pricing/surcharges/${id}`);
         return response.data;
     },
 
@@ -61,20 +55,26 @@ export const pricingService = {
     },
 
     createSeatType: async (data: SeatTypeConfig): Promise<SeatTypeConfig | null> => {
-        // Map SeatTypeConfig to SurchargeRequest
         const payload = {
             name: data.name,
-            code: data.code,
             type: 'SEAT_TYPE',
-            targetId: data.code,
+            targetId: data.code, // Use code as targetId
             amount: data.extraFee,
+            active: data.active,
             color: data.seatColor,
-            active: data.active
+            code: data.code
         };
-        const response = await api.post('/admin/pricing/surcharges', payload);
-        // Return mapped config
+
+        let response;
+        if (data.id) {
+            response = await api.put(`/admin/pricing/seat-types/${data.id}`, payload);
+        } else {
+            response = await api.post('/admin/pricing/seat-types', payload);
+        }
+
         const s = response.data?.data;
         if (!s) return null;
+
         return {
             id: s.id,
             code: s.code || s.targetId,
@@ -87,8 +87,7 @@ export const pricingService = {
     },
 
     deleteSeatType: async (id: number) => {
-        // Seat Types are Surcharges now
-        const response = await api.delete(`/admin/pricing/surcharges/${id}`);
+        const response = await api.delete(`/admin/pricing/seat-types/${id}`);
         return response.data;
     }
 };

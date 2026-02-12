@@ -98,6 +98,10 @@ public class PricingService {
                         totalSurcharge = totalSurcharge.add(s.getAmount());
                     }
                     break;
+                case FORMAT_3D:
+                default:
+                    // Other types not implemented or handled elsewhere (e.g. at Ticket level)
+                    break;
                 case MOVIE_TYPE:
                     // Check if movie is blockbuster? (Need field in Movie)
                     // if (showtime.getMovie().isBlockbuster() &&
@@ -105,12 +109,6 @@ public class PricingService {
                     break;
                 case DATE_TYPE:
                     // Holiday surcharge?
-                    break;
-                case FORMAT_3D:
-                    // If showtime.format == 3D
-                    if (showtime.getFormat() != null && showtime.getFormat().contains("3D")) {
-                        totalSurcharge = totalSurcharge.add(s.getAmount());
-                    }
                     break;
             }
         }

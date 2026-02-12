@@ -59,8 +59,8 @@ export default function AdminDashboard() {
       setRecentBookings(bookings.slice(0, 10).map((b: any) => ({
         id: b.id,
         bookingCode: b.bookingCode,
-        userName: b.user?.fullName || 'N/A',
-        movieTitle: b.showtime?.movie?.title || 'N/A',
+        userName: b.userFullName || b.user?.fullName || 'N/A',
+        movieTitle: b.movieTitle || b.showtime?.movie?.title || 'N/A',
         totalAmount: b.totalAmount || 0,
         status: b.status,
         createdAt: b.createdAt,

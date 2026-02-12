@@ -42,6 +42,15 @@ public class PriceController {
         return ResponseEntity.ok(ApiResponse.success(priceHeaderRepository.save(header)));
     }
 
+    @DeleteMapping("/headers/{id}")
+    public ResponseEntity<ApiResponse<Void>> deletePriceHeader(@PathVariable Long id) {
+        if (!priceHeaderRepository.existsById(id)) {
+            throw new com.cinema.exception.ResourceNotFoundException("PriceHeader", "id", id);
+        }
+        priceHeaderRepository.deleteById(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
     // ================== Price Lines ==================
     @GetMapping("/headers/{headerId}/lines")
     public ResponseEntity<ApiResponse<List<PriceLine>>> getPriceLinesByHeader(@PathVariable Long headerId) {
@@ -78,54 +87,99 @@ public class PriceController {
         return ResponseEntity.ok(ApiResponse.success(priceLineRepository.save(priceLine)));
     }
 
+    @PostMapping("/headers/{headerId}/lines/batch")
+    public ResponseEntity<ApiResponse<List<PriceLine>>> batchUpdatePriceLines(
+            @PathVariable Long headerId,
+            @RequestBody List<com.cinema.dto.request.PriceLineRequest> requests) {
+
+        PriceHeader header = priceHeaderRepository.findById(headerId)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("PriceHeader", "id", headerId));
+
+        List<PriceLine> updatedLines = new java.util.ArrayList<>();
+
+        for (com.cinema.dto.request.PriceLineRequest request : requests) {
+            PriceLine priceLine = priceLineRepository
+                    .findByPriceHeaderIdAndCustomerTypeAndDayTypeAndTimeSlotAndRoomType(
+                            headerId,
+                            request.getCustomerType(),
+                            request.getDayType(),
+                            request.getTimeSlot(),
+                            request.getRoomType())
+                    .orElse(new PriceLine());
+
+            priceLine.setPriceHeader(header);
+            priceLine.setCustomerType(request.getCustomerType());
+            priceLine.setDayType(request.getDayType());
+            priceLine.setTimeSlot(request.getTimeSlot());
+            priceLine.setRoomType(request.getRoomType());
+            priceLine.setPrice(request.getPrice());
+            updatedLines.add(priceLine);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(priceLineRepository.saveAll(updatedLines)));
+    }
+
     @DeleteMapping("/lines/{lineId}")
     public ResponseEntity<ApiResponse<Void>> deletePriceLine(@PathVariable Long lineId) {
         priceLineRepository.deleteById(lineId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // ================== Surcharges (Including Seat Types) ==================
-    @GetMapping("/surcharges")
-    public ResponseEntity<ApiResponse<List<Surcharge>>> getAllSurcharges() {
-        return ResponseEntity.ok(ApiResponse.success(surchargeRepository.findAll()));
-    }
-
-    @PostMapping("/surcharges")
-    public ResponseEntity<ApiResponse<Surcharge>> createSurcharge(
-            @RequestBody com.cinema.dto.request.SurchargeRequest request) {
-        Surcharge surcharge = new Surcharge();
-        surcharge.setName(request.getName());
-        surcharge.setType(request.getType());
-        surcharge.setTargetId(request.getTargetId());
-        surcharge.setAmount(request.getAmount());
-        surcharge.setColor(request.getColor()); // Set color from DTO
-        surcharge.setCode(request.getCode());
-        surcharge.setActive(request.getActive());
-        // Handle color if present (needs DTO update or just set from request if
-        // flexible)
-        // Since I'm using DTO, I should update DTO too.
-
-        return ResponseEntity.ok(ApiResponse.success(surchargeRepository.save(surcharge)));
-    }
-
-    @DeleteMapping("/surcharges/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteSurcharge(@PathVariable Long id) {
-        surchargeRepository.deleteById(id);
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
-
     // ================== Seat Types (Configuration) ==================
-    // Now handled via Surcharges with type=SEAT_TYPE
-    // We can keep these endpoints for frontend compatibility but map them to
-    // Surcharge logic
-
     @GetMapping("/seat-types")
     public ResponseEntity<ApiResponse<List<Surcharge>>> getAllSeatTypes() {
-        // Return only surcharges of type SEAT_TYPE
         return ResponseEntity
                 .ok(ApiResponse.success(surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE)));
     }
 
-    // NOTE: SurchargeRepository needs findByType method
+    @PostMapping("/seat-types")
+    public ResponseEntity<ApiResponse<Surcharge>> createSeatType(
+            @RequestBody com.cinema.dto.request.SurchargeRequest request) {
+        Surcharge surcharge = new Surcharge();
+        surcharge.setName(request.getName());
+        surcharge.setType(Surcharge.SurchargeType.SEAT_TYPE); // Enforce SEAT_TYPE
+        surcharge.setTargetId(request.getCode()); // Use code as targetId for seat types
+        surcharge.setAmount(request.getAmount());
+        surcharge.setColor(request.getColor());
+        surcharge.setCode(request.getCode());
+        surcharge.setActive(request.getActive());
 
+        return ResponseEntity.ok(ApiResponse.success(surchargeRepository.save(surcharge)));
+    }
+
+    @PutMapping("/seat-types/{id}")
+    public ResponseEntity<ApiResponse<Surcharge>> updateSeatType(
+            @PathVariable Long id,
+            @RequestBody com.cinema.dto.request.SurchargeRequest request) {
+        Surcharge surcharge = surchargeRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("Seat Type", "id", id));
+
+        // Ensure we are only updating a seat type
+        if (surcharge.getType() != Surcharge.SurchargeType.SEAT_TYPE) {
+            throw new com.cinema.exception.BadRequestException("Invalid seat type id");
+        }
+
+        surcharge.setName(request.getName());
+        // Type remains SEAT_TYPE
+        surcharge.setTargetId(request.getCode());
+        surcharge.setAmount(request.getAmount());
+        surcharge.setColor(request.getColor());
+        surcharge.setCode(request.getCode());
+        surcharge.setActive(request.getActive());
+
+        return ResponseEntity.ok(ApiResponse.success(surchargeRepository.save(surcharge)));
+    }
+
+    @DeleteMapping("/seat-types/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteSeatType(@PathVariable Long id) {
+        Surcharge surcharge = surchargeRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("Seat Type", "id", id));
+
+        if (surcharge.getType() != Surcharge.SurchargeType.SEAT_TYPE) {
+            throw new com.cinema.exception.BadRequestException("Invalid seat type id");
+        }
+
+        surchargeRepository.deleteById(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

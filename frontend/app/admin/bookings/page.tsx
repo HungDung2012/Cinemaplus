@@ -31,6 +31,16 @@ interface Booking {
   status: string;
   paymentStatus: string;
   createdAt: string;
+
+  // Optional flat fields from API
+  userFullName?: string;
+  userEmail?: string;
+  movieTitle?: string;
+  moviePosterUrl?: string;
+  theaterName?: string;
+  roomName?: string;
+  startTime?: string;
+  seatLabels?: string[];
 }
 
 const STATUS_OPTIONS = [
@@ -58,6 +68,13 @@ export default function BookingsManagementPage() {
     open: false,
     booking: null,
   });
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; booking: Booking | null; newStatus: string }>({
+    open: false,
+    booking: null,
+    newStatus: '',
+  });
+
+
   const [filters, setFilters] = useState({
     status: '',
     paymentStatus: '',
@@ -79,12 +96,23 @@ export default function BookingsManagementPage() {
     }
   };
 
-  const handleStatusChange = async (bookingId: number, newStatus: string) => {
+  const handleStatusChangeRequest = (booking: Booking, newStatus: string) => {
+    setConfirmModal({
+      open: true,
+      booking,
+      newStatus,
+    });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!confirmModal.booking || !confirmModal.newStatus) return;
+
     try {
-      await adminBookingService.updateStatus(bookingId, newStatus);
-      setBookings(bookings.map(b => 
-        b.id === bookingId ? { ...b, status: newStatus } : b
+      await adminBookingService.updateStatus(confirmModal.booking.id, confirmModal.newStatus);
+      setBookings(bookings.map(b =>
+        b.id === confirmModal.booking!.id ? { ...b, status: confirmModal.newStatus } : b
       ));
+      setConfirmModal({ open: false, booking: null, newStatus: '' });
     } catch (error: any) {
       console.error('Error updating booking status:', error);
       alert(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái');
@@ -105,6 +133,7 @@ export default function BookingsManagementPage() {
   };
 
   const formatDateTime = (dateString: string) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
@@ -131,12 +160,12 @@ export default function BookingsManagementPage() {
     if (filters.paymentStatus && booking.paymentStatus !== filters.paymentStatus) return false;
     if (filters.searchTerm) {
       const search = filters.searchTerm.toLowerCase();
-      if (
-        !booking.bookingCode?.toLowerCase().includes(search) &&
-        !booking.user?.fullName?.toLowerCase().includes(search) &&
-        !booking.user?.email?.toLowerCase().includes(search) &&
-        !booking.showtime?.movie?.title?.toLowerCase().includes(search)
-      ) {
+      const code = booking.bookingCode?.toLowerCase() || '';
+      const userName = (booking.userFullName || booking.user?.fullName || '').toLowerCase();
+      const email = (booking.userEmail || booking.user?.email || '').toLowerCase();
+      const movie = (booking.movieTitle || booking.showtime?.movie?.title || '').toLowerCase();
+
+      if (!code.includes(search) && !userName.includes(search) && !email.includes(search) && !movie.includes(search)) {
         return false;
       }
     }
@@ -241,6 +270,7 @@ export default function BookingsManagementPage() {
             <thead className="bg-zinc-50 border-b border-zinc-200">
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Mã đặt vé</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Ngày đặt</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Khách hàng</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Phim / Suất chiếu</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Ghế</th>
@@ -252,58 +282,73 @@ export default function BookingsManagementPage() {
             <tbody className="divide-y divide-zinc-200">
               {filteredBookings.map((booking) => {
                 const statusInfo = getStatusInfo(booking.status);
-                const paymentInfo = getPaymentStatusInfo(booking.paymentStatus);
-                
+                // const paymentInfo = getPaymentStatusInfo(booking.paymentStatus); // Disabled as requested
+
                 return (
                   <tr key={booking.id} className="hover:bg-zinc-50">
                     <td className="px-6 py-4">
                       <div className="font-mono font-medium text-zinc-900">{booking.bookingCode}</div>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="text-sm text-zinc-500">{formatDateTime(booking.createdAt)}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-zinc-900">{booking.user?.fullName}</div>
-                      <div className="text-sm text-zinc-500">{booking.user?.email}</div>
+                      <div className="font-medium text-zinc-900">{booking.userFullName || booking.user?.fullName}</div>
+                      <div className="text-sm text-zinc-500">{booking.userEmail || booking.user?.email}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-zinc-900">{booking.showtime?.movie?.title}</div>
+                      <div className="font-medium text-zinc-900">{booking.movieTitle || booking.showtime?.movie?.title}</div>
                       <div className="text-sm text-zinc-500">
-                        {booking.showtime?.theater?.name} - {booking.showtime?.room?.name}
+                        {booking.theaterName || booking.showtime?.theater?.name} - {booking.roomName || booking.showtime?.room?.name}
                       </div>
-                      <div className="text-sm text-zinc-500">{formatDateTime(booking.showtime?.startTime)}</div>
+                      <div className="text-sm text-zinc-500">{formatDateTime(booking.startTime || booking.showtime?.startTime)}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
-                        {booking.seats?.slice(0, 3).map((seat, idx) => (
+                        {booking.seatLabels?.slice(0, 3).map((seat, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-zinc-100 rounded text-xs font-medium">
+                            {seat}
+                          </span>
+                        )) || booking.seats?.slice(0, 3).map((seat, idx) => (
                           <span key={idx} className="px-2 py-1 bg-zinc-100 rounded text-xs font-medium">
                             {seat}
                           </span>
                         ))}
-                        {booking.seats?.length > 3 && (
+                        {(booking.seatLabels?.length || booking.seats?.length || 0) > 3 && (
                           <span className="px-2 py-1 bg-zinc-100 rounded text-xs font-medium">
-                            +{booking.seats.length - 3}
+                            +{(booking.seatLabels?.length || booking.seats?.length || 0) - 3}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-zinc-900">{formatPrice(booking.totalAmount)}</div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${paymentInfo.color}`}>
-                        {paymentInfo.label}
-                      </span>
+                      {/* Payment status removed from here as requested */}
                     </td>
                     <td className="px-6 py-4">
-                      <select
-                        value={booking.status}
-                        onChange={(e) => handleStatusChange(booking.id, e.target.value)}
-                        className={`px-2 py-1 rounded text-sm font-medium border-0 cursor-pointer ${statusInfo.color}`}
-                      >
-                        {STATUS_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                      <div className="relative inline-block">
+                        <select
+                          value={booking.status}
+                          onChange={(e) => handleStatusChangeRequest(booking, e.target.value)}
+                          className={`appearance-none pl-3 pr-8 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:outline-none ${statusInfo.color}`}
+                          style={{ textAlign: 'center', minWidth: '130px' }}
+                        >
+                          {STATUS_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value} className="bg-white text-zinc-900 text-sm">
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-current opacity-70">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+
                         <button
                           onClick={() => setDetailModal({ open: true, booking })}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -342,6 +387,32 @@ export default function BookingsManagementPage() {
         )}
       </div>
 
+      {/* Confirmation Modal */}
+      {confirmModal.open && confirmModal.booking && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold text-zinc-900 mb-2">Xác nhận thay đổi</h3>
+            <p className="text-zinc-600 mb-6">
+              Bạn có chắc chắn muốn đổi trạng thái đơn hàng <span className="font-mono font-medium">{confirmModal.booking.bookingCode}</span> sang <span className="font-medium text-zinc-900">{STATUS_OPTIONS.find(s => s.value === confirmModal.newStatus)?.label}</span>?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmModal({ open: false, booking: null, newStatus: '' })}
+                className="px-4 py-2 text-zinc-700 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmStatusChange}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Đồng ý
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail Modal */}
       {detailModal.open && detailModal.booking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -357,7 +428,7 @@ export default function BookingsManagementPage() {
                 </svg>
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="p-4 bg-zinc-50 rounded-lg">
                 <div className="text-sm text-zinc-500 mb-1">Mã đặt vé</div>
@@ -367,8 +438,8 @@ export default function BookingsManagementPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-zinc-500 mb-1">Khách hàng</div>
-                  <div className="font-medium">{detailModal.booking.user?.fullName}</div>
-                  <div className="text-sm text-zinc-600">{detailModal.booking.user?.email}</div>
+                  <div className="font-medium">{detailModal.booking.userFullName || detailModal.booking.user?.fullName}</div>
+                  <div className="text-sm text-zinc-600">{detailModal.booking.userEmail || detailModal.booking.user?.email}</div>
                   <div className="text-sm text-zinc-600">{detailModal.booking.user?.phone}</div>
                 </div>
                 <div>
@@ -380,18 +451,18 @@ export default function BookingsManagementPage() {
               <div className="border-t pt-4">
                 <div className="text-sm text-zinc-500 mb-2">Thông tin suất chiếu</div>
                 <div className="flex gap-3">
-                  {detailModal.booking.showtime?.movie?.posterUrl && (
+                  {(detailModal.booking.moviePosterUrl || detailModal.booking.showtime?.movie?.posterUrl) && (
                     <img
-                      src={detailModal.booking.showtime.movie.posterUrl}
+                      src={detailModal.booking.moviePosterUrl || detailModal.booking.showtime?.movie?.posterUrl}
                       alt=""
                       className="w-16 h-24 rounded object-cover"
                     />
                   )}
                   <div>
-                    <div className="font-medium">{detailModal.booking.showtime?.movie?.title}</div>
-                    <div className="text-sm text-zinc-600">{detailModal.booking.showtime?.theater?.name}</div>
-                    <div className="text-sm text-zinc-600">{detailModal.booking.showtime?.room?.name}</div>
-                    <div className="text-sm text-zinc-600">{formatDateTime(detailModal.booking.showtime?.startTime)}</div>
+                    <div className="font-medium">{detailModal.booking.movieTitle || detailModal.booking.showtime?.movie?.title}</div>
+                    <div className="text-sm text-zinc-600">{detailModal.booking.theaterName || detailModal.booking.showtime?.theater?.name}</div>
+                    <div className="text-sm text-zinc-600">{detailModal.booking.roomName || detailModal.booking.showtime?.room?.name}</div>
+                    <div className="text-sm text-zinc-600">{formatDateTime(detailModal.booking.startTime || detailModal.booking.showtime?.startTime)}</div>
                   </div>
                 </div>
               </div>
@@ -399,7 +470,7 @@ export default function BookingsManagementPage() {
               <div className="border-t pt-4">
                 <div className="text-sm text-zinc-500 mb-2">Ghế đã chọn</div>
                 <div className="flex flex-wrap gap-2">
-                  {detailModal.booking.seats?.map((seat, idx) => (
+                  {(detailModal.booking.seatLabels || detailModal.booking.seats)?.map((seat, idx) => (
                     <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded font-medium">
                       {seat}
                     </span>

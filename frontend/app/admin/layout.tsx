@@ -33,6 +33,7 @@ const MENU_ITEMS = [
       </svg>
     )
   },
+
   {
     href: '/admin/showtimes',
     label: 'Quản lý Suất chiếu',

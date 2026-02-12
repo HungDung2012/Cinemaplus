@@ -131,6 +131,11 @@ public class SampleDataInitializer implements CommandLineRunner {
                 if (promotionRepository.count() == 0) {
                         initPromotions();
                 }
+
+                // Init sample bookings
+                if (bookingRepository.count() == 0) {
+                        initSampleBookings();
+                }
         }
 
         private void initRoomsAndSeats() {
@@ -874,94 +879,145 @@ public class SampleDataInitializer implements CommandLineRunner {
         private void initPricingLogic() {
                 log.info("Initializing pricing logic (Rate Cards)...");
 
-                // 1. Create Price Header (Standard 2024)
-                PriceHeader standardHeader = PriceHeader.builder()
-                                .name("Bảng Giá Tiêu Chuẩn 2024")
-                                .startDate(LocalDate.of(2024, 1, 1))
-                                .endDate(LocalDate.of(2025, 12, 31))
-                                .priority(1)
-                                .active(true)
-                                .build();
-                standardHeader = priceHeaderRepository.save(standardHeader);
-
-                List<PriceLine> lines = new ArrayList<>();
-
-                // Helper arrays
-                PriceLine.CustomerType[] customers = { PriceLine.CustomerType.ADULT, PriceLine.CustomerType.STUDENT,
-                                PriceLine.CustomerType.MEMBER };
-
-                // 2. Create Base Lines
-                // Standard 2D
-                // Weekday: Morning 65k, Day/Eve 85k
-                // Weekend: Morning 75k, Day/Eve 105k
-                for (PriceLine.CustomerType customer : customers) {
-                        BigDecimal discount = BigDecimal.ZERO;
-                        if (customer == PriceLine.CustomerType.STUDENT)
-                                discount = new BigDecimal("10000"); // Student -10k
-                        if (customer == PriceLine.CustomerType.MEMBER)
-                                discount = new BigDecimal("5000"); // Member -5k
-
-                        // Weekday
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKDAY,
-                                        PriceLine.TimeSlot.MORNING, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("65000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKDAY,
-                                        PriceLine.TimeSlot.DAY, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("85000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKDAY,
-                                        PriceLine.TimeSlot.EVENING, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("85000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKDAY,
-                                        PriceLine.TimeSlot.LATE, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("85000").subtract(discount)));
-
-                        // Weekend (Fri-Sun)
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKEND,
-                                        PriceLine.TimeSlot.MORNING, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("75000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKEND,
-                                        PriceLine.TimeSlot.DAY, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("105000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKEND,
-                                        PriceLine.TimeSlot.EVENING, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("105000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKEND,
-                                        PriceLine.TimeSlot.LATE, Room.RoomType.STANDARD_2D,
-                                        new BigDecimal("105000").subtract(discount)));
-
-                        // IMAX (Fixed price for simplicity) - 150k
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKDAY,
-                                        PriceLine.TimeSlot.EVENING, Room.RoomType.IMAX,
-                                        new BigDecimal("150000").subtract(discount)));
-                        lines.add(createPriceLine(standardHeader, customer, PriceLine.DayType.WEEKEND,
-                                        PriceLine.TimeSlot.EVENING, Room.RoomType.IMAX,
-                                        new BigDecimal("180000").subtract(discount)));
-                        // Also add default for other slots if needed, or assume Evening covers most.
-                        // For rigor, let's add broadly:
-                        // Actually, let's just add minimal set for demo
+                // 1. Create Price Header (Standard 2024) - Keeping for legacy support if needed
+                if (priceHeaderRepository.findActiveHeadersForDate(LocalDate.of(2024, 6, 1)).isEmpty()) {
+                        PriceHeader standardHeader = PriceHeader.builder()
+                                        .name("Bảng Giá Tiêu Chuẩn 2024")
+                                        .startDate(LocalDate.of(2024, 1, 1))
+                                        .endDate(LocalDate.of(2024, 12, 31))
+                                        .priority(1)
+                                        .active(true)
+                                        .build();
+                        standardHeader = priceHeaderRepository.save(standardHeader);
+                        createFullPriceList(standardHeader);
+                        log.info("Created Price Header 2024");
                 }
 
-                // Add explicit heavy lines for coverage
-                // 3D Standard
-                lines.add(createPriceLine(standardHeader, PriceLine.CustomerType.ADULT, PriceLine.DayType.WEEKDAY,
-                                PriceLine.TimeSlot.EVENING, Room.RoomType.STANDARD_3D, new BigDecimal("120000")));
-                lines.add(createPriceLine(standardHeader, PriceLine.CustomerType.ADULT, PriceLine.DayType.WEEKEND,
-                                PriceLine.TimeSlot.EVENING, Room.RoomType.STANDARD_3D, new BigDecimal("140000")));
+                // 2. Create Price Header (Standard 2025)
+                if (priceHeaderRepository.findActiveHeadersForDate(LocalDate.of(2025, 6, 1)).isEmpty()) {
+                        PriceHeader header2025 = PriceHeader.builder()
+                                        .name("Bảng Giá Tiêu Chuẩn 2025")
+                                        .startDate(LocalDate.of(2025, 1, 1))
+                                        .endDate(LocalDate.of(2025, 12, 31))
+                                        .priority(1)
+                                        .active(true)
+                                        .build();
+                        header2025 = priceHeaderRepository.save(header2025);
+                        createFullPriceList(header2025);
+                        log.info("Created Price Header 2025 with full price lines");
+                }
 
-                priceLineRepository.saveAll(lines);
-                log.info("Created {} price lines", lines.size());
+                // 3. Create Price Header (Standard 2026)
+                if (priceHeaderRepository.findActiveHeadersForDate(LocalDate.of(2026, 6, 1)).isEmpty()) {
+                        PriceHeader header2026 = PriceHeader.builder()
+                                        .name("Bảng Giá Tiêu Chuẩn 2026")
+                                        .startDate(LocalDate.of(2026, 1, 1))
+                                        .endDate(LocalDate.of(2026, 12, 31))
+                                        .priority(1)
+                                        .active(true)
+                                        .build();
+                        header2026 = priceHeaderRepository.save(header2026);
+                        createFullPriceList(header2026);
+                        log.info("Created Price Header 2026 with full price lines");
+                }
 
-                // 3. Create Surcharges
+                // 4. Create Surcharges
+                initSurcharges();
+        }
+
+        private void initSurcharges() {
                 List<Surcharge> surcharges = new ArrayList<>();
-                surcharges.add(Surcharge.builder().name("VIP Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
-                                .targetId("VIP").amount(new BigDecimal("15000")).active(true).build());
-                surcharges.add(Surcharge.builder().name("Couple Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
-                                .targetId("COUPLE").amount(new BigDecimal("20000")).active(true).build());
-                surcharges.add(Surcharge.builder().name("3D Glasses").type(Surcharge.SurchargeType.FORMAT_3D)
-                                .targetId("3D").amount(new BigDecimal("15000")).active(true).build());
 
-                surchargeRepository.saveAll(surcharges);
-                log.info("Created {} surcharges", surcharges.size());
+                // VIP Seat
+                if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
+                                .noneMatch(s -> "VIP".equals(s.getTargetId()))) {
+                        surcharges.add(Surcharge.builder().name("VIP Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .targetId("VIP").amount(new BigDecimal("15000")).active(true).build());
+                }
+                // Couple Seat
+                if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
+                                .noneMatch(s -> "COUPLE".equals(s.getTargetId()))) {
+                        surcharges.add(Surcharge.builder().name("Couple Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .targetId("COUPLE").amount(new BigDecimal("20000")).active(true).build());
+                }
+
+                if (!surcharges.isEmpty()) {
+                        surchargeRepository.saveAll(surcharges);
+                        log.info("Created {} surcharges", surcharges.size());
+                }
+        }
+
+        private void createFullPriceList(PriceHeader header) {
+                List<PriceLine> lines = new ArrayList<>();
+
+                // Iterate all combinations
+                for (PriceLine.CustomerType customer : PriceLine.CustomerType.values()) {
+                        for (PriceLine.DayType day : PriceLine.DayType.values()) {
+                                for (PriceLine.TimeSlot slot : PriceLine.TimeSlot.values()) {
+                                        for (Room.RoomType room : Room.RoomType.values()) {
+                                                BigDecimal price = calculateBasePrice(customer, day, slot, room);
+                                                lines.add(createPriceLine(header, customer, day, slot, room, price));
+                                        }
+                                }
+                        }
+                }
+                priceLineRepository.saveAll(lines);
+        }
+
+        private BigDecimal calculateBasePrice(PriceLine.CustomerType customer, PriceLine.DayType day,
+                        PriceLine.TimeSlot slot, Room.RoomType room) {
+                // Base price (Adult, Weekday, Morning, Standard 2D)
+                BigDecimal base = new BigDecimal("60000");
+
+                // 1. Room Type Modifiers
+                if (room == Room.RoomType.STANDARD_3D)
+                        base = base.add(new BigDecimal("30000"));
+                else if (room == Room.RoomType.IMAX)
+                        base = base.add(new BigDecimal("60000"));
+                else if (room == Room.RoomType.VIP_4DX)
+                        base = base.add(new BigDecimal("80000"));
+
+                // 2. Day Type Modifiers
+                if (day == PriceLine.DayType.WEEKEND)
+                        base = base.add(new BigDecimal("20000"));
+                else if (day == PriceLine.DayType.HOLIDAY)
+                        base = base.add(new BigDecimal("30000"));
+                // Happy Day might be cheaper
+                else if (day == PriceLine.DayType.HAPPY_DAY)
+                        base = base.add(new BigDecimal("0")); // Keep base low
+
+                // 3. Time Slot Modifiers
+                if (slot == PriceLine.TimeSlot.DAY || slot == PriceLine.TimeSlot.EVENING) {
+                        base = base.add(new BigDecimal("20000")); // Peak hours
+                } else if (slot == PriceLine.TimeSlot.LATE) {
+                        base = base.add(new BigDecimal("10000")); // Late night slightly more than morning
+                }
+
+                // 4. Customer Type Modifiers (Discounts)
+                // Ensure price doesn't go below a minimum threshold (e.g. 45k)
+                BigDecimal discount = BigDecimal.ZERO;
+                switch (customer) {
+                        case STUDENT:
+                        case U22:
+                        case SENIOR:
+                                discount = new BigDecimal("15000");
+                                break;
+                        case MEMBER:
+                                discount = new BigDecimal("10000");
+                                break;
+                        case VIP_MEMBER:
+                                discount = new BigDecimal("20000");
+                                break;
+                        default:
+                                break;
+                }
+
+                BigDecimal finalPrice = base.subtract(discount);
+                if (finalPrice.compareTo(new BigDecimal("45000")) < 0) {
+                        finalPrice = new BigDecimal("45000"); // Minimum floor price
+                }
+
+                return finalPrice;
         }
 
         private PriceLine createPriceLine(PriceHeader header, PriceLine.CustomerType customerType,
@@ -2316,5 +2372,86 @@ public class SampleDataInitializer implements CommandLineRunner {
 
                 promotionRepository.saveAll(promotions);
                 log.info("Created {} promotions", promotions.size());
+        }
+
+        private void initSampleBookings() {
+                log.info("Initializing sample bookings...");
+                List<User> users = userRepository.findAll();
+                List<Showtime> showtimes = showtimeRepository.findAll();
+
+                if (users.isEmpty() || showtimes.isEmpty()) {
+                        log.warn("Cannot init bookings: users or showtimes missing");
+                        return;
+                }
+
+                Random random = new Random();
+                List<Booking> bookings = new ArrayList<>();
+
+                for (int i = 0; i < 50; i++) {
+                        User user = users.get(random.nextInt(users.size()));
+                        Showtime showtime = showtimes.get(random.nextInt(showtimes.size()));
+
+                        // Skip if user is admin (optional, assuming role checks not needed for data init)
+                        if (user.getRole() == User.Role.ADMIN) continue;
+
+                        int seatsToBook = 1 + random.nextInt(4);
+                        List<String> seatLabels = new ArrayList<>();
+                        // Simple logic: pick random seats (collision possible but acceptable for sample data if we don't validate strictly here)
+                        // Or better: use seats not yet booked for this showtime? 
+                        // For simplicity in sample data, we'll just pick random seat names like A1, B2
+                        char row = (char) ('A' + random.nextInt(8));
+                        for (int j = 1; j <= seatsToBook; j++) {
+                                seatLabels.add("" + row + (random.nextInt(10) + 1));
+                        }
+
+                        double totalAmount = seatsToBook * 80000.0; // Approx price
+
+                        Booking booking = Booking.builder()
+                                        .user(user)
+                                        .showtime(showtime)
+                                        .bookingCode("BK" + System.currentTimeMillis() + i)
+                                        .numberOfSeats(seatsToBook)
+                                        .seatAmount(new BigDecimal(totalAmount)) // Fix: convert double to BigDecimal
+                                        .foodAmount(BigDecimal.ZERO)
+                                        .totalAmount(new BigDecimal(totalAmount))
+                                        .discountAmount(BigDecimal.ZERO)
+                                        .finalAmount(new BigDecimal(totalAmount))
+                                        .status(Booking.BookingStatus.values()[random.nextInt(Booking.BookingStatus.values().length)])
+                                        .createdAt(LocalDateTime.now().minusDays(random.nextInt(30)).minusHours(random.nextInt(24)))
+                                        .build();
+
+                        // Sync payment status
+                        Payment.PaymentStatus paymentStatus;
+                        if (booking.getStatus() == Booking.BookingStatus.COMPLETED || booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
+                             paymentStatus = Payment.PaymentStatus.COMPLETED;
+                        } else if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+                             paymentStatus = random.nextBoolean() ? Payment.PaymentStatus.REFUNDED : Payment.PaymentStatus.FAILED;
+                        } else {
+                             paymentStatus = Payment.PaymentStatus.PENDING;
+                        }
+                        
+                        // Create Payment
+                        Payment payment = Payment.builder()
+                                .booking(booking)
+                                .amount(booking.getFinalAmount())
+                                .paymentMethod(Payment.PaymentMethod.values()[random.nextInt(Payment.PaymentMethod.values().length)])
+                                .status(paymentStatus)
+                                .transactionId("TXN" + System.currentTimeMillis() + i)
+                                .createdAt(booking.getCreatedAt())
+                                .build();
+                        
+                        booking.setPayment(payment);
+
+                        // Save booking first to get ID if needed, but cascade PERSIST on Payment usually handles it?
+                        // Actually usually we save booking, then payment. 
+                        // Let's add into list and save all? 
+                        // Better to save individually to handle relationships if CascadeType.ALL is set correct.
+                        // Assuming CascadeType.ALL on Booking -> Payment
+                        
+                        bookings.add(booking);
+                }
+                
+                bookingRepository.saveAll(bookings);
+                log.info("Created {} sample bookings", bookings.size());
         }
 }

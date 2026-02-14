@@ -10,17 +10,20 @@ import java.util.List;
 @Repository
 public interface FoodRepository extends JpaRepository<Food, Long> {
 
-    List<Food> findByIsAvailableTrue();
+    List<Food> findByActiveTrue();
 
-    List<Food> findByCategoryAndIsAvailableTrue(Food.FoodCategory category);
+    List<Food> findByCategoryAndActiveTrue(Food.FoodCategory category);
 
-    List<Food> findByIsComboTrueAndIsAvailableTrue();
+    List<Food> findByIsComboTrueAndActiveTrue();
 
-    List<Food> findByIsComboFalseAndIsAvailableTrue();
+    List<Food> findByIsComboFalseAndActiveTrue();
 
-    @Query("SELECT f FROM Food f WHERE f.isAvailable = true ORDER BY f.sortOrder ASC, f.category ASC")
-    List<Food> findAllAvailableSorted();
+    @Query("SELECT f FROM Food f WHERE f.active = true ORDER BY f.sortOrder ASC, f.category ASC")
+    List<Food> findAllActiveSorted();
 
-    @Query("SELECT DISTINCT f.category FROM Food f WHERE f.isAvailable = true")
+    @Query("SELECT f FROM Food f ORDER BY f.sortOrder ASC, f.category ASC")
+    List<Food> findAllSorted();
+
+    @Query("SELECT DISTINCT f.category FROM Food f WHERE f.active = true")
     List<Food.FoodCategory> findAllAvailableCategories();
 }

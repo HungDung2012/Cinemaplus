@@ -23,6 +23,7 @@ public class FoodResponse {
     private Food.FoodSize size;
     private String sizeName;
     private Boolean isAvailable;
+    private Boolean active;
     private Boolean isCombo;
     private String comboDescription;
     private BigDecimal originalPrice;
@@ -46,7 +47,9 @@ public class FoodResponse {
                 .categoryName(getCategoryName(food.getCategory()))
                 .size(food.getSize())
                 .sizeName(getSizeName(food.getSize()))
+                .sizeName(getSizeName(food.getSize()))
                 .isAvailable(food.getIsAvailable())
+                .active(food.getActive())
                 .isCombo(food.getIsCombo())
                 .comboDescription(food.getComboDescription())
                 .originalPrice(food.getOriginalPrice())

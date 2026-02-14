@@ -109,7 +109,7 @@ export default function UsersManagementPage() {
   const handleRoleChange = async (userId: number, newRole: string) => {
     try {
       await adminUserService.updateRole(userId, newRole);
-      setUsers(users.map(u => 
+      setUsers(users.map(u =>
         u.id === userId ? { ...u, role: newRole } : u
       ));
     } catch (error: any) {
@@ -267,7 +267,7 @@ export default function UsersManagementPage() {
             <tbody className="divide-y divide-zinc-200">
               {filteredUsers.map((user) => {
                 const roleInfo = getRoleInfo(user.role);
-                
+
                 return (
                   <tr key={user.id} className="hover:bg-zinc-50">
                     <td className="px-6 py-4">

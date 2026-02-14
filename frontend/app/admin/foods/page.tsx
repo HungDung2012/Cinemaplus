@@ -10,7 +10,8 @@ interface Food {
   price: number;
   imageUrl: string;
   category: string;
-  available: boolean;
+  isAvailable: boolean;
+  active: boolean;
 }
 
 const CATEGORIES = [
@@ -40,7 +41,7 @@ export default function FoodsManagementPage() {
     price: '',
     imageUrl: '',
     category: 'POPCORN',
-    available: true,
+    status: 'AVAILABLE', // AVAILABLE, OUT_OF_STOCK, HIDDEN
   });
 
   useEffect(() => {
@@ -66,20 +67,26 @@ export default function FoodsManagementPage() {
       price: '',
       imageUrl: '',
       category: 'POPCORN',
-      available: true,
+      status: 'AVAILABLE',
     });
     setModalOpen(true);
   };
 
   const openEditModal = (food: Food) => {
     setEditingFood(food);
+
+    let status = 'HIDDEN';
+    if (food.active) {
+      status = food.isAvailable ? 'AVAILABLE' : 'OUT_OF_STOCK';
+    }
+
     setFormData({
       name: food.name || '',
       description: food.description || '',
       price: food.price?.toString() || '',
       imageUrl: food.imageUrl || '',
       category: food.category || 'POPCORN',
-      available: food.available !== false,
+      status: status,
     });
     setModalOpen(true);
   };
@@ -89,15 +96,21 @@ export default function FoodsManagementPage() {
     setSaving(true);
 
     try {
-      const data = {
-        ...formData,
+      const payload = {
+        name: formData.name,
+        description: formData.description,
         price: parseFloat(formData.price),
+        imageUrl: formData.imageUrl,
+        category: formData.category,
+        size: 'LARGE', // Default size if not managed
+        active: formData.status !== 'HIDDEN',
+        isAvailable: formData.status === 'AVAILABLE',
       };
 
       if (editingFood) {
-        await adminFoodService.update(editingFood.id, data);
+        await adminFoodService.update(editingFood.id, payload);
       } else {
-        await adminFoodService.create(data);
+        await adminFoodService.create(payload);
       }
 
       await fetchFoods();
@@ -203,71 +216,100 @@ export default function FoodsManagementPage() {
         </div>
       </div>
 
-      {/* Foods Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredFoods.map((food) => (
-          <div
-            key={food.id}
-            className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden hover:shadow-md transition-shadow"
-          >
-            <div className="aspect-square bg-zinc-100 relative">
-              {food.imageUrl ? (
-                <img src={food.imageUrl} alt={food.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <svg className="w-16 h-16 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
-              {!food.available && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <span className="px-3 py-1 bg-red-600 text-white rounded-full text-sm font-medium">
-                    Hết hàng
-                  </span>
-                </div>
-              )}
-              <span className="absolute top-2 right-2 px-2 py-1 bg-white/90 rounded text-xs font-medium text-zinc-700">
-                {getCategoryLabel(food.category)}
-              </span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-zinc-900 mb-1">{food.name}</h3>
-              <p className="text-sm text-zinc-500 line-clamp-2 mb-3">{food.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-red-600">{formatPrice(food.price)}</span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => openEditModal(food)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setDeleteModal({ open: true, food })}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredFoods.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-zinc-200">
-          <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="text-zinc-500">Không tìm thấy sản phẩm nào</p>
+      {/* Foods Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-zinc-50 border-b border-zinc-200">
+              <tr>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Hình ảnh</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Tên món</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Danh mục</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Giá</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Trạng thái</th>
+                <th className="text-right px-6 py-4 text-sm font-medium text-zinc-700">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200">
+              {filteredFoods.map((food) => (
+                <tr key={food.id} className="hover:bg-zinc-50">
+                  <td className="px-6 py-4 w-24">
+                    <div className="w-12 h-12 rounded-lg bg-zinc-100 overflow-hidden">
+                      {food.imageUrl ? (
+                        <img src={food.imageUrl} alt={food.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-300">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-zinc-900">{food.name}</div>
+                    <div className="text-sm text-zinc-500 line-clamp-1">{food.description}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 bg-zinc-100 rounded text-xs font-medium text-zinc-700">
+                      {getCategoryLabel(food.category)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-medium text-red-600">
+                    {formatPrice(food.price)}
+                  </td>
+                  <td className="px-6 py-4">
+                    {!food.active ? (
+                      <span className="px-2 py-1 bg-zinc-100 text-zinc-500 rounded-full text-xs font-medium border border-zinc-200">
+                        Đang ẩn
+                      </span>
+                    ) : food.isAvailable ? (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                        Còn hàng
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                        Hết hàng
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openEditModal(food)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setDeleteModal({ open: true, food })}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Xóa"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {filteredFoods.length === 0 && (
+          <div className="text-center py-12">
+            <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-zinc-500">Không tìm thấy sản phẩm nào</p>
+          </div>
+        )}
+      </div>
 
       {/* Create/Edit Modal */}
       {modalOpen && (
@@ -351,17 +393,19 @@ export default function FoodsManagementPage() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="available"
-                  checked={formData.available}
-                  onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-                  className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                />
-                <label htmlFor="available" className="text-sm text-zinc-700">
-                  Còn hàng
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">
+                  Trạng thái
                 </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="AVAILABLE">Đang bán (Còn hàng)</option>
+                  <option value="OUT_OF_STOCK">Hết hàng (Hiển thị nhưng không bán)</option>
+                  <option value="HIDDEN">Ẩn (Không hiển thị)</option>
+                </select>
               </div>
 
               <div className="flex gap-3 pt-4">

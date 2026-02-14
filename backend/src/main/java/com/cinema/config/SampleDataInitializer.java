@@ -2391,13 +2391,16 @@ public class SampleDataInitializer implements CommandLineRunner {
                         User user = users.get(random.nextInt(users.size()));
                         Showtime showtime = showtimes.get(random.nextInt(showtimes.size()));
 
-                        // Skip if user is admin (optional, assuming role checks not needed for data init)
-                        if (user.getRole() == User.Role.ADMIN) continue;
+                        // Skip if user is admin (optional, assuming role checks not needed for data
+                        // init)
+                        if (user.getRole() == User.Role.ADMIN)
+                                continue;
 
                         int seatsToBook = 1 + random.nextInt(4);
                         List<String> seatLabels = new ArrayList<>();
-                        // Simple logic: pick random seats (collision possible but acceptable for sample data if we don't validate strictly here)
-                        // Or better: use seats not yet booked for this showtime? 
+                        // Simple logic: pick random seats (collision possible but acceptable for sample
+                        // data if we don't validate strictly here)
+                        // Or better: use seats not yet booked for this showtime?
                         // For simplicity in sample data, we'll just pick random seat names like A1, B2
                         char row = (char) ('A' + random.nextInt(8));
                         for (int j = 1; j <= seatsToBook; j++) {
@@ -2416,41 +2419,48 @@ public class SampleDataInitializer implements CommandLineRunner {
                                         .totalAmount(new BigDecimal(totalAmount))
                                         .discountAmount(BigDecimal.ZERO)
                                         .finalAmount(new BigDecimal(totalAmount))
-                                        .status(Booking.BookingStatus.values()[random.nextInt(Booking.BookingStatus.values().length)])
-                                        .createdAt(LocalDateTime.now().minusDays(random.nextInt(30)).minusHours(random.nextInt(24)))
+                                        .status(Booking.BookingStatus.values()[random
+                                                        .nextInt(Booking.BookingStatus.values().length)])
+                                        .createdAt(LocalDateTime.now().minusDays(random.nextInt(30))
+                                                        .minusHours(random.nextInt(24)))
                                         .build();
 
                         // Sync payment status
                         Payment.PaymentStatus paymentStatus;
-                        if (booking.getStatus() == Booking.BookingStatus.COMPLETED || booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
-                             paymentStatus = Payment.PaymentStatus.COMPLETED;
+                        if (booking.getStatus() == Booking.BookingStatus.COMPLETED
+                                        || booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
+                                paymentStatus = Payment.PaymentStatus.COMPLETED;
                         } else if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
-                             paymentStatus = random.nextBoolean() ? Payment.PaymentStatus.REFUNDED : Payment.PaymentStatus.FAILED;
+                                paymentStatus = random.nextBoolean() ? Payment.PaymentStatus.REFUNDED
+                                                : Payment.PaymentStatus.FAILED;
                         } else {
-                             paymentStatus = Payment.PaymentStatus.PENDING;
+                                paymentStatus = Payment.PaymentStatus.PENDING;
                         }
-                        
+
                         // Create Payment
                         Payment payment = Payment.builder()
-                                .booking(booking)
-                                .amount(booking.getFinalAmount())
-                                .paymentMethod(Payment.PaymentMethod.values()[random.nextInt(Payment.PaymentMethod.values().length)])
-                                .status(paymentStatus)
-                                .transactionId("TXN" + System.currentTimeMillis() + i)
-                                .createdAt(booking.getCreatedAt())
-                                .build();
-                        
+                                        .booking(booking)
+                                        .amount(booking.getFinalAmount())
+                                        .paymentMethod(Payment.PaymentMethod.values()[random
+                                                        .nextInt(Payment.PaymentMethod.values().length)])
+                                        .status(paymentStatus)
+                                        .transactionId("TXN" + System.currentTimeMillis() + i)
+                                        .createdAt(booking.getCreatedAt())
+                                        .build();
+
                         booking.setPayment(payment);
 
-                        // Save booking first to get ID if needed, but cascade PERSIST on Payment usually handles it?
-                        // Actually usually we save booking, then payment. 
-                        // Let's add into list and save all? 
-                        // Better to save individually to handle relationships if CascadeType.ALL is set correct.
+                        // Save booking first to get ID if needed, but cascade PERSIST on Payment
+                        // usually handles it?
+                        // Actually usually we save booking, then payment.
+                        // Let's add into list and save all?
+                        // Better to save individually to handle relationships if CascadeType.ALL is set
+                        // correct.
                         // Assuming CascadeType.ALL on Booking -> Payment
-                        
+
                         bookings.add(booking);
                 }
-                
+
                 bookingRepository.saveAll(bookings);
                 log.info("Created {} sample bookings", bookings.size());
         }

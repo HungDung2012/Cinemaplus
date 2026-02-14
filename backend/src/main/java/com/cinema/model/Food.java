@@ -45,6 +45,10 @@ public class Food {
     @Builder.Default
     private Boolean isAvailable = true;
 
+    @Column(name = "active")
+    @Builder.Default
+    private Boolean active = true;
+
     @Column(name = "is_combo")
     @Builder.Default
     private Boolean isCombo = false;
@@ -74,19 +78,19 @@ public class Food {
     private LocalDateTime updatedAt;
 
     public enum FoodCategory {
-        POPCORN,        // Bắp rang
-        DRINK,          // Đồ uống
-        SNACK,          // Snack
-        COMBO,          // Combo
-        FAST_FOOD,      // Đồ ăn nhanh
-        CANDY,          // Kẹo bánh
-        ICE_CREAM       // Kem
+        POPCORN, // Bắp rang
+        DRINK, // Đồ uống
+        SNACK, // Snack
+        COMBO, // Combo
+        FAST_FOOD, // Đồ ăn nhanh
+        CANDY, // Kẹo bánh
+        ICE_CREAM // Kem
     }
 
     public enum FoodSize {
-        SMALL,      // Nhỏ
-        MEDIUM,     // Vừa
-        LARGE,      // Lớn
+        SMALL, // Nhỏ
+        MEDIUM, // Vừa
+        LARGE, // Lớn
         EXTRA_LARGE // Siêu lớn
     }
 }

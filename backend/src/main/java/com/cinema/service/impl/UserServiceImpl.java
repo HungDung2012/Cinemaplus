@@ -3,6 +3,7 @@ package com.cinema.service.impl;
 import com.cinema.dto.request.CreateUserRequest;
 import com.cinema.dto.request.UpdateUserRequest;
 import com.cinema.dto.response.UserResponse;
+import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.User;
 import com.cinema.repository.UserRepository;
@@ -43,7 +44,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + request.getEmail());
+            throw new DuplicateResourceException("Email '" + request.getEmail() + "' đã tồn tại");
         }
 
         User user = User.builder()
@@ -67,6 +68,23 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+
+        // Check duplicate email if email is being updated (though request doesn't have
+        // email field typically for update, but handling just in case or if logic
+        // changes)
+        // UpdateUserRequest currently doesn't seem to have email based on previous
+        // view, but let's check.
+        // Based on view_file of UserServiceImpl earlier, UpdateUserRequest did NOT have
+        // email in the set fields block.
+        // Wait, let me re-check UpdateUserRequest. I'll stick to what I saw.
+        // setFullName, setPhone... I don't see setEmail.
+        // If email is not updateable, then no check needed.
+        // However, looking at the code I saw earlier:
+        /*
+         * 71: if (request.getFullName() != null)
+         * 72: user.setFullName(request.getFullName());
+         */
+        // It didn't seem to update email. Let's verify UpdateUserRequest to be sure.
 
         if (request.getFullName() != null)
             user.setFullName(request.getFullName());

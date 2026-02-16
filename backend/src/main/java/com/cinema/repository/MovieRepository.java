@@ -14,6 +14,10 @@ import java.util.List;
 @Repository
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
+        boolean existsByTitle(String title);
+
+        boolean existsByTitleAndIdNot(String title, Long id);
+
         Page<Movie> findByStatus(Movie.MovieStatus status, Pageable pageable);
 
         List<Movie> findByStatusOrderByReleaseDateDesc(Movie.MovieStatus status);

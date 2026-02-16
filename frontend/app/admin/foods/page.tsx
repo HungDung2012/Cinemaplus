@@ -19,7 +19,6 @@ const CATEGORIES = [
   { value: 'DRINK', label: 'Nước uống' },
   { value: 'COMBO', label: 'Combo' },
   { value: 'SNACK', label: 'Đồ ăn nhẹ' },
-  { value: 'OTHER', label: 'Khác' },
 ];
 
 export default function FoodsManagementPage() {

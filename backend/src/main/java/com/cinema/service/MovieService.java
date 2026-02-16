@@ -3,6 +3,7 @@ package com.cinema.service;
 import com.cinema.dto.request.MovieRequest;
 import com.cinema.dto.response.MovieResponse;
 import com.cinema.dto.response.PageResponse;
+import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Movie;
 import com.cinema.repository.MovieRepository;
@@ -88,6 +89,10 @@ public class MovieService {
 
     @Transactional
     public MovieResponse createMovie(MovieRequest request) {
+        if (movieRepository.existsByTitle(request.getTitle())) {
+            throw new DuplicateResourceException("Tên phim '" + request.getTitle() + "' đã tồn tại");
+        }
+
         Movie movie = Movie.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -113,6 +118,10 @@ public class MovieService {
     public MovieResponse updateMovie(Long id, MovieRequest request) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
+
+        if (movieRepository.existsByTitleAndIdNot(request.getTitle(), id)) {
+            throw new DuplicateResourceException("Tên phim '" + request.getTitle() + "' đã tồn tại");
+        }
 
         movie.setTitle(request.getTitle());
         movie.setDescription(request.getDescription());

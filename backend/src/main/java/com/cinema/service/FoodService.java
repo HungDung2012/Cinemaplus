@@ -2,6 +2,7 @@ package com.cinema.service;
 
 import com.cinema.dto.request.FoodRequest;
 import com.cinema.dto.response.FoodResponse;
+import com.cinema.exception.DuplicateResourceException;
 import com.cinema.model.Food;
 import com.cinema.repository.FoodRepository;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +66,10 @@ public class FoodService {
     }
 
     public FoodResponse createFood(FoodRequest request) {
+        if (foodRepository.existsByName(request.getName())) {
+            throw new DuplicateResourceException("Tên món ăn '" + request.getName() + "' đã tồn tại");
+        }
+
         Food food = Food.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -89,6 +94,10 @@ public class FoodService {
     public FoodResponse updateFood(Long id, FoodRequest request) {
         Food food = foodRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với ID: " + id));
+
+        if (foodRepository.existsByNameAndIdNot(request.getName(), id)) {
+            throw new DuplicateResourceException("Tên món ăn '" + request.getName() + "' đã tồn tại");
+        }
 
         food.setName(request.getName());
         food.setDescription(request.getDescription());

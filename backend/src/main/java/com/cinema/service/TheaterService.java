@@ -3,6 +3,7 @@ package com.cinema.service;
 import com.cinema.dto.response.GroupedTheaterResponse;
 import com.cinema.dto.response.TheaterScheduleResponse;
 import com.cinema.dto.response.TheaterResponse;
+import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.City;
 import com.cinema.model.Region;
@@ -239,6 +240,10 @@ public class TheaterService {
 
         @Transactional
         public TheaterResponse createTheater(com.cinema.dto.request.TheaterRequest request) {
+                if (theaterRepository.existsByName(request.getName())) {
+                        throw new DuplicateResourceException("Tên rạp '" + request.getName() + "' đã tồn tại");
+                }
+
                 Theater theater = new Theater();
                 mapRequestToTheater(request, theater);
 
@@ -263,8 +268,12 @@ public class TheaterService {
                 Theater theater = theaterRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Theater", "id", id));
 
-                if (request.getName() != null)
+                if (request.getName() != null) {
+                        if (theaterRepository.existsByNameAndIdNot(request.getName(), id)) {
+                                throw new DuplicateResourceException("Tên rạp '" + request.getName() + "' đã tồn tại");
+                        }
                         theater.setName(request.getName());
+                }
                 if (request.getAddress() != null)
                         theater.setAddress(request.getAddress());
                 if (request.getPhone() != null) {

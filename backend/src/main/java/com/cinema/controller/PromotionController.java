@@ -75,19 +75,19 @@ public class PromotionController {
     @GetMapping("/types")
     public ResponseEntity<List<Map<String, String>>> getPromotionTypes() {
         List<Map<String, String>> types = new java.util.ArrayList<>();
-        
+
         Map<String, String> all = new HashMap<>();
         all.put("value", "ALL");
         all.put("label", "Tất cả");
         types.add(all);
-        
+
         for (PromotionType type : PromotionType.values()) {
             Map<String, String> typeMap = new HashMap<>();
             typeMap.put("value", type.name());
             typeMap.put("label", getTypeLabel(type));
             types.add(typeMap);
         }
-        
+
         return ResponseEntity.ok(types);
     }
 

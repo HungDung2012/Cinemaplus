@@ -10,6 +10,10 @@ import java.util.List;
 @Repository
 public interface FoodRepository extends JpaRepository<Food, Long> {
 
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
+
     List<Food> findByActiveTrue();
 
     List<Food> findByCategoryAndActiveTrue(Food.FoodCategory category);

@@ -67,6 +67,29 @@ public class Promotion {
     @Builder.Default
     private Integer sortOrder = 0;
 
+    @Column(unique = true, length = 50)
+    private String code; // Mã khuyến mãi
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type")
+    private DiscountType discountType; // Loại giảm giá
+
+    @Column(name = "discount_value")
+    private Double discountValue; // Giá trị giảm
+
+    @Column(name = "min_purchase")
+    private Double minPurchase; // Giá trị đơn hàng tối thiểu
+
+    @Column(name = "max_discount")
+    private Double maxDiscount; // Giảm tối đa
+
+    @Column(name = "usage_limit")
+    private Integer usageLimit; // Giới hạn lượt dùng
+
+    @Column(name = "usage_count")
+    @Builder.Default
+    private Integer usageCount = 0; // Đã dùng
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -76,33 +99,37 @@ public class Promotion {
     private LocalDateTime updatedAt;
 
     public enum PromotionStatus {
-        ACTIVE,     // Đang hoạt động
-        INACTIVE,   // Tạm dừng
-        EXPIRED,    // Hết hạn
-        UPCOMING    // Sắp diễn ra
+        ACTIVE, // Đang hoạt động
+        INACTIVE, // Tạm dừng
+        EXPIRED, // Hết hạn
+        UPCOMING // Sắp diễn ra
     }
 
     public enum PromotionType {
-        GENERAL,        // Khuyến mãi chung
-        TICKET,         // Khuyến mãi vé
-        FOOD,           // Khuyến mãi đồ ăn
-        COMBO,          // Khuyến mãi combo
-        MEMBER,         // Khuyến mãi thành viên
-        PARTNER,        // Hợp tác đối tác (ZaloPay, MoMo, etc.)
-        SPECIAL_DAY,    // Ngày đặc biệt (Lễ, Tết)
-        MOVIE           // Khuyến mãi theo phim
+        GENERAL, // Khuyến mãi chung
+        TICKET, // Khuyến mãi vé
+        FOOD, // Khuyến mãi đồ ăn
+        COMBO, // Khuyến mãi combo
+        MEMBER, // Khuyến mãi thành viên
+        PARTNER, // Hợp tác đối tác (ZaloPay, MoMo, etc.)
+        SPECIAL_DAY, // Ngày đặc biệt (Lễ, Tết)
+        MOVIE // Khuyến mãi theo phim
     }
 
     public boolean isActive() {
-        if (status != PromotionStatus.ACTIVE) return false;
+        if (status != PromotionStatus.ACTIVE)
+            return false;
         LocalDate now = LocalDate.now();
-        if (startDate != null && now.isBefore(startDate)) return false;
-        if (endDate != null && now.isAfter(endDate)) return false;
+        if (startDate != null && now.isBefore(startDate))
+            return false;
+        if (endDate != null && now.isAfter(endDate))
+            return false;
         return true;
     }
 
     public String getDateRangeDisplay() {
-        if (startDate == null && endDate == null) return "";
+        if (startDate == null && endDate == null)
+            return "";
         if (startDate != null && endDate != null) {
             return formatDate(startDate) + " - " + formatDate(endDate);
         }
@@ -114,5 +141,10 @@ public class Promotion {
 
     private String formatDate(LocalDate date) {
         return String.format("%02d/%02d/%d", date.getDayOfMonth(), date.getMonthValue(), date.getYear());
+    }
+
+    public enum DiscountType {
+        PERCENTAGE, // Phần trăm
+        FIXED // Số tiền cố định
     }
 }

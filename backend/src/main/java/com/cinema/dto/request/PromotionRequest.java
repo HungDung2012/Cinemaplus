@@ -34,4 +34,16 @@ public class PromotionRequest {
     private Boolean isFeatured;
 
     private Integer sortOrder;
+
+    private String code;
+
+    private String discountType;
+
+    private Double discountValue;
+
+    private Double minPurchase;
+
+    private Double maxDiscount;
+
+    private Integer usageLimit;
 }

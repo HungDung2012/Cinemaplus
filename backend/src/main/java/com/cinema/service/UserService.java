@@ -19,4 +19,6 @@ public interface UserService {
     void deleteUser(Long id);
 
     UserResponse updateUserRole(Long id, User.Role role);
+
+    com.cinema.dto.response.UserDetailResponse getUserDetails(Long id);
 }

@@ -81,6 +81,15 @@ public class PromotionService {
                 .isFeatured(request.getIsFeatured() != null ? request.getIsFeatured() : false)
                 .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
                 .viewCount(0)
+                .code(request.getCode())
+                .discountType(
+                        request.getDiscountType() != null ? Promotion.DiscountType.valueOf(request.getDiscountType())
+                                : null)
+                .discountValue(request.getDiscountValue())
+                .minPurchase(request.getMinPurchase())
+                .maxDiscount(request.getMaxDiscount())
+                .usageLimit(request.getUsageLimit())
+                .usageCount(0)
                 .build();
         return promotionRepository.save(promotion);
     }
@@ -100,6 +109,15 @@ public class PromotionService {
         promotion.setThumbnailUrl(request.getThumbnailUrl());
         promotion.setStartDate(request.getStartDate());
         promotion.setEndDate(request.getEndDate());
+        promotion.setCode(request.getCode());
+
+        if (request.getDiscountType() != null) {
+            promotion.setDiscountType(Promotion.DiscountType.valueOf(request.getDiscountType()));
+        }
+        promotion.setDiscountValue(request.getDiscountValue());
+        promotion.setMinPurchase(request.getMinPurchase());
+        promotion.setMaxDiscount(request.getMaxDiscount());
+        promotion.setUsageLimit(request.getUsageLimit());
 
         if (request.getStatus() != null) {
             promotion.setStatus(request.getStatus());

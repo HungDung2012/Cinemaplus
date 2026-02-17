@@ -18,11 +18,23 @@ interface Promotion {
   usageLimit: number;
   usageCount: number;
   active: boolean;
+  type: string;
 }
 
 const DISCOUNT_TYPES = [
   { value: 'PERCENTAGE', label: 'Phần trăm (%)' },
   { value: 'FIXED', label: 'Số tiền cố định (VNĐ)' },
+];
+
+const PROMOTION_TYPES = [
+  { value: 'GENERAL', label: 'Khuyến mãi chung' },
+  { value: 'TICKET', label: 'Ưu đãi vé' },
+  { value: 'FOOD', label: 'Ưu đãi đồ ăn' },
+  { value: 'COMBO', label: 'Combo tiết kiệm' },
+  { value: 'MEMBER', label: 'Ưu đãi thành viên' },
+  { value: 'PARTNER', label: 'Đối tác' },
+  { value: 'SPECIAL_DAY', label: 'Ngày đặc biệt' },
+  { value: 'MOVIE', label: 'Ưu đãi theo phim' },
 ];
 
 export default function PromotionsManagementPage() {
@@ -41,6 +53,7 @@ export default function PromotionsManagementPage() {
     title: '',
     description: '',
     code: '',
+    type: 'GENERAL',
     discountType: 'PERCENTAGE',
     discountValue: '',
     minPurchase: '',
@@ -73,6 +86,7 @@ export default function PromotionsManagementPage() {
       title: '',
       description: '',
       code: '',
+      type: 'GENERAL',
       discountType: 'PERCENTAGE',
       discountValue: '',
       minPurchase: '',
@@ -92,6 +106,7 @@ export default function PromotionsManagementPage() {
       title: promotion.title || '',
       description: promotion.description || '',
       code: promotion.code || '',
+      type: promotion.type || 'GENERAL',
       discountType: promotion.discountType || 'PERCENTAGE',
       discountValue: promotion.discountValue?.toString() || '',
       minPurchase: promotion.minPurchase?.toString() || '',
@@ -116,6 +131,7 @@ export default function PromotionsManagementPage() {
         minPurchase: parseFloat(formData.minPurchase) || 0,
         maxDiscount: parseFloat(formData.maxDiscount) || 0,
         usageLimit: parseInt(formData.usageLimit) || 0,
+        status: formData.active ? 'ACTIVE' : 'INACTIVE',
       };
 
       if (editingPromotion) {
@@ -159,7 +175,7 @@ export default function PromotionsManagementPage() {
     const now = new Date();
     const start = new Date(promotion.startDate);
     const end = new Date(promotion.endDate);
-    
+
     if (!promotion.active) return { label: 'Tắt', color: 'bg-zinc-100 text-zinc-700' };
     if (now < start) return { label: 'Sắp diễn ra', color: 'bg-blue-100 text-blue-700' };
     if (now > end) return { label: 'Hết hạn', color: 'bg-red-100 text-red-700' };
@@ -265,7 +281,8 @@ export default function PromotionsManagementPage() {
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Khuyến mãi</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Mã</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Giảm giá</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Thời gian</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Ngày bắt đầu</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Ngày kết thúc</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Đã dùng</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-zinc-700">Trạng thái</th>
                 <th className="text-right px-6 py-4 text-sm font-medium text-zinc-700">Thao tác</th>
@@ -274,7 +291,7 @@ export default function PromotionsManagementPage() {
             <tbody className="divide-y divide-zinc-200">
               {filteredPromotions.map((promotion) => {
                 const status = getPromotionStatus(promotion);
-                
+
                 return (
                   <tr key={promotion.id} className="hover:bg-zinc-50">
                     <td className="px-6 py-4">
@@ -299,7 +316,7 @@ export default function PromotionsManagementPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-zinc-900">
-                        {promotion.discountType === 'PERCENTAGE' 
+                        {promotion.discountType === 'PERCENTAGE'
                           ? `${promotion.discountValue}%`
                           : formatPrice(promotion.discountValue)
                         }
@@ -312,7 +329,9 @@ export default function PromotionsManagementPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-zinc-900">{formatDate(promotion.startDate)}</div>
-                      <div className="text-sm text-zinc-500">đến {formatDate(promotion.endDate)}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-zinc-900">{formatDate(promotion.endDate)}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-zinc-900">
@@ -383,6 +402,23 @@ export default function PromotionsManagementPage() {
                     className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     placeholder="Giảm 20% cuối tuần"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    Loại chương trình
+                  </label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    {PROMOTION_TYPES.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">

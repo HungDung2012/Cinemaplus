@@ -14,6 +14,18 @@ interface User {
   enabled: boolean;
 }
 
+interface UserDetail extends User {
+  dateOfBirth: string;
+  gender: string;
+  membershipLevel: string;
+  totalSpending: number;
+  currentPoints: number;
+  totalPointsEarned: number;
+  recentBookings: any[];
+  vouchers: any[];
+  coupons: any[];
+}
+
 const ROLES = [
   { value: 'USER', label: 'Người dùng', color: 'bg-zinc-100 text-zinc-700' },
   { value: 'ADMIN', label: 'Quản trị viên', color: 'bg-purple-100 text-purple-700' },
@@ -29,6 +41,9 @@ export default function UsersManagementPage() {
     open: false,
     user: null,
   });
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<UserDetail | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -137,6 +152,25 @@ export default function UsersManagementPage() {
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
+
+  const handleViewDetails = async (userId: number) => {
+    setLoadingDetails(true);
+    setDetailModalOpen(true);
+    try {
+      const details = await adminUserService.getDetails(userId);
+      setSelectedUserDetail(details);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      alert('Không thể tải thông tin chi tiết');
+      setDetailModalOpen(false);
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   const getRoleInfo = (role: string) => {
@@ -299,6 +333,16 @@ export default function UsersManagementPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
+                          onClick={() => handleViewDetails(user.id)}
+                          className="p-2 text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+                          title="Xem chi tiết"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        <button
                           onClick={() => openEditModal(user)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         >
@@ -458,6 +502,130 @@ export default function UsersManagementPage() {
                 Xóa
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Detail Modal */}
+      {detailModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {loadingDetails ? (
+              <div className="p-12 flex justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+              </div>
+            ) : selectedUserDetail ? (
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white text-2xl font-bold">
+                      {selectedUserDetail.avatar ? (
+                        <img src={selectedUserDetail.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        selectedUserDetail.fullName?.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-zinc-900">{selectedUserDetail.fullName}</h2>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleInfo(selectedUserDetail.role).color}`}>
+                          {getRoleInfo(selectedUserDetail.role).label}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${selectedUserDetail.membershipLevel === 'VIP' ? 'bg-yellow-100 text-yellow-700' :
+                            selectedUserDetail.membershipLevel === 'PLATINUM' ? 'bg-purple-100 text-purple-700' :
+                              'bg-zinc-100 text-zinc-700'
+                          }`}>
+                          {selectedUserDetail.membershipLevel || 'Thành viên'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setDetailModalOpen(false)}
+                    className="p-2 text-zinc-400 hover:text-zinc-600 rounded-lg hover:bg-zinc-100 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-zinc-50 rounded-xl p-4">
+                    <div className="text-sm text-zinc-500 mb-1">Chi tiêu tích lũy</div>
+                    <div className="text-xl font-bold text-zinc-900">{formatCurrency(selectedUserDetail.totalSpending || 0)}</div>
+                  </div>
+                  <div className="bg-zinc-50 rounded-xl p-4">
+                    <div className="text-sm text-zinc-500 mb-1">Điểm hiện tại</div>
+                    <div className="text-xl font-bold text-green-600">{selectedUserDetail.currentPoints || 0}</div>
+                  </div>
+                  <div className="bg-zinc-50 rounded-xl p-4">
+                    <div className="text-sm text-zinc-500 mb-1">Tổng điểm đã nhận</div>
+                    <div className="text-xl font-bold text-blue-600">{selectedUserDetail.totalPointsEarned || 0}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900 mb-4">Thông tin cá nhân</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between py-2 border-b border-zinc-100">
+                        <span className="text-zinc-500">Email</span>
+                        <span className="text-zinc-900 font-medium">{selectedUserDetail.email}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-zinc-100">
+                        <span className="text-zinc-500">Số điện thoại</span>
+                        <span className="text-zinc-900 font-medium">{selectedUserDetail.phone || '---'}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-zinc-100">
+                        <span className="text-zinc-500">Ngày sinh</span>
+                        <span className="text-zinc-900 font-medium">
+                          {selectedUserDetail.dateOfBirth ? formatDate(selectedUserDetail.dateOfBirth) : '---'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-zinc-100">
+                        <span className="text-zinc-500">Giới tính</span>
+                        <span className="text-zinc-900 font-medium">
+                          {selectedUserDetail.gender === 'MALE' ? 'Nam' :
+                            selectedUserDetail.gender === 'FEMALE' ? 'Nữ' : 'Khác'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-zinc-100">
+                        <span className="text-zinc-500">Ngày tham gia</span>
+                        <span className="text-zinc-900 font-medium">{formatDate(selectedUserDetail.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900 mb-4">Lịch sử đặt vé gần đây</h3>
+                    <div className="space-y-3">
+                      {selectedUserDetail.recentBookings?.length > 0 ? (
+                        selectedUserDetail.recentBookings.map((booking: any) => (
+                          <div key={booking.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
+                            <div>
+                              <div className="font-medium text-zinc-900">{booking.movieTitle}</div>
+                              <div className="text-sm text-zinc-500">{formatDate(booking.showDate)} - {booking.startTime}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-zinc-900">{formatCurrency(booking.finalAmount)}</div>
+                              <span className={`text-xs px-2 py-0.5 rounded ${booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                  booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                    'bg-blue-100 text-blue-700'
+                                }`}>
+                                {booking.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-zinc-500 italic">Chưa có lịch sử đặt vé</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

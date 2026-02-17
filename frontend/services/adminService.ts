@@ -150,6 +150,11 @@ export const adminUserService = {
     const response = await api.put(`/admin/users/${id}/role`, { role });
     return response.data?.data;
   },
+
+  getDetails: async (id: number) => {
+    const response = await api.get(`/admin/users/${id}/details`);
+    return response.data?.data;
+  },
 };
 
 // ===================== FOODS =====================

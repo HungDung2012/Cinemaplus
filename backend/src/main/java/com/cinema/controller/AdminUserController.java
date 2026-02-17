@@ -64,4 +64,10 @@ public class AdminUserController {
             throw new com.cinema.exception.BadRequestException("Invalid role: " + roleStr);
         }
     }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<ApiResponse<com.cinema.dto.response.UserDetailResponse>> getUserDetails(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUserDetails(id)));
+    }
 }

@@ -157,6 +157,54 @@ export const adminUserService = {
   },
 };
 
+// ===================== VOUCHERS =====================
+export const adminVoucherService = {
+  getAll: async (params?: any) => {
+    const response = await api.get('/admin/vouchers', { params });
+    return response.data?.data;
+  },
+  getById: async (id: number) => {
+    const response = await api.get(`/admin/vouchers/${id}`);
+    return response.data?.data;
+  },
+  create: async (data: any) => {
+    const response = await api.post('/admin/vouchers', data);
+    return response.data?.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await api.put(`/admin/vouchers/${id}`, data);
+    return response.data?.data;
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/admin/vouchers/${id}`);
+    return response.data?.data;
+  },
+};
+
+// ===================== COUPONS =====================
+export const adminCouponService = {
+  getAll: async (params?: any) => {
+    const response = await api.get('/admin/coupons', { params });
+    return response.data?.data;
+  },
+  getById: async (id: number) => {
+    const response = await api.get(`/admin/coupons/${id}`);
+    return response.data?.data;
+  },
+  create: async (data: any) => {
+    const response = await api.post('/admin/coupons', data);
+    return response.data?.data;
+  },
+  update: async (id: number, data: any) => {
+    const response = await api.put(`/admin/coupons/${id}`, data);
+    return response.data?.data;
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/admin/coupons/${id}`);
+    return response.data?.data;
+  },
+};
+
 // ===================== FOODS =====================
 export const adminFoodService = {
   getAll: async () => {

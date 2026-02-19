@@ -14,7 +14,7 @@ import java.util.HashMap;
 @RestController
 @RequestMapping("/api/promotions")
 @RequiredArgsConstructor
-public class PromotionController {
+public class PublicPromotionController {
 
     private final PromotionService promotionService;
 

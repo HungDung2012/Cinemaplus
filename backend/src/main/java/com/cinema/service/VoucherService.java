@@ -46,6 +46,11 @@ public class VoucherService {
 
     @Transactional
     public Voucher createVoucher(VoucherRequest request) {
+        if (voucherRepository.existsByVoucherCode(request.getVoucherCode())) {
+            throw new com.cinema.exception.DuplicateResourceException(
+                    "Mã voucher đã tồn tại: " + request.getVoucherCode());
+        }
+
         Voucher voucher = Voucher.builder()
                 .voucherCode(request.getVoucherCode())
                 .pinCode(request.getPinCode())
@@ -57,6 +62,33 @@ public class VoucherService {
                 .build();
 
         return voucherRepository.save(voucher);
+    }
+
+    @Transactional
+    public Voucher updateVoucher(Long id, VoucherRequest request) {
+        Voucher voucher = voucherRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException(
+                        "Không tìm thấy voucher với ID: " + id));
+
+        if (voucherRepository.existsByVoucherCodeAndIdNot(request.getVoucherCode(), id)) {
+            throw new com.cinema.exception.DuplicateResourceException(
+                    "Mã voucher đã tồn tại: " + request.getVoucherCode());
+        }
+
+        voucher.setVoucherCode(request.getVoucherCode());
+        voucher.setPinCode(request.getPinCode());
+        voucher.setValue(request.getValue());
+        voucher.setDescription(request.getDescription());
+        voucher.setExpiryDate(request.getExpiryDate());
+        voucher.setMinPurchaseAmount(request.getMinPurchaseAmount());
+
+        return voucherRepository.save(voucher);
+    }
+
+    public Voucher getVoucherById(Long id) {
+        return voucherRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException(
+                        "Không tìm thấy voucher với ID: " + id));
     }
 
     @Transactional

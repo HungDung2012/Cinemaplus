@@ -66,8 +66,20 @@ public class PromotionService {
     /**
      * Tạo khuyến mãi mới từ request
      */
+    /**
+     * Tạo khuyến mãi mới từ request
+     */
     @Transactional
     public Promotion createPromotion(com.cinema.dto.request.PromotionRequest request) {
+        if (promotionRepository.existsByTitle(request.getTitle())) {
+            throw new com.cinema.exception.DuplicateResourceException(
+                    "Tiêu đề khuyến mãi đã tồn tại: " + request.getTitle());
+        }
+        if (request.getCode() != null && !request.getCode().isEmpty()
+                && promotionRepository.existsByCode(request.getCode())) {
+            throw new com.cinema.exception.DuplicateResourceException("Mã khuyến mãi đã tồn tại: " + request.getCode());
+        }
+
         Promotion promotion = Promotion.builder()
                 .title(request.getTitle())
                 .shortDescription(request.getShortDescription())
@@ -101,6 +113,15 @@ public class PromotionService {
     public Promotion updatePromotion(Long id, com.cinema.dto.request.PromotionRequest request) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khuyến mãi với ID: " + id));
+
+        if (promotionRepository.existsByTitleAndIdNot(request.getTitle(), id)) {
+            throw new com.cinema.exception.DuplicateResourceException(
+                    "Tiêu đề khuyến mãi đã tồn tại: " + request.getTitle());
+        }
+        if (request.getCode() != null && !request.getCode().isEmpty()
+                && promotionRepository.existsByCodeAndIdNot(request.getCode(), id)) {
+            throw new com.cinema.exception.DuplicateResourceException("Mã khuyến mãi đã tồn tại: " + request.getCode());
+        }
 
         promotion.setTitle(request.getTitle());
         promotion.setShortDescription(request.getShortDescription());

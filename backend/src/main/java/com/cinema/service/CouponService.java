@@ -7,6 +7,9 @@ import com.cinema.exception.ProfileUpdateException;
 import com.cinema.model.Coupon;
 import com.cinema.model.User;
 import com.cinema.model.UserCoupon;
+import com.cinema.dto.request.CouponRequest;
+import com.cinema.exception.DuplicateResourceException;
+import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.repository.CouponRepository;
 import com.cinema.repository.UserCouponRepository;
 import com.cinema.repository.UserRepository;
@@ -31,6 +34,71 @@ public class CouponService {
     private final UserCouponRepository userCouponRepository;
     private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
+    public Page<Coupon> getAllCoupons(Pageable pageable) {
+        return couponRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Coupon getCouponById(Long id) {
+        return couponRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy coupon với ID: " + id));
+    }
+
+    @Transactional
+    public Coupon createCoupon(CouponRequest request) {
+        if (couponRepository.existsByCouponCode(request.getCouponCode())) {
+            throw new DuplicateResourceException("Mã coupon đã tồn tại: " + request.getCouponCode());
+        }
+
+        Coupon coupon = Coupon.builder()
+                .couponCode(request.getCouponCode())
+                .pinCode(request.getPinCode())
+                .discountType(Coupon.DiscountType.valueOf(request.getDiscountType()))
+                .discountValue(request.getDiscountValue())
+                .maxDiscountAmount(request.getMaxDiscountAmount())
+                .minPurchaseAmount(request.getMinPurchaseAmount())
+                .description(request.getDescription())
+                .usageLimit(request.getUsageLimit())
+                .startDate(request.getStartDate())
+                .expiryDate(request.getExpiryDate())
+                .status(request.getStatus() != null ? Coupon.CouponStatus.valueOf(request.getStatus())
+                        : Coupon.CouponStatus.ACTIVE)
+                .build();
+        return couponRepository.save(coupon);
+    }
+
+    @Transactional
+    public Coupon updateCoupon(Long id, CouponRequest request) {
+        Coupon coupon = getCouponById(id);
+
+        if (couponRepository.existsByCouponCodeAndIdNot(request.getCouponCode(), id)) {
+            throw new DuplicateResourceException("Mã coupon đã tồn tại: " + request.getCouponCode());
+        }
+
+        coupon.setCouponCode(request.getCouponCode());
+        coupon.setPinCode(request.getPinCode());
+        coupon.setDiscountType(Coupon.DiscountType.valueOf(request.getDiscountType()));
+        coupon.setDiscountValue(request.getDiscountValue());
+        coupon.setMaxDiscountAmount(request.getMaxDiscountAmount());
+        coupon.setMinPurchaseAmount(request.getMinPurchaseAmount());
+        coupon.setDescription(request.getDescription());
+        coupon.setUsageLimit(request.getUsageLimit());
+        coupon.setStartDate(request.getStartDate());
+        coupon.setExpiryDate(request.getExpiryDate());
+
+        if (request.getStatus() != null) {
+            coupon.setStatus(Coupon.CouponStatus.valueOf(request.getStatus()));
+        }
+
+        return couponRepository.save(coupon);
+    }
+
+    @Transactional
+    public void deleteCoupon(Long id) {
+        couponRepository.deleteById(id);
+    }
+
     /**
      * Nhập mã coupon và PIN để đổi coupon
      */
@@ -43,23 +111,20 @@ public class CouponService {
         Coupon coupon = couponRepository.findByCouponCode(request.getCouponCode())
                 .orElseThrow(() -> new InvalidCouponException(
                         "Mã coupon không tồn tại",
-                        InvalidCouponException.COUPON_NOT_FOUND
-                ));
+                        InvalidCouponException.COUPON_NOT_FOUND));
 
         // Kiểm tra PIN
         if (!coupon.getPinCode().equals(request.getPinCode())) {
             throw new InvalidCouponException(
                     "Mã PIN không đúng",
-                    InvalidCouponException.COUPON_INVALID_PIN
-            );
+                    InvalidCouponException.COUPON_INVALID_PIN);
         }
 
         // Kiểm tra trạng thái coupon
         if (coupon.getStatus() != Coupon.CouponStatus.ACTIVE) {
             throw new InvalidCouponException(
                     "Coupon không còn hiệu lực",
-                    InvalidCouponException.COUPON_ALREADY_USED
-            );
+                    InvalidCouponException.COUPON_ALREADY_USED);
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -68,32 +133,28 @@ public class CouponService {
         if (coupon.getStartDate() != null && coupon.getStartDate().isAfter(now)) {
             throw new InvalidCouponException(
                     "Coupon chưa có hiệu lực",
-                    InvalidCouponException.COUPON_NOT_STARTED
-            );
+                    InvalidCouponException.COUPON_NOT_STARTED);
         }
 
         // Kiểm tra hết hạn
         if (coupon.getExpiryDate() != null && coupon.getExpiryDate().isBefore(now)) {
             throw new InvalidCouponException(
                     "Coupon đã hết hạn",
-                    InvalidCouponException.COUPON_EXPIRED
-            );
+                    InvalidCouponException.COUPON_EXPIRED);
         }
 
         // Kiểm tra usage limit
         if (coupon.getUsageLimit() != null && coupon.getUsageCount() >= coupon.getUsageLimit()) {
             throw new InvalidCouponException(
                     "Coupon đã hết lượt sử dụng",
-                    InvalidCouponException.COUPON_USAGE_LIMIT_REACHED
-            );
+                    InvalidCouponException.COUPON_USAGE_LIMIT_REACHED);
         }
 
         // Kiểm tra user đã có coupon này chưa
         if (userCouponRepository.existsByUserIdAndCouponId(userId, coupon.getId())) {
             throw new InvalidCouponException(
                     "Bạn đã đổi coupon này rồi",
-                    InvalidCouponException.COUPON_ALREADY_REDEEMED
-            );
+                    InvalidCouponException.COUPON_ALREADY_REDEEMED);
         }
 
         // Tăng usage count của coupon
@@ -140,8 +201,7 @@ public class CouponService {
     @Transactional(readOnly = true)
     public List<CouponResponse> getAvailableCoupons(Long userId) {
         List<UserCoupon> availableCoupons = userCouponRepository.findAvailableCouponsForUser(
-                userId, LocalDateTime.now()
-        );
+                userId, LocalDateTime.now());
         return availableCoupons.stream()
                 .map(CouponResponse::fromUserCoupon)
                 .collect(Collectors.toList());
@@ -163,15 +223,13 @@ public class CouponService {
         if (userCoupon.getStatus() != UserCoupon.UseStatus.AVAILABLE) {
             throw new InvalidCouponException(
                     "Coupon không còn khả dụng",
-                    InvalidCouponException.COUPON_ALREADY_USED
-            );
+                    InvalidCouponException.COUPON_ALREADY_USED);
         }
 
         if (!userCoupon.getCoupon().isValid()) {
             throw new InvalidCouponException(
                     "Coupon đã hết hạn",
-                    InvalidCouponException.COUPON_EXPIRED
-            );
+                    InvalidCouponException.COUPON_EXPIRED);
         }
 
         // Update status
@@ -198,22 +256,21 @@ public class CouponService {
         Coupon coupon = userCoupon.getCoupon();
 
         // Kiểm tra minimum purchase amount
-        if (coupon.getMinPurchaseAmount() != null && 
-            orderAmount.compareTo(coupon.getMinPurchaseAmount()) < 0) {
+        if (coupon.getMinPurchaseAmount() != null &&
+                orderAmount.compareTo(coupon.getMinPurchaseAmount()) < 0) {
             throw new InvalidCouponException(
                     String.format("Đơn hàng tối thiểu phải từ %,.0fđ", coupon.getMinPurchaseAmount()),
-                    InvalidCouponException.COUPON_MIN_PURCHASE_NOT_MET
-            );
+                    InvalidCouponException.COUPON_MIN_PURCHASE_NOT_MET);
         }
 
         BigDecimal discount;
         if (coupon.getDiscountType() == Coupon.DiscountType.PERCENTAGE) {
             discount = orderAmount.multiply(coupon.getDiscountValue())
                     .divide(new BigDecimal("100"), 0, java.math.RoundingMode.DOWN);
-            
+
             // Áp dụng max discount nếu có
-            if (coupon.getMaxDiscountAmount() != null && 
-                discount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+            if (coupon.getMaxDiscountAmount() != null &&
+                    discount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
                 discount = coupon.getMaxDiscountAmount();
             }
         } else {
@@ -270,7 +327,7 @@ public class CouponService {
         }
         userCouponRepository.saveAll(expiredUserCoupons);
 
-        log.info("Updated {} expired coupons, {} exhausted coupons, {} expired user coupons", 
+        log.info("Updated {} expired coupons, {} exhausted coupons, {} expired user coupons",
                 expiredCoupons.size(), exhaustedCoupons.size(), expiredUserCoupons.size());
     }
 }

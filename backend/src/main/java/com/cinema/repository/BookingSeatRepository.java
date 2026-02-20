@@ -64,4 +64,20 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> 
            "WHERE bs.showtime.id = :showtimeId " +
            "AND bs.booking.status NOT IN ('CANCELLED', 'EXPIRED')")
     Long countBookedSeatsByShowtime(@Param("showtimeId") Long showtimeId);
+
+    // ==================== ANALYTICS ====================
+
+    @Query("SELECT new map(s.seatType.name as seatTypeName, " +
+           "COUNT(bs) as count, SUM(bs.price) as revenue) " +
+           "FROM BookingSeat bs " +
+           "JOIN bs.seat s " +
+           "JOIN bs.booking b " +
+           "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+           "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+           "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+           "GROUP BY s.seatType.name " +
+           "ORDER BY revenue DESC")
+    List<java.util.Map<String, Object>> getRevenueBySeatType(
+           @Param("startDate") java.time.LocalDateTime startDate,
+           @Param("endDate") java.time.LocalDateTime endDate);
 }

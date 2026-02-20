@@ -118,4 +118,162 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
        @Query("SELECT COALESCE(SUM(b.finalAmount), 0) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.createdAt BETWEEN :start AND :end")
        java.math.BigDecimal sumRevenueBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+       // ==================== ADVANCED ANALYTICS ====================
+
+       @Query("SELECT new map(t.name as theaterName, t.id as theaterId, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount, " +
+                     "SUM(b.numberOfSeats) as ticketCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.showtime s " +
+                     "JOIN s.room r " +
+                     "JOIN r.theater t " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY t.id, t.name " +
+                     "ORDER BY revenue DESC")
+       List<java.util.Map<String, Object>> getRevenueByTheater(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(r.roomType as roomType, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.showtime s " +
+                     "JOIN s.room r " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY r.roomType " +
+                     "ORDER BY revenue DESC")
+       List<java.util.Map<String, Object>> getRevenueByRoomType(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(FUNCTION('DAYOFWEEK', b.createdAt) as dayOfWeek, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount) " +
+                     "FROM Booking b " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY FUNCTION('DAYOFWEEK', b.createdAt) " +
+                     "ORDER BY dayOfWeek ASC")
+       List<java.util.Map<String, Object>> getRevenueByDayOfWeek(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(FUNCTION('HOUR', s.startTime) as hour, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.showtime s " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY FUNCTION('HOUR', s.startTime) " +
+                     "ORDER BY hour ASC")
+       List<java.util.Map<String, Object>> getRevenueByHour(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(FUNCTION('MONTH', b.createdAt) as month, " +
+                     "FUNCTION('YEAR', b.createdAt) as year, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount) " +
+                     "FROM Booking b " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND FUNCTION('YEAR', b.createdAt) = :year " +
+                     "GROUP BY FUNCTION('YEAR', b.createdAt), FUNCTION('MONTH', b.createdAt) " +
+                     "ORDER BY month ASC")
+       List<java.util.Map<String, Object>> getRevenueByMonth(@Param("year") int year);
+
+       @Query("SELECT new map(m.genre as genre, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount, " +
+                     "SUM(b.numberOfSeats) as ticketCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.showtime s " +
+                     "JOIN s.movie m " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY m.genre " +
+                     "ORDER BY revenue DESC")
+       List<java.util.Map<String, Object>> getRevenueByGenre(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(b.status as status, COUNT(b) as count) " +
+                     "FROM Booking b " +
+                     "WHERE (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY b.status")
+       List<java.util.Map<String, Object>> getBookingStatusBreakdown(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(u.id as userId, u.fullName as fullName, u.email as email, " +
+                     "SUM(b.finalAmount) as totalSpent, COUNT(b) as bookingCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.user u " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY u.id, u.fullName, u.email " +
+                     "ORDER BY totalSpent DESC")
+       List<java.util.Map<String, Object>> getTopCustomers(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate,
+                     Pageable pageable);
+
+       @Query("SELECT new map(m.title as movieTitle, m.id as movieId, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount, " +
+                     "SUM(b.numberOfSeats) as ticketCount) " +
+                     "FROM Booking b " +
+                     "JOIN b.showtime s " +
+                     "JOIN s.movie m " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY m.id, m.title " +
+                     "ORDER BY revenue DESC")
+       List<java.util.Map<String, Object>> getRevenueByMovieInRange(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate,
+                     Pageable pageable);
+
+       @Query("SELECT new map(FUNCTION('DATE', b.createdAt) as date, " +
+                     "SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount) " +
+                     "FROM Booking b " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND b.createdAt >= :startDate " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate) " +
+                     "GROUP BY FUNCTION('DATE', b.createdAt) " +
+                     "ORDER BY date ASC")
+       List<java.util.Map<String, Object>> getRevenueByDateRange(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT new map(SUM(b.finalAmount) as revenue, COUNT(b) as bookingCount, " +
+                     "SUM(b.numberOfSeats) as ticketCount, " +
+                     "COALESCE(AVG(b.finalAmount), 0) as avgOrderValue) " +
+                     "FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND b.createdAt >= :startDate AND b.createdAt <= :endDate")
+       java.util.Map<String, Object> getStatsForPeriod(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT COALESCE(SUM(b.foodAmount), 0) FROM Booking b " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate)")
+       java.math.BigDecimal getTotalFoodRevenue(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       @Query("SELECT COALESCE(SUM(b.numberOfSeats), 0) FROM Booking b " +
+                     "WHERE b.status IN ('CONFIRMED', 'COMPLETED') " +
+                     "AND (:startDate IS NULL OR b.createdAt >= :startDate) " +
+                     "AND (:endDate IS NULL OR b.createdAt <= :endDate)")
+       Long getTotalTicketsSold(
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
 }

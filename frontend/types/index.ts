@@ -432,3 +432,126 @@ export interface PriceDetail {
   finalPrice: number;
   description: string;
 }
+
+// =================== ANALYTICS TYPES ===================
+
+export interface AnalyticsOverview {
+  // Revenue
+  revenue: number;
+  revenuePrevPeriod: number;
+  revenueChangePercent: number;
+  // Bookings
+  bookingCount: number;
+  bookingCountPrevPeriod: number;
+  bookingCountChangePercent: number;
+  // Tickets
+  ticketCount: number;
+  ticketCountPrevPeriod: number;
+  ticketCountChangePercent: number;
+  // Avg order value
+  avgOrderValue: number;
+  avgOrderValuePrevPeriod: number;
+  avgOrderValueChangePercent: number;
+  // F&B
+  foodRevenue: number;
+  foodRevenuePrevPeriod: number;
+  foodRevenueChangePercent: number;
+  // New users
+  newUsers: number;
+  newUsersPrevPeriod: number;
+  newUsersChangePercent: number;
+}
+
+export interface RevenueByDate {
+  date: string;
+  revenue: number;
+  bookingCount: number;
+}
+
+export interface RevenueByTheater {
+  theaterName: string;
+  theaterId: number;
+  revenue: number;
+  bookingCount: number;
+  ticketCount: number;
+}
+
+export interface RevenueByRoomType {
+  roomType: string;
+  revenue: number;
+  bookingCount: number;
+}
+
+export interface RevenueByGenre {
+  genre: string;
+  revenue: number;
+  bookingCount: number;
+  ticketCount: number;
+}
+
+export interface RevenueByMovie {
+  movieTitle: string;
+  movieId: number;
+  revenue: number;
+  bookingCount: number;
+  ticketCount: number;
+}
+
+export interface DayOfWeekStat {
+  dayOfWeek: number; // 1=Sun…7=Sat (MySQL DAYOFWEEK)
+  revenue: number;
+  bookingCount: number;
+}
+
+export interface HourlyStat {
+  hour: number;
+  revenue: number;
+  bookingCount: number;
+}
+
+export interface MonthlyStat {
+  month: number;
+  year: number;
+  revenue: number;
+  bookingCount: number;
+}
+
+export interface BookingStatusStat {
+  status: string;
+  count: number;
+}
+
+export interface TopCustomer {
+  userId: number;
+  fullName: string;
+  email: string;
+  totalSpent: number;
+  bookingCount: number;
+}
+
+export interface UserGrowthStat {
+  date: string;
+  newUsers: number;
+}
+
+export interface SeatTypeStat {
+  seatTypeName: string;
+  count: number;
+  revenue: number;
+}
+
+export interface TopFood {
+  foodName: string;
+  foodId: number;
+  category: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
+export interface FoodCategoryStat {
+  category: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
+export type DateRangePreset = '7d' | '30d' | '90d' | '1y' | 'custom';

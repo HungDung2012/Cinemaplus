@@ -5,8 +5,8 @@ target/
 
 # Sensitive config - do NOT commit these
 src/main/resources/application.properties
-src/main/resources/application-prod.properties
 src/main/resources/application-local.properties
+# application-prod.properties is safe to commit (uses ${ENV_VAR} placeholders only)
 
 ### Build logs ###
 build_log.txt

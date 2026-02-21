@@ -18,6 +18,8 @@ $MYSQL_SERVER     = "cinema-mysql-$RANDOM_SUFFIX"
 $MYSQL_ADMIN      = "cinemadmin"
 $MYSQL_PASSWORD   = "Cinema@Pass$RANDOM_SUFFIX!"
 $MYSQL_DB         = "cinema"
+# DB_URL don gian, khong dung & de tranh loi shell
+$DB_SSL_PARAMS    = "useSSL=true"
 $CONTAINER_ENV    = "cinema-env"
 $BACKEND_APP      = "cinema-backend"
 $FRONTEND_APP     = "cinema-frontend"
@@ -67,7 +69,7 @@ az mysql flexible-server firewall-rule create `
   --end-ip-address 0.0.0.0 | Out-Null
 
 $MYSQL_HOST = "$MYSQL_SERVER.mysql.database.azure.com"
-$DB_URL = "jdbc:mysql://${MYSQL_HOST}:3306/${MYSQL_DB}?useSSL=true&requireSSL=true&serverTimezone=Asia%2FHo_Chi_Minh"
+$DB_URL = "jdbc:mysql://${MYSQL_HOST}:3306/${MYSQL_DB}?$DB_SSL_PARAMS"
 Write-Host "OK: $MYSQL_HOST" -ForegroundColor Green
 
 Write-Host "`n=== 4/8  Tạo Container Apps Environment ===" -ForegroundColor Cyan
@@ -113,12 +115,21 @@ $BACKEND_URL  = "https://$BACKEND_FQDN"
 Write-Host "OK: $BACKEND_URL" -ForegroundColor Green
 
 Write-Host "`n=== 7/8  Build & Push Frontend image ===" -ForegroundColor Cyan
+# Xoa node_modules truoc khi upload de giam kich thuoc context
+if (Test-Path ".\frontend\node_modules") {
+    Write-Host "  Removing node_modules to reduce upload size..." -ForegroundColor Yellow
+    Remove-Item -Recurse -Force ".\frontend\node_modules"
+}
 az acr build `
   --registry $ACR_NAME `
   --image "cinema-frontend:latest" `
   --file "./frontend/Dockerfile" `
   --build-arg "NEXT_PUBLIC_API_URL=$BACKEND_URL" `
   ./frontend
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Frontend build THAT BAI. Chay lai: az acr build --registry $ACR_NAME --image cinema-frontend:latest --file ./frontend/Dockerfile ./frontend" -ForegroundColor Red
+    exit 1
+}
 Write-Host "OK" -ForegroundColor Green
 
 Write-Host "`n=== 8/8  Deploy Frontend Container App ===" -ForegroundColor Cyan

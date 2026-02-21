@@ -5,3 +5,8 @@ node_modules/
 build_log*.txt
 README.md
 .env*.local
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tsconfig.tsbuildinfo

@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { authService } from '@/services/authService';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+// Use relative URL '/api' so requests go through Next.js rewrite proxy (avoids CORS in production).
+// NEXT_PUBLIC_API_URL can override for special cases, but defaults to relative path.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const api = axios.create({
   baseURL: API_URL,

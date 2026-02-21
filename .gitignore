@@ -50,3 +50,5 @@ frontend/build_log.txt
 
 # API token files (file tên trùng với TMDB token)
 eyJhbGci*
+
+azure-secrets.txt

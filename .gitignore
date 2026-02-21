@@ -36,9 +36,8 @@ build/
 dist/
 .vercel
 
-# Sensitive config files
+# Sensitive config files (application-prod.properties is safe - uses ${ENV_VAR} placeholders only)
 backend/src/main/resources/application.properties
-backend/src/main/resources/application-prod.properties
 backend/src/main/resources/application-local.properties
 
 # Build logs

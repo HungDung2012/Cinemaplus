@@ -3,7 +3,17 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Sensitive config - do NOT commit these
 src/main/resources/application.properties
+src/main/resources/application-prod.properties
+src/main/resources/application-local.properties
+
+### Build logs ###
+build_log.txt
+build_log_errors.txt
+build_output.txt
+compile_log.txt
+compile_log_2.txt
 
 ### STS ###
 .apt_generated

@@ -1,0 +1,7 @@
+node_modules/
+.next/
+.git/
+*.log
+build_log*.txt
+README.md
+.env*.local

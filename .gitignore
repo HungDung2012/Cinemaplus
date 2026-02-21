@@ -35,3 +35,19 @@ out/
 build/
 dist/
 .vercel
+
+# Sensitive config files
+backend/src/main/resources/application.properties
+backend/src/main/resources/application-prod.properties
+backend/src/main/resources/application-local.properties
+
+# Build logs
+backend/build_log.txt
+backend/build_log_errors.txt
+backend/build_output.txt
+backend/compile_log.txt
+backend/compile_log_2.txt
+frontend/build_log.txt
+
+# API token files (file tên trùng với TMDB token)
+eyJhbGci*

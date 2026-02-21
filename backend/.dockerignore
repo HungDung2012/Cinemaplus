@@ -1,0 +1,12 @@
+target/
+*.jar
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+src/test/
+*.log
+build_log*.txt
+compile_log*.txt
+build_output*.txt
+.git
+.gitignore
+README.md

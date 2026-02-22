@@ -50,7 +50,7 @@ jobs:
           context: ./frontend
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            BACKEND_INTERNAL_URL=https://cinema-backend.thankfulsky-96591df5.southeastasia.azurecontainerapps.io
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER }}/cinema-frontend:${{ github.sha }}
             ${{ secrets.ACR_LOGIN_SERVER }}/cinema-frontend:latest

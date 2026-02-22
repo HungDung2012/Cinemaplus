@@ -9,10 +9,10 @@ RUN npm ci --legacy-peer-deps
 
 COPY . .
 
-# Build with standalone output (smallest possible image)
+# BACKEND_INTERNAL_URL must be set BEFORE build because Next.js bakes rewrites at build time
+ARG BACKEND_INTERNAL_URL=https://cinema-backend.thankfulsky-96591df5.southeastasia.azurecontainerapps.io
+ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
 ENV NEXT_TELEMETRY_DISABLED=1
-# BACKEND_INTERNAL_URL is used by Next.js rewrite proxy at runtime (server-side)
-# It is NOT baked into the build - set it as a container env var
 RUN npm run build && mkdir -p /app/public
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
@@ -37,8 +37,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-# BACKEND_INTERNAL_URL will be injected at runtime via container app env vars
-# Default fallback (overridden by container env var at runtime)
-ENV BACKEND_INTERNAL_URL=https://cinema-backend.thankfulsky-96591df5.southeastasia.azurecontainerapps.io
 
 CMD ["node", "server.js"]

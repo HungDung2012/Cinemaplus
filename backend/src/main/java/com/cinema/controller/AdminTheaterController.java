@@ -1,10 +1,14 @@
 package com.cinema.controller;
 
 import com.cinema.dto.response.ApiResponse;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.TheaterResponse;
 import com.cinema.service.TheaterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +28,24 @@ public class AdminTheaterController {
     public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheaters() {
         List<TheaterResponse> list = theaterService.getAllTheaters();
         return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<ApiResponse<PageResponse<TheaterResponse>>> getTheatersWithPagination(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String cityName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        PageResponse<TheaterResponse> response = theaterService.getAllTheatersPaged(search, cityName, pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{id}")

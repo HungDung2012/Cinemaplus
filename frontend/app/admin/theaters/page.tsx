@@ -45,16 +45,45 @@ export default function TheatersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [theaterToDelete, setTheaterToDelete] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [sortField, setSortField] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
+  const [usePagination, setUsePagination] = useState(false);
+  
+  const pageSize = 10;
 
   useEffect(() => {
     setMounted(true);
     fetchTheaters();
-  }, []);
+  }, [currentPage, cityFilter, sortField, sortDir, usePagination]);
 
   const fetchTheaters = async () => {
     try {
-      const data = await adminTheaterService.getAll();
-      setTheaters(data);
+      if (usePagination) {
+        const params = {
+          page: currentPage,
+          size: pageSize,
+          search: searchTerm,
+          cityName: cityFilter !== "All" ? cityFilter : undefined,
+          sortBy: sortField,
+          sortDir: sortDir
+        };
+        const response = await adminTheaterService.getAllPaged(params);
+        if (response && response.content) {
+          setTheaters(response.content);
+          setTotalPages(response.totalPages);
+          setTotalElements(response.totalElements);
+        } else {
+          setTheaters([]);
+        }
+      } else {
+        const data = await adminTheaterService.getAll();
+        setTheaters(data);
+      }
     } catch (error) {
       console.error("Error fetching theaters:", error);
       toast.error("Không thể tải danh sách rạp");

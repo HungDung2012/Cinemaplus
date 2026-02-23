@@ -59,4 +59,21 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
        boolean existsByTitleAndIdNot(String title, Long id);
 
        boolean existsByCodeAndIdNot(String code, Long id);
+
+       // Pageable methods for admin pagination
+       Page<Promotion> findByOrderByCreatedAtDesc(Pageable pageable);
+       
+       Page<Promotion> findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(String title, Pageable pageable);
+       
+       Page<Promotion> findByTypeOrderByCreatedAtDesc(PromotionType type, Pageable pageable);
+       
+       Page<Promotion> findByActiveOrderByCreatedAtDesc(Boolean active, Pageable pageable);
+       
+       Page<Promotion> findByTitleContainingIgnoreCaseAndTypeOrderByCreatedAtDesc(String title, PromotionType type, Pageable pageable);
+       
+       Page<Promotion> findByTitleContainingIgnoreCaseAndActiveOrderByCreatedAtDesc(String title, Boolean active, Pageable pageable);
+       
+       Page<Promotion> findByTypeAndActiveOrderByCreatedAtDesc(PromotionType type, Boolean active, Pageable pageable);
+       
+       Page<Promotion> findByTitleContainingIgnoreCaseAndTypeAndActiveOrderByCreatedAtDesc(String title, PromotionType type, Boolean active, Pageable pageable);
 }

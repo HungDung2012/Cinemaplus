@@ -1,7 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.dto.request.BatchScheduleRequest;
 import com.cinema.dto.response.ApiResponse;
+import com.cinema.dto.response.BatchSchedulePreviewResponse;
+import com.cinema.dto.response.BatchScheduleResult;
 import com.cinema.dto.response.PageResponse;
+import com.cinema.dto.response.RoomResponse;
 import com.cinema.dto.response.ShowtimeResponse;
 import com.cinema.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
@@ -61,5 +65,30 @@ public class AdminShowtimeController {
     public ResponseEntity<ApiResponse<Void>> deleteShowtime(@PathVariable Long id) {
         showtimeService.deleteShowtime(id);
         return ResponseEntity.ok(ApiResponse.success("Showtime deleted", null));
+    }
+
+    // ======= BATCH SCHEDULE =======
+
+    @PostMapping("/batch/preview")
+    public ResponseEntity<ApiResponse<BatchSchedulePreviewResponse>> previewBatchSchedule(
+            @RequestBody BatchScheduleRequest request) {
+        BatchSchedulePreviewResponse preview = showtimeService.previewBatchSchedule(request);
+        return ResponseEntity.ok(ApiResponse.success("Preview lịch chiếu", preview));
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<ApiResponse<BatchScheduleResult>> createBatchSchedule(
+            @RequestBody BatchScheduleRequest request) {
+        BatchScheduleResult result = showtimeService.createBatchSchedule(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(result.getMessage(), result));
+    }
+
+    @GetMapping("/room-suggestions")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getRoomSuggestions(
+            @RequestParam Long movieId,
+            @RequestParam Long theaterId) {
+        List<RoomResponse> rooms = showtimeService.getRoomSuggestions(movieId, theaterId);
+        return ResponseEntity.ok(ApiResponse.success("Gợi ý phòng chiếu", rooms));
     }
 }

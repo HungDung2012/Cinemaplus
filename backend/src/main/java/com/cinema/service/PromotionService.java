@@ -1,15 +1,19 @@
 package com.cinema.service;
 
+import com.cinema.dto.response.PageResponse;
 import com.cinema.model.Promotion;
 import com.cinema.model.Promotion.PromotionType;
 import com.cinema.repository.PromotionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +65,31 @@ public class PromotionService {
      */
     public List<Promotion> getAllPromotions() {
         return promotionRepository.findAll();
+    }
+
+    /**
+     * Lấy tất cả khuyến mãi với phân trang (admin)
+     */
+    public PageResponse<Promotion> getAllPromotionsPaged(String search, String type, Boolean active, Pageable pageable) {
+        Page<Promotion> promotions;
+        if (search != null && !search.trim().isEmpty() && type != null && !type.trim().isEmpty() && active != null) {
+            promotions = promotionRepository.findByTitleContainingIgnoreCaseAndTypeAndActiveOrderByCreatedAtDesc(search, Promotion.PromotionType.valueOf(type), active, pageable);
+        } else if (search != null && !search.trim().isEmpty() && type != null && !type.trim().isEmpty()) {
+            promotions = promotionRepository.findByTitleContainingIgnoreCaseAndTypeOrderByCreatedAtDesc(search, Promotion.PromotionType.valueOf(type), pageable);
+        } else if (search != null && !search.trim().isEmpty() && active != null) {
+            promotions = promotionRepository.findByTitleContainingIgnoreCaseAndActiveOrderByCreatedAtDesc(search, active, pageable);
+        } else if (type != null && !type.trim().isEmpty() && active != null) {
+            promotions = promotionRepository.findByTypeAndActiveOrderByCreatedAtDesc(Promotion.PromotionType.valueOf(type), active, pageable);
+        } else if (search != null && !search.trim().isEmpty()) {
+            promotions = promotionRepository.findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(search, pageable);
+        } else if (type != null && !type.trim().isEmpty()) {
+            promotions = promotionRepository.findByTypeOrderByCreatedAtDesc(Promotion.PromotionType.valueOf(type), pageable);
+        } else if (active != null) {
+            promotions = promotionRepository.findByActiveOrderByCreatedAtDesc(active, pageable);
+        } else {
+            promotions = promotionRepository.findByOrderByCreatedAtDesc(pageable);
+        }
+        return createPageResponse(promotions);
     }
 
     /**
@@ -168,5 +197,19 @@ public class PromotionService {
             throw new RuntimeException("Không tìm thấy khuyến mãi với ID: " + id);
         }
         promotionRepository.deleteById(id);
+    }
+
+    private PageResponse<Promotion> createPageResponse(Page<Promotion> promotions) {
+        List<Promotion> content = promotions.getContent();
+
+        return PageResponse.<Promotion>builder()
+                .content(content)
+                .pageNumber(promotions.getNumber())
+                .pageSize(promotions.getSize())
+                .totalElements(promotions.getTotalElements())
+                .totalPages(promotions.getTotalPages())
+                .last(promotions.isLast())
+                .first(promotions.isFirst())
+                .build();
     }
 }

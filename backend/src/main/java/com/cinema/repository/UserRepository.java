@@ -1,6 +1,8 @@
 package com.cinema.repository;
 
 import com.cinema.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -40,4 +42,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Long countNewUsersInPeriod(
            @Param("startDate") LocalDateTime startDate,
            @Param("endDate") LocalDateTime endDate);
+
+    // Pageable methods for admin pagination
+    Page<User> findByEnabledTrueOrderByCreatedAtDesc(Pageable pageable);
+    
+    Page<User> findByFullNameContainingIgnoreCaseAndEnabledTrueOrderByCreatedAtDesc(String fullName, Pageable pageable);
+    
+    Page<User> findByRoleAndEnabledTrueOrderByCreatedAtDesc(User.Role role, Pageable pageable);
+    
+    Page<User> findByFullNameContainingIgnoreCaseAndRoleAndEnabledTrueOrderByCreatedAtDesc(String fullName, User.Role role, Pageable pageable);
 }

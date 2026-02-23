@@ -1,6 +1,10 @@
 package com.cinema.service;
 
+import com.cinema.dto.request.BatchScheduleRequest;
 import com.cinema.dto.request.ShowtimeRequest;
+import com.cinema.dto.response.BatchSchedulePreviewResponse;
+import com.cinema.dto.response.BatchScheduleResult;
+import com.cinema.dto.response.RoomResponse;
 import com.cinema.dto.response.ShowtimeResponse;
 import com.cinema.exception.BadRequestException;
 import com.cinema.exception.ResourceNotFoundException;
@@ -16,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -413,6 +419,207 @@ public class ShowtimeService {
                 // 4. Save All
                 List<Showtime> saved = showtimeRepository.saveAll(newShowtimes);
                 return saved.stream().map(this::mapToResponseLite).collect(Collectors.toList());
+        }
+
+        // ======= BATCH SCHEDULE =======
+
+        public BatchSchedulePreviewResponse previewBatchSchedule(BatchScheduleRequest req) {
+                Movie movie = movieRepository.findById(req.getMovieId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", req.getMovieId()));
+
+                List<Room> rooms = roomRepository.findAllById(req.getRoomIds());
+                if (rooms.size() != req.getRoomIds().size()) {
+                        throw new BadRequestException("One or more rooms not found");
+                }
+
+                int slotDuration = req.getAdsDuration() + movie.getDuration() + req.getCleaningDuration();
+                List<LocalDate> dates = req.getStartDate().datesUntil(req.getEndDate().plusDays(1))
+                                .collect(Collectors.toList());
+
+                List<BatchSchedulePreviewResponse.ConflictInfo> conflicts = new ArrayList<>();
+                int totalSlotsConsidered = 0;
+
+                for (Room room : rooms) {
+                        for (LocalDate date : dates) {
+                                if (date.isBefore(LocalDate.now())) continue;
+
+                                List<Showtime> existing = showtimeRepository.findByRoomIdAndShowDate(room.getId(), date)
+                                                .stream()
+                                                .filter(s -> s.getStatus() != Showtime.ShowtimeStatus.CANCELLED)
+                                                .collect(Collectors.toList());
+
+                                for (String slotStr : req.getTimeSlots()) {
+                                        totalSlotsConsidered++;
+                                        java.time.LocalTime slotTime = java.time.LocalTime.parse(slotStr,
+                                                        DateTimeFormatter.ofPattern("HH:mm"));
+                                        java.time.LocalTime slotEffEnd = slotTime.plusMinutes(slotDuration);
+
+                                        existing.stream()
+                                                        .filter(ex -> {
+                                                                java.time.LocalTime exEffEnd = ex.getEndTime()
+                                                                                .plusMinutes(req.getCleaningDuration());
+                                                                return slotTime.isBefore(exEffEnd)
+                                                                                && ex.getStartTime().isBefore(slotEffEnd);
+                                                        })
+                                                        .findFirst()
+                                                        .ifPresent(ex -> conflicts.add(
+                                                                        BatchSchedulePreviewResponse.ConflictInfo
+                                                                                        .builder()
+                                                                                        .roomId(room.getId())
+                                                                                        .roomName(room.getName())
+                                                                                        .date(date)
+                                                                                        .slotTime(slotTime)
+                                                                                        .conflictWith(String.format(
+                                                                                                        "%s (%s\u2013%s)",
+                                                                                                        ex.getMovie()
+                                                                                                                        .getTitle(),
+                                                                                                        ex.getStartTime(),
+                                                                                                        ex.getEndTime()))
+                                                                                        .build()));
+                                }
+                        }
+                }
+
+                return BatchSchedulePreviewResponse.builder()
+                                .movieTitle(movie.getTitle())
+                                .movieDuration(movie.getDuration())
+                                .slotDurationMinutes(slotDuration)
+                                .totalSlotsConsidered(totalSlotsConsidered)
+                                .totalToCreate(totalSlotsConsidered - conflicts.size())
+                                .totalConflicts(conflicts.size())
+                                .conflicts(conflicts)
+                                .build();
+        }
+
+        @Transactional
+        public BatchScheduleResult createBatchSchedule(BatchScheduleRequest req) {
+                Movie movie = movieRepository.findById(req.getMovieId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", req.getMovieId()));
+
+                List<Room> rooms = roomRepository.findAllById(req.getRoomIds());
+                if (rooms.size() != req.getRoomIds().size()) {
+                        throw new BadRequestException("One or more rooms not found");
+                }
+
+                int slotDuration = req.getAdsDuration() + movie.getDuration() + req.getCleaningDuration();
+                List<LocalDate> dates = req.getStartDate().datesUntil(req.getEndDate().plusDays(1))
+                                .collect(Collectors.toList());
+
+                List<Showtime> toSave = new ArrayList<>();
+                List<BatchSchedulePreviewResponse.ConflictInfo> conflicts = new ArrayList<>();
+
+                for (Room room : rooms) {
+                        for (LocalDate date : dates) {
+                                if (date.isBefore(LocalDate.now())) continue;
+
+                                // Grows as new slots are added — prevents intra-batch conflicts
+                                List<Showtime> occupied = new ArrayList<>(
+                                                showtimeRepository.findByRoomIdAndShowDate(room.getId(), date)
+                                                                .stream()
+                                                                .filter(s -> s.getStatus() != Showtime.ShowtimeStatus.CANCELLED)
+                                                                .collect(Collectors.toList()));
+
+                                for (String slotStr : req.getTimeSlots()) {
+                                        java.time.LocalTime slotTime = java.time.LocalTime.parse(slotStr,
+                                                        DateTimeFormatter.ofPattern("HH:mm"));
+                                        java.time.LocalTime slotEffEnd = slotTime.plusMinutes(slotDuration);
+
+                                        java.util.Optional<Showtime> conflicting = occupied.stream()
+                                                        .filter(ex -> {
+                                                                java.time.LocalTime exEffEnd = ex.getEndTime()
+                                                                                .plusMinutes(req.getCleaningDuration());
+                                                                return slotTime.isBefore(exEffEnd)
+                                                                                && ex.getStartTime().isBefore(slotEffEnd);
+                                                        })
+                                                        .findFirst();
+
+                                        if (conflicting.isPresent()) {
+                                                Showtime ex = conflicting.get();
+                                                conflicts.add(BatchSchedulePreviewResponse.ConflictInfo.builder()
+                                                                .roomId(room.getId())
+                                                                .roomName(room.getName())
+                                                                .date(date)
+                                                                .slotTime(slotTime)
+                                                                .conflictWith(String.format("%s (%s\u2013%s)",
+                                                                                ex.getMovie().getTitle(),
+                                                                                ex.getStartTime(), ex.getEndTime()))
+                                                                .build());
+                                        } else {
+                                                Showtime newShowtime = Showtime.builder()
+                                                                .showDate(date)
+                                                                .startTime(slotTime)
+                                                                .endTime(slotTime.plusMinutes(
+                                                                                req.getAdsDuration() + movie.getDuration()))
+                                                                .basePrice(req.getBasePrice())
+                                                                .status(Showtime.ShowtimeStatus.AVAILABLE)
+                                                                .movie(movie)
+                                                                .room(room)
+                                                                .build();
+                                                toSave.add(newShowtime);
+                                                occupied.add(newShowtime);
+                                        }
+                                }
+                        }
+                }
+
+                List<Showtime> saved = showtimeRepository.saveAll(toSave);
+
+                return BatchScheduleResult.builder()
+                                .totalCreated(saved.size())
+                                .totalSkipped(conflicts.size())
+                                .conflicts(conflicts)
+                                .message(String.format("Đã tạo %d suất chiếu, bỏ qua %d suất bị trùng lịch.",
+                                                saved.size(), conflicts.size()))
+                                .build();
+        }
+
+        public List<RoomResponse> getRoomSuggestions(Long movieId, Long theaterId) {
+                Movie movie = movieRepository.findById(movieId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", movieId));
+
+                List<Room> rooms = roomRepository.findByTheaterIdAndActiveTrue(theaterId);
+                double rating = movie.getRating() != null ? movie.getRating() : 0.0;
+
+                rooms.sort((a, b) -> {
+                        int pa = roomPriority(a.getRoomType(), rating);
+                        int pb = roomPriority(b.getRoomType(), rating);
+                        return pa != pb ? pa - pb : b.getTotalSeats() - a.getTotalSeats();
+                });
+
+                return rooms.stream()
+                                .map(r -> RoomResponse.builder()
+                                                .id(r.getId())
+                                                .name(r.getName())
+                                                .totalSeats(r.getTotalSeats())
+                                                .rowsCount(r.getRowsCount())
+                                                .columnsCount(r.getColumnsCount())
+                                                .roomType(r.getRoomType())
+                                                .active(r.getActive())
+                                                .theaterId(theaterId)
+                                                .theaterName(r.getTheater().getName())
+                                                .build())
+                                .collect(Collectors.toList());
+        }
+
+        /** Lower = higher priority for a given movie rating. */
+        private int roomPriority(Room.RoomType type, double rating) {
+                if (rating >= 7.5) {
+                        return switch (type) {
+                                case IMAX_3D -> 0;
+                                case IMAX -> 1;
+                                case VIP_4DX -> 2;
+                                case STANDARD_3D -> 3;
+                                case STANDARD_2D -> 4;
+                        };
+                } else {
+                        return switch (type) {
+                                case STANDARD_3D -> 0;
+                                case STANDARD_2D -> 1;
+                                case IMAX -> 2;
+                                case VIP_4DX -> 3;
+                                case IMAX_3D -> 4;
+                        };
+                }
         }
 
         private void validateCollisionWithList(Showtime newItem, List<Showtime> existingList) {

@@ -3,11 +3,15 @@ package com.cinema.controller;
 import com.cinema.dto.request.CreateUserRequest;
 import com.cinema.dto.request.UpdateUserRequest;
 import com.cinema.dto.response.ApiResponse;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.UserResponse;
 import com.cinema.model.User;
 import com.cinema.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +31,24 @@ public class AdminUserController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getUsers() {
         return ResponseEntity.ok(ApiResponse.success(userService.getAllUsers()));
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsersWithPagination(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        PageResponse<UserResponse> response = userService.getAllUsersPaged(search, role, pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{id}")

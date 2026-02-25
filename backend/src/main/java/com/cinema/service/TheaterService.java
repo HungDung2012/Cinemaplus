@@ -1,6 +1,7 @@
 package com.cinema.service;
 
 import com.cinema.dto.response.GroupedTheaterResponse;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.TheaterScheduleResponse;
 import com.cinema.dto.response.TheaterResponse;
 import com.cinema.exception.DuplicateResourceException;
@@ -14,6 +15,8 @@ import com.cinema.repository.CityRepository;
 import com.cinema.repository.ShowtimeRepository;
 import com.cinema.repository.TheaterRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,20 @@ public class TheaterService {
                 return theaterRepository.findByActiveTrue().stream()
                                 .map(this::mapToResponse)
                                 .collect(Collectors.toList());
+        }
+
+        public PageResponse<TheaterResponse> getAllTheatersPaged(String search, String cityName, Pageable pageable) {
+                Page<Theater> theaters;
+                if (search != null && !search.trim().isEmpty() && cityName != null && !cityName.trim().isEmpty()) {
+                        theaters = theaterRepository.findByNameContainingAndCityNameAndActiveTrueOrderByNameAsc(search, cityName, pageable);
+                } else if (search != null && !search.trim().isEmpty()) {
+                        theaters = theaterRepository.findByNameContainingAndActiveTrueOrderByNameAsc(search, pageable);
+                } else if (cityName != null && !cityName.trim().isEmpty()) {
+                        theaters = theaterRepository.findByCityNameAndActiveTrueOrderByNameAsc(cityName, pageable);
+                } else {
+                        theaters = theaterRepository.findByActiveTrueOrderByNameAsc(pageable);
+                }
+                return createPageResponse(theaters);
         }
 
         public List<TheaterResponse> getTheatersByCity(Long cityId) {
@@ -325,5 +342,21 @@ public class TheaterService {
                 theater.setImageUrl(request.getImageUrl());
                 theater.setMapUrl(request.getMapUrl());
                 theater.setActive(request.getActive() != null ? request.getActive() : true);
+        }
+
+        private PageResponse<TheaterResponse> createPageResponse(Page<Theater> theaters) {
+                List<TheaterResponse> content = theaters.getContent().stream()
+                                .map(this::mapToResponse)
+                                .collect(Collectors.toList());
+
+                return PageResponse.<TheaterResponse>builder()
+                                .content(content)
+                                .pageNumber(theaters.getNumber())
+                                .pageSize(theaters.getSize())
+                                .totalElements(theaters.getTotalElements())
+                                .totalPages(theaters.getTotalPages())
+                                .last(theaters.isLast())
+                                .first(theaters.isFirst())
+                                .build();
         }
 }

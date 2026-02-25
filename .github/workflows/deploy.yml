@@ -1,16 +1,40 @@
 ﻿name: Build & Deploy to Azure Container Apps
 
+# Professional Git Flow Setup
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main]  # Only deploy from main branch
+  pull_request:
+    branches: [main]  # Run tests on PR but don't deploy
+  workflow_dispatch:   # Manual deployment option
 
 env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
 
 jobs:
-  build-and-deploy:
+  # First run tests
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Backend Tests
+        run: |
+          cd backend
+          mvn test
+      - name: Run Frontend Tests  
+        run: |
+          cd frontend
+          npm ci
+          npm test
+
+  # Only deploy after tests pass
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    # Require manual approval for production
+    environment: production
+    # Skip deployment if commit message contains [skip ci] or [skip deploy]
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip deploy]')"
     permissions:
       id-token: write
       contents: read

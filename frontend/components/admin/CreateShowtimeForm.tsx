@@ -8,6 +8,7 @@ import DraggableMovieSidebar from '@/components/admin/DraggableMovieSidebar';
 import { adminMovieService, adminRoomService, adminShowtimeService, adminTheaterService } from '@/services/adminService';
 import { useToast } from '@/components/ui/Toast';
 import CopyScheduleModal from './CopyScheduleModal';
+import QuickScheduleModal from './QuickScheduleModal';
 import { useRouter } from 'next/navigation';
 
 // --- Types ---
@@ -40,6 +41,7 @@ export default function CreateShowtimeForm() {
 
     // Copy Schedule Modal
     const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+    const [isQuickScheduleOpen, setIsQuickScheduleOpen] = useState(false);
 
     // --- Fetch Initial Data (Theaters & Movies) ---
     useEffect(() => {
@@ -311,6 +313,17 @@ export default function CreateShowtimeForm() {
                         Sao chép
                     </button>
 
+                    {/* Auto Schedule Button */}
+                    <button
+                        onClick={() => setIsQuickScheduleOpen(true)}
+                        className="px-4 py-2 border border-blue-300 bg-blue-50 text-blue-700 font-semibold rounded-md text-sm hover:bg-blue-100 h-[38px] flex items-center gap-2"
+                        title="Tạo lịch chiếu tự động cho nhiều ngày"
+                        disabled={loading}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        Lịch tự động
+                    </button>
+
                     {/* SAVE BUTTON */}
                     <button
                         onClick={handleSaveChanges}
@@ -353,6 +366,17 @@ export default function CreateShowtimeForm() {
                                 theaters={theaters}
                                 onSuccess={() => {
                                     setIsCopyModalOpen(false);
+                                    fetchSchedule();
+                                }}
+                            />
+                            <QuickScheduleModal
+                                isOpen={isQuickScheduleOpen}
+                                onClose={() => setIsQuickScheduleOpen(false)}
+                                theaters={theaters}
+                                movies={movies}
+                                initialTheaterId={selectedTheaterId || undefined}
+                                onSuccess={() => {
+                                    setIsQuickScheduleOpen(false);
                                     fetchSchedule();
                                 }}
                             />

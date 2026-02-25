@@ -28,10 +28,43 @@ export const adminMovieService = {
   },
 };
 
+// ===================== TMDB =====================
+export const tmdbService = {
+  getNowPlaying: async (page = 1) => {
+    const response = await api.get('/admin/tmdb/preview/now-playing', { params: { page } });
+    return response.data?.data;
+  },
+
+  getUpcoming: async (page = 1) => {
+    const response = await api.get('/admin/tmdb/preview/upcoming', { params: { page } });
+    return response.data?.data;
+  },
+
+  getPopular: async (page = 1) => {
+    const response = await api.get('/admin/tmdb/preview/popular', { params: { page } });
+    return response.data?.data;
+  },
+
+  search: async (query: string, page = 1) => {
+    const response = await api.get('/admin/tmdb/search', { params: { query, page } });
+    return response.data?.data;
+  },
+
+  importById: async (tmdbId: number) => {
+    const response = await api.post(`/admin/tmdb/import/${tmdbId}`);
+    return response.data?.data;
+  },
+};
+
 // ===================== THEATERS =====================
 export const adminTheaterService = {
   getAll: async () => {
     const response = await api.get('/admin/theaters');
+    return response.data?.data;
+  },
+
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/theaters/paged', { params });
     return response.data?.data;
   },
 
@@ -94,12 +127,22 @@ export const adminShowtimeService = {
     const response = await api.delete(`/admin/showtimes/${id}`);
     return response.data?.data;
   },
+
+  getRoomSuggestions: async (movieId: number, theaterId: number) => {
+    const response = await api.get('/admin/showtimes/room-suggestions', { params: { movieId, theaterId } });
+    return response.data?.data as import('@/types').Room[];
+  },
 };
 
 // ===================== BOOKINGS =====================
 export const adminBookingService = {
   getAll: async () => {
     const response = await api.get('/admin/bookings');
+    return response.data?.data;
+  },
+
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/bookings/paged', { params });
     return response.data?.data;
   },
 
@@ -123,6 +166,11 @@ export const adminBookingService = {
 export const adminUserService = {
   getAll: async () => {
     const response = await api.get('/admin/users');
+    return response.data?.data;
+  },
+
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/users/paged', { params });
     return response.data?.data;
   },
 
@@ -212,6 +260,11 @@ export const adminFoodService = {
     return response.data?.data;
   },
 
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/foods/paged', { params });
+    return response.data?.data;
+  },
+
   getById: async (id: number) => {
     const response = await api.get(`/admin/foods/${id}`);
     return response.data?.data;
@@ -237,6 +290,11 @@ export const adminFoodService = {
 export const adminPromotionService = {
   getAll: async () => {
     const response = await api.get('/admin/promotions');
+    return response.data?.data;
+  },
+
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/promotions/paged', { params });
     return response.data?.data;
   },
 
@@ -324,28 +382,22 @@ export const adminCityService = {
 };
 
 // ===================== BATCH SCHEDULE =====================
-export interface TimeSlotPreview {
-  inputTime: string;
-  adsStart: string;
-  adsEnd: string;
-  featureStart: string;
-  featureEnd: string;
-  cleaningStart: string;
-  cleaningEnd: string;
-  totalDurationMinutes: number;
-  hasOverlapWithOther?: boolean;
-  overlapMessage?: string;
+export interface ConflictInfo {
+  roomId: number;
+  roomName: string;
+  date: string;
+  slotTime: string;
+  conflictWith: string;
 }
 
-export interface PreviewResponse {
-  movieId: number;
+export interface BatchPreviewResponse {
   movieTitle: string;
   movieDuration: number;
-  adsDuration: number;
-  cleaningDuration: number;
-  timeSlots: TimeSlotPreview[];
-  hasInternalOverlaps: boolean;
-  validationMessage: string;
+  slotDurationMinutes: number;
+  totalSlotsConsidered: number;
+  totalToCreate: number;
+  totalConflicts: number;
+  conflicts: ConflictInfo[];
 }
 
 export interface BatchScheduleRequest {
@@ -367,7 +419,7 @@ export interface BatchScheduleResponse {
 }
 
 export const adminBatchScheduleService = {
-  preview: async (request: BatchScheduleRequest): Promise<PreviewResponse> => {
+  preview: async (request: BatchScheduleRequest): Promise<BatchPreviewResponse> => {
     const response = await api.post('/admin/showtimes/batch/preview', request);
     return response.data?.data;
   },

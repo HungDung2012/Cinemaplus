@@ -2,10 +2,13 @@ package com.cinema.service;
 
 import com.cinema.dto.request.FoodRequest;
 import com.cinema.dto.response.FoodResponse;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.exception.DuplicateResourceException;
 import com.cinema.model.Food;
 import com.cinema.repository.FoodRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,6 +31,28 @@ public class FoodService {
         return foodRepository.findAllSorted().stream()
                 .map(FoodResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    public PageResponse<FoodResponse> getAllFoodsPaged(String search, String category, Boolean isAvailable, Pageable pageable) {
+        Page<Food> foods;
+        if (search != null && !search.trim().isEmpty() && category != null && !category.trim().isEmpty() && isAvailable != null) {
+            foods = foodRepository.findByNameContainingIgnoreCaseAndCategoryAndIsAvailableOrderByNameAsc(search, Food.FoodCategory.valueOf(category), isAvailable, pageable);
+        } else if (search != null && !search.trim().isEmpty() && category != null && !category.trim().isEmpty()) {
+            foods = foodRepository.findByNameContainingIgnoreCaseAndCategoryOrderByNameAsc(search, Food.FoodCategory.valueOf(category), pageable);
+        } else if (search != null && !search.trim().isEmpty() && isAvailable != null) {
+            foods = foodRepository.findByNameContainingIgnoreCaseAndIsAvailableOrderByNameAsc(search, isAvailable, pageable);
+        } else if (category != null && !category.trim().isEmpty() && isAvailable != null) {
+            foods = foodRepository.findByCategoryAndIsAvailableOrderByNameAsc(Food.FoodCategory.valueOf(category), isAvailable, pageable);
+        } else if (search != null && !search.trim().isEmpty()) {
+            foods = foodRepository.findByNameContainingIgnoreCaseOrderByNameAsc(search, pageable);
+        } else if (category != null && !category.trim().isEmpty()) {
+            foods = foodRepository.findByCategoryOrderByNameAsc(Food.FoodCategory.valueOf(category), pageable);
+        } else if (isAvailable != null) {
+            foods = foodRepository.findByIsAvailableOrderByNameAsc(isAvailable, pageable);
+        } else {
+            foods = foodRepository.findByOrderByNameAsc(pageable);
+        }
+        return createPageResponse(foods);
     }
 
     public List<FoodResponse> getFoodsByCategory(Food.FoodCategory category) {
@@ -127,5 +152,21 @@ public class FoodService {
             throw new RuntimeException("Không tìm thấy sản phẩm với ID: " + id);
         }
         foodRepository.deleteById(id);
+    }
+
+    private PageResponse<FoodResponse> createPageResponse(Page<Food> foods) {
+        List<FoodResponse> content = foods.getContent().stream()
+                .map(FoodResponse::fromEntity)
+                .collect(Collectors.toList());
+
+        return PageResponse.<FoodResponse>builder()
+                .content(content)
+                .pageNumber(foods.getNumber())
+                .pageSize(foods.getSize())
+                .totalElements(foods.getTotalElements())
+                .totalPages(foods.getTotalPages())
+                .last(foods.isLast())
+                .first(foods.isFirst())
+                .build();
     }
 }

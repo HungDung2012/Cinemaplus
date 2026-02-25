@@ -276,4 +276,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
        Long getTotalTicketsSold(
                      @Param("startDate") LocalDateTime startDate,
                      @Param("endDate") LocalDateTime endDate);
+
+       // Pageable methods for admin pagination
+       Page<Booking> findByOrderByCreatedAtDesc(Pageable pageable);
+       
+       Page<Booking> findByBookingCodeContainingIgnoreCaseOrderByCreatedAtDesc(String bookingCode, Pageable pageable);
+       
+       Page<Booking> findByStatusOrderByCreatedAtDesc(Booking.BookingStatus status, Pageable pageable);
+       
+       Page<Booking> findByPaymentStatusOrderByCreatedAtDesc(Booking.PaymentStatus paymentStatus, Pageable pageable);
+       
+       Page<Booking> findByBookingCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(String bookingCode, Booking.BookingStatus status, Pageable pageable);
+       
+       Page<Booking> findByBookingCodeContainingIgnoreCaseAndPaymentStatusOrderByCreatedAtDesc(String bookingCode, Booking.PaymentStatus paymentStatus, Pageable pageable);
+       
+       Page<Booking> findByStatusAndPaymentStatusOrderByCreatedAtDesc(Booking.BookingStatus status, Booking.PaymentStatus paymentStatus, Pageable pageable);
+       
+       Page<Booking> findByBookingCodeContainingIgnoreCaseAndStatusAndPaymentStatusOrderByCreatedAtDesc(String bookingCode, Booking.BookingStatus status, Booking.PaymentStatus paymentStatus, Pageable pageable);
 }

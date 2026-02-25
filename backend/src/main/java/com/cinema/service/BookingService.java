@@ -2,6 +2,7 @@ package com.cinema.service;
 
 import com.cinema.dto.request.BookingRequest;
 import com.cinema.dto.response.BookingResponse;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.exception.BadRequestException;
 import com.cinema.exception.BookingExpiredException;
 import com.cinema.exception.ResourceNotFoundException;
@@ -11,6 +12,8 @@ import com.cinema.model.*;
 import com.cinema.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -758,6 +761,31 @@ public class BookingService {
     }
 
     /**
+     * Lấy tất cả booking với phân trang (dùng cho admin)
+     */
+    public PageResponse<BookingResponse> getAllBookingsPaged(String search, String status, String paymentStatus, Pageable pageable) {
+        Page<Booking> bookings;
+        if (search != null && !search.trim().isEmpty() && status != null && !status.trim().isEmpty() && paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndStatusAndPaymentStatusOrderByCreatedAtDesc(search, Booking.BookingStatus.valueOf(status), Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+        } else if (search != null && !search.trim().isEmpty() && status != null && !status.trim().isEmpty()) {
+            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(search, Booking.BookingStatus.valueOf(status), pageable);
+        } else if (search != null && !search.trim().isEmpty() && paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndPaymentStatusOrderByCreatedAtDesc(search, Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+        } else if (status != null && !status.trim().isEmpty() && paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            bookings = bookingRepository.findByStatusAndPaymentStatusOrderByCreatedAtDesc(Booking.BookingStatus.valueOf(status), Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+        } else if (search != null && !search.trim().isEmpty()) {
+            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseOrderByCreatedAtDesc(search, pageable);
+        } else if (status != null && !status.trim().isEmpty()) {
+            bookings = bookingRepository.findByStatusOrderByCreatedAtDesc(Booking.BookingStatus.valueOf(status), pageable);
+        } else if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            bookings = bookingRepository.findByPaymentStatusOrderByCreatedAtDesc(Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+        } else {
+            bookings = bookingRepository.findByOrderByCreatedAtDesc(pageable);
+        }
+        return createPageResponse(bookings);
+    }
+
+    /**
      * Cập nhật trạng thái booking theo admin request
      * (PENDING/CONFIRMED/CANCELLED/COMPLETED/EXPIRED)
      */
@@ -865,6 +893,22 @@ public class BookingService {
                 .roomName(room.getName())
                 .seatLabels(seatLabels)
                 .paymentStatus(paymentStatus)
+                .build();
+    }
+
+    private PageResponse<BookingResponse> createPageResponse(Page<Booking> bookings) {
+        List<BookingResponse> content = bookings.getContent().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return PageResponse.<BookingResponse>builder()
+                .content(content)
+                .pageNumber(bookings.getNumber())
+                .pageSize(bookings.getSize())
+                .totalElements(bookings.getTotalElements())
+                .totalPages(bookings.getTotalPages())
+                .last(bookings.isLast())
+                .first(bookings.isFirst())
                 .build();
     }
 }

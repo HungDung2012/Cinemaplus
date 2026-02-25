@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -48,6 +49,7 @@ public class SampleDataInitializer implements CommandLineRunner {
         private final PriceLineRepository priceLineRepository;
         private final SurchargeRepository surchargeRepository;
         private final ObjectMapper objectMapper;
+        private final PasswordEncoder passwordEncoder;
 
         @org.springframework.beans.factory.annotation.Value("${app.db.reset-data:false}")
         private boolean resetData;
@@ -110,6 +112,10 @@ public class SampleDataInitializer implements CommandLineRunner {
                 // Init showtimes for existing movies
                 if (showtimeRepository.count() == 0 && movieRepository.count() > 0) {
                         initShowtimes();
+                }
+                // Init sample users
+                if (userRepository.count() <= 1) { // only admin exists
+                        initSampleUsers();
                 }
                 // Init sample reviews
                 if (reviewRepository.count() == 0 && movieRepository.count() > 0) {
@@ -2463,5 +2469,61 @@ public class SampleDataInitializer implements CommandLineRunner {
 
                 bookingRepository.saveAll(bookings);
                 log.info("Created {} sample bookings", bookings.size());
+        }
+
+        private void initSampleUsers() {
+                log.info("Initializing sample users...");
+                List<User> users = new ArrayList<>();
+
+                String[][] userData = {
+                        // email, password, fullName, phone, gender, dateOfBirth, address, membershipLevel
+                        {"nguyen.vanlong@gmail.com", "User123!", "Nguyễn Văn Long", "0901234001", "MALE", "1992-05-15", "123 Lê Lợi, Q1, TP.HCM", "VIP"},
+                        {"tran.thihoa@gmail.com", "User123!", "Trần Thị Hoa", "0901234002", "FEMALE", "1995-08-20", "45 Nguyễn Huệ, Q1, TP.HCM", "NORMAL"},
+                        {"le.vanminh@gmail.com", "User123!", "Lê Văn Minh", "0901234003", "MALE", "1990-03-10", "78 Điện Biên Phủ, Q3, TP.HCM", "PLATINUM"},
+                        {"pham.thilan@gmail.com", "User123!", "Phạm Thị Lan", "0901234004", "FEMALE", "1998-11-25", "12 Hoàng Diệu, Đà Nẵng", "NORMAL"},
+                        {"hoang.vanbinh@gmail.com", "User123!", "Hoàng Văn Bình", "0901234005", "MALE", "1988-07-04", "56 Trần Phú, Hà Nội", "VIP"},
+                        {"do.thimylinh@gmail.com", "User123!", "Đỗ Thị Mỹ Linh", "0901234006", "FEMALE", "2000-01-30", "90 Lý Thường Kiệt, Q10, TP.HCM", "NORMAL"},
+                        {"vu.thanhtung@gmail.com", "User123!", "Vũ Thành Tùng", "0901234007", "MALE", "1994-09-18", "34 Pasteur, Q3, TP.HCM", "NORMAL"},
+                        {"bui.thithanhthuy@gmail.com", "User123!", "Bùi Thị Thanh Thủy", "0901234008", "FEMALE", "1996-04-12", "67 Nguyễn Đình Chiểu, Q3, TP.HCM", "VIP"},
+                        {"dang.quochuy@gmail.com", "User123!", "Đặng Quốc Huy", "0901234009", "MALE", "1993-12-08", "23 Nam Kỳ Khởi Nghĩa, Q1, TP.HCM", "NORMAL"},
+                        {"nguyen.thikimanh@gmail.com", "User123!", "Nguyễn Thị Kim Anh", "0901234010", "FEMALE", "1999-06-22", "89 Cách Mạng Tháng 8, Q10, TP.HCM", "NORMAL"},
+                        {"phan.vanquang@gmail.com", "User123!", "Phan Văn Quang", "0901234011", "MALE", "1987-02-14", "15 Lý Tự Trọng, Q1, TP.HCM", "PLATINUM"},
+                        {"truong.thidiem@gmail.com", "User123!", "Trương Thị Diễm", "0901234012", "FEMALE", "1997-10-05", "44 Võ Thị Sáu, Q3, TP.HCM", "NORMAL"},
+                        {"mai.ductrung@gmail.com", "User123!", "Mai Đức Trung", "0901234013", "MALE", "1991-08-28", "101 Đinh Tiên Hoàng, Q1, TP.HCM", "VIP"},
+                        {"ly.thithuha@gmail.com", "User123!", "Lý Thị Thu Hà", "0901234014", "FEMALE", "2001-03-17", "77 Trần Hưng Đạo, Q5, TP.HCM", "NORMAL"},
+                        {"cao.vanphuc@gmail.com", "User123!", "Cao Văn Phúc", "0901234015", "MALE", "1985-11-09", "33 Hoàng Sa, Q3, TP.HCM", "NORMAL"},
+                };
+
+                String[] spendingAmounts = {"5200000", "850000", "12500000", "320000", "7800000",
+                        "450000", "680000", "4300000", "920000", "210000",
+                        "15000000", "560000", "6100000", "380000", "740000"};
+
+                for (int i = 0; i < userData.length; i++) {
+                        String[] u = userData[i];
+                        if (userRepository.existsByEmail(u[0])) continue;
+
+                        User.MembershipLevel level = User.MembershipLevel.valueOf(u[7]);
+                        BigDecimal spending = new BigDecimal(spendingAmounts[i]);
+                        int points = spending.divide(new BigDecimal("10000"), 0, java.math.RoundingMode.DOWN).intValue() * 10;
+
+                        users.add(User.builder()
+                                .email(u[0])
+                                .password(passwordEncoder.encode(u[1]))
+                                .fullName(u[2])
+                                .phone(u[3])
+                                .gender(User.Gender.valueOf(u[4]))
+                                .dateOfBirth(LocalDate.parse(u[5]))
+                                .address(u[6])
+                                .role(User.Role.USER)
+                                .active(true)
+                                .membershipLevel(level)
+                                .totalSpending(spending)
+                                .currentPoints(points)
+                                .totalPointsEarned(points)
+                                .build());
+                }
+
+                userRepository.saveAll(users);
+                log.info("Created {} sample users", users.size());
         }
 }

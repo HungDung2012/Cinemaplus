@@ -2,6 +2,7 @@ package com.cinema.service.impl;
 
 import com.cinema.dto.request.CreateUserRequest;
 import com.cinema.dto.request.UpdateUserRequest;
+import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.UserResponse;
 import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
@@ -10,6 +11,8 @@ import com.cinema.repository.UserRepository;
 import com.cinema.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,21 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll().stream()
                 .map(user -> modelMapper.map(user, UserResponse.class))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<UserResponse> getAllUsersPaged(String search, String role, Pageable pageable) {
+        Page<User> users;
+        if (search != null && !search.trim().isEmpty() && role != null && !role.trim().isEmpty()) {
+            users = userRepository.findByFullNameContainingIgnoreCaseAndRoleAndEnabledTrueOrderByCreatedAtDesc(search, User.Role.valueOf(role), pageable);
+        } else if (search != null && !search.trim().isEmpty()) {
+            users = userRepository.findByFullNameContainingIgnoreCaseAndEnabledTrueOrderByCreatedAtDesc(search, pageable);
+        } else if (role != null && !role.trim().isEmpty()) {
+            users = userRepository.findByRoleAndEnabledTrueOrderByCreatedAtDesc(User.Role.valueOf(role), pageable);
+        } else {
+            users = userRepository.findByEnabledTrueOrderByCreatedAtDesc(pageable);
+        }
+        return createPageResponse(users);
     }
 
     @Override
@@ -208,6 +226,22 @@ public class UserServiceImpl implements UserService {
                 .theaterName(booking.getShowtime().getRoom().getTheater().getName())
                 .showDate(booking.getShowtime().getShowDate())
                 .startTime(booking.getShowtime().getStartTime())
+                .build();
+    }
+
+    private PageResponse<UserResponse> createPageResponse(Page<User> users) {
+        List<UserResponse> content = users.getContent().stream()
+                .map(user -> modelMapper.map(user, UserResponse.class))
+                .collect(Collectors.toList());
+
+        return PageResponse.<UserResponse>builder()
+                .content(content)
+                .pageNumber(users.getNumber())
+                .pageSize(users.getSize())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .last(users.isLast())
+                .first(users.isFirst())
                 .build();
     }
 }

@@ -48,6 +48,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                // Payment IPN webhooks — cổng thanh toán gọi server-to-server, không có JWT
+                .requestMatchers("/api/payments/ipn/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/payments/status/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/movies/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/theaters/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/cinemas/**").permitAll()

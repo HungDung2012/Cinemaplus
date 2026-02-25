@@ -237,6 +237,40 @@ export interface PaymentRequest {
   pointsToUse?: number;
 }
 
+// Payment Gateway types (cho thanh toán online VNPay/MoMo/ZaloPay)
+export interface CreatePaymentUrlRequest {
+  bookingId: number;
+  paymentMethod: PaymentMethod;
+  pointsToUse?: number;
+}
+
+export interface CreatePaymentUrlResponse {
+  paymentId: number;
+  paymentUrl: string | null;
+  bookingCode: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
+// Phương thức thanh toán online (cần redirect sang cổng thanh toán)
+export type OnlinePaymentMethod = 'VNPAY' | 'MOMO' | 'ZALOPAY';
+
+export const isOnlinePaymentMethod = (method: PaymentMethod): method is OnlinePaymentMethod => {
+  return ['VNPAY', 'MOMO', 'ZALOPAY'].includes(method);
+};
+
+// Payment method display config
+export interface PaymentMethodConfig {
+  id: PaymentMethod;
+  name: string;
+  icon: string;
+  color: string;
+  promo?: string;
+  isOnline: boolean;
+}
+
 // Review types
 export interface Review {
   id: number;

@@ -4,6 +4,7 @@ export { default as MovieCard } from './movie/MovieCard';
 export { default as MovieList } from './movie/MovieList';
 export { default as SeatMap } from './booking/SeatMap';
 export { default as ShowtimeSelector } from './booking/ShowtimeSelector';
+export { default as PaymentMethodSelector } from './booking/PaymentMethodSelector';
 export { default as LoadingSpinner } from './ui/LoadingSpinner';
 export { default as Button } from './ui/Button';
 export { default as Input } from './ui/Input';

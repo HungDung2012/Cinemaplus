@@ -1,6 +1,7 @@
 package com.cinema.repository;
 
 import com.cinema.model.Booking;
+import com.cinema.model.Payment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -284,13 +285,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
        
        Page<Booking> findByStatusOrderByCreatedAtDesc(Booking.BookingStatus status, Pageable pageable);
        
-       Page<Booking> findByPaymentStatusOrderByCreatedAtDesc(Booking.PaymentStatus paymentStatus, Pageable pageable);
+       Page<Booking> findByPaymentStatusOrderByCreatedAtDesc(Payment.PaymentStatus paymentStatus, Pageable pageable);
        
        Page<Booking> findByBookingCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(String bookingCode, Booking.BookingStatus status, Pageable pageable);
        
-       Page<Booking> findByBookingCodeContainingIgnoreCaseAndPaymentStatusOrderByCreatedAtDesc(String bookingCode, Booking.PaymentStatus paymentStatus, Pageable pageable);
+       Page<Booking> findByBookingCodeContainingIgnoreCaseAndPaymentStatusOrderByCreatedAtDesc(String bookingCode, Payment.PaymentStatus paymentStatus, Pageable pageable);
        
-       Page<Booking> findByStatusAndPaymentStatusOrderByCreatedAtDesc(Booking.BookingStatus status, Booking.PaymentStatus paymentStatus, Pageable pageable);
+       Page<Booking> findByStatusAndPaymentStatusOrderByCreatedAtDesc(Booking.BookingStatus status, Payment.PaymentStatus paymentStatus, Pageable pageable);
        
-       Page<Booking> findByBookingCodeContainingIgnoreCaseAndStatusAndPaymentStatusOrderByCreatedAtDesc(String bookingCode, Booking.BookingStatus status, Booking.PaymentStatus paymentStatus, Pageable pageable);
+       Page<Booking> findByBookingCodeContainingIgnoreCaseAndStatusAndPaymentStatusOrderByCreatedAtDesc(String bookingCode, Booking.BookingStatus status, Payment.PaymentStatus paymentStatus, Pageable pageable);
 }

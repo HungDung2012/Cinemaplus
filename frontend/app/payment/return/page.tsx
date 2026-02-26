@@ -33,7 +33,7 @@ function PaymentReturnContent() {
     const checkPaymentStatus = async () => {
       try {
         // Lấy bookingCode từ query params tuỳ cổng thanh toán
-        let bookingCode = extractBookingCode(method, searchParams);
+        const bookingCode = extractBookingCode(method, searchParams);
         
         if (!bookingCode) {
           setError('Không tìm thấy thông tin đơn hàng');

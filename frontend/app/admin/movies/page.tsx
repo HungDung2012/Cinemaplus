@@ -325,8 +325,8 @@ export default function AdminMoviesPage() {
                     // Limit to 3 pages before and 3 pages after current
                     const siblingCount = 3;
 
-                    let startPage = Math.max(0, currentPage - siblingCount);
-                    let endPage = Math.min(totalPages - 1, currentPage + siblingCount);
+                    const startPage = Math.max(0, currentPage - siblingCount);
+                    const endPage = Math.min(totalPages - 1, currentPage + siblingCount);
 
                     // Always show first page
                     if (startPage > 0) {

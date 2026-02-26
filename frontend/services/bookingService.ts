@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import { ApiResponse, Booking, BookingRequest, Payment, PaymentRequest, CalculatePriceRequest, CalculatedPriceResponse } from '@/types';
+import { ApiResponse, Booking, BookingRequest, Payment, PaymentRequest, CalculatePriceRequest, CalculatedPriceResponse, CreatePaymentUrlRequest, CreatePaymentUrlResponse } from '@/types';
 
 export const bookingService = {
   async createBooking(data: BookingRequest): Promise<Booking> {
@@ -34,6 +34,25 @@ export const bookingService = {
 };
 
 export const paymentService = {
+  /**
+   * Tạo Payment + URL thanh toán từ cổng (VNPay/MoMo/ZaloPay).
+   * Trả về paymentUrl để redirect user đến cổng thanh toán.
+   */
+  async createPaymentUrl(data: CreatePaymentUrlRequest): Promise<CreatePaymentUrlResponse> {
+    const response = await api.post<ApiResponse<CreatePaymentUrlResponse>>('/payments/create-payment-url', data);
+    return response.data.data;
+  },
+
+  /**
+   * Kiểm tra trạng thái thanh toán theo bookingCode.
+   * Dùng khi user redirect về từ cổng thanh toán.
+   */
+  async getPaymentStatus(bookingCode: string): Promise<Payment> {
+    const response = await api.get<ApiResponse<Payment>>(`/payments/status/${bookingCode}`);
+    return response.data.data;
+  },
+
+  // Legacy APIs (giữ tương thích)
   async createPayment(data: PaymentRequest): Promise<Payment> {
     const response = await api.post<ApiResponse<Payment>>('/payments', data);
     return response.data.data;

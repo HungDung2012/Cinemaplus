@@ -103,7 +103,7 @@ export default function CreateShowtimeForm() {
         // Dynamic Pricing: Base price is now handled by Rate Cards (PriceHeader).
         // We set 0 here to indicate that the system should calculate it.
         // If a fallback is needed, the backend handle it or we could fetch a default.
-        let price = 0;
+        const price = 0;
 
         // Create Temp ID (negative)
         const tempId = -Date.now();

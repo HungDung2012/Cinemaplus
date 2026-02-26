@@ -766,19 +766,19 @@ public class BookingService {
     public PageResponse<BookingResponse> getAllBookingsPaged(String search, String status, String paymentStatus, Pageable pageable) {
         Page<Booking> bookings;
         if (search != null && !search.trim().isEmpty() && status != null && !status.trim().isEmpty() && paymentStatus != null && !paymentStatus.trim().isEmpty()) {
-            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndStatusAndPaymentStatusOrderByCreatedAtDesc(search, Booking.BookingStatus.valueOf(status), Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndStatusAndPaymentStatusOrderByCreatedAtDesc(search, Booking.BookingStatus.valueOf(status), Payment.PaymentStatus.valueOf(paymentStatus), pageable);
         } else if (search != null && !search.trim().isEmpty() && status != null && !status.trim().isEmpty()) {
             bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(search, Booking.BookingStatus.valueOf(status), pageable);
         } else if (search != null && !search.trim().isEmpty() && paymentStatus != null && !paymentStatus.trim().isEmpty()) {
-            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndPaymentStatusOrderByCreatedAtDesc(search, Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+            bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseAndPaymentStatusOrderByCreatedAtDesc(search, Payment.PaymentStatus.valueOf(paymentStatus), pageable);
         } else if (status != null && !status.trim().isEmpty() && paymentStatus != null && !paymentStatus.trim().isEmpty()) {
-            bookings = bookingRepository.findByStatusAndPaymentStatusOrderByCreatedAtDesc(Booking.BookingStatus.valueOf(status), Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+            bookings = bookingRepository.findByStatusAndPaymentStatusOrderByCreatedAtDesc(Booking.BookingStatus.valueOf(status), Payment.PaymentStatus.valueOf(paymentStatus), pageable);
         } else if (search != null && !search.trim().isEmpty()) {
             bookings = bookingRepository.findByBookingCodeContainingIgnoreCaseOrderByCreatedAtDesc(search, pageable);
         } else if (status != null && !status.trim().isEmpty()) {
             bookings = bookingRepository.findByStatusOrderByCreatedAtDesc(Booking.BookingStatus.valueOf(status), pageable);
         } else if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
-            bookings = bookingRepository.findByPaymentStatusOrderByCreatedAtDesc(Booking.PaymentStatus.valueOf(paymentStatus), pageable);
+            bookings = bookingRepository.findByPaymentStatusOrderByCreatedAtDesc(Payment.PaymentStatus.valueOf(paymentStatus), pageable);
         } else {
             bookings = bookingRepository.findByOrderByCreatedAtDesc(pageable);
         }

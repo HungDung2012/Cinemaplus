@@ -44,11 +44,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
            @Param("endDate") LocalDateTime endDate);
 
     // Pageable methods for admin pagination
-    Page<User> findByEnabledTrueOrderByCreatedAtDesc(Pageable pageable);
+    Page<User> findByActiveTrueOrderByCreatedAtDesc(Pageable pageable);
     
-    Page<User> findByFullNameContainingIgnoreCaseAndEnabledTrueOrderByCreatedAtDesc(String fullName, Pageable pageable);
+    Page<User> findByFullNameContainingIgnoreCaseAndActiveTrueOrderByCreatedAtDesc(String fullName, Pageable pageable);
     
-    Page<User> findByRoleAndEnabledTrueOrderByCreatedAtDesc(User.Role role, Pageable pageable);
+    Page<User> findByRoleAndActiveTrueOrderByCreatedAtDesc(User.Role role, Pageable pageable);
     
-    Page<User> findByFullNameContainingIgnoreCaseAndRoleAndEnabledTrueOrderByCreatedAtDesc(String fullName, User.Role role, Pageable pageable);
+    Page<User> findByFullNameContainingIgnoreCaseAndRoleAndActiveTrueOrderByCreatedAtDesc(String fullName, User.Role role, Pageable pageable);
 }

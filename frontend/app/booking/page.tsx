@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Showtime, Seat, Booking, PaymentMethod, Food, FoodOrderItem, CalculatePriceRequest, CalculatedPriceResponse } from '@/types';
+import { Showtime, Seat, Booking, PaymentMethod, Food, FoodOrderItem, CalculatePriceRequest, CalculatedPriceResponse, isOnlinePaymentMethod } from '@/types';
 import { RewardPoints, Voucher, Coupon } from '@/types/profile';
 import { showtimeService } from '@/services/showtimeService';
 import { seatService } from '@/services/theaterService';
@@ -16,7 +16,7 @@ import {
   redeemVoucher,
   redeemCoupon
 } from '@/services/profileService';
-import { SeatMap } from '@/components';
+import { SeatMap, PaymentMethodSelector } from '@/components';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -43,48 +43,7 @@ const STEPS = [
   { num: 4, label: 'Hoàn tất' },
 ];
 
-// Payment method icons and info
-const PAYMENT_METHODS = [
-  {
-    id: 'CREDIT_CARD' as PaymentMethod,
-    name: 'ATM card (Thẻ nội địa)',
-    color: 'bg-blue-600',
-    icon: '🏧'
-  },
-  {
-    id: 'DEBIT_CARD' as PaymentMethod,
-    name: 'Thẻ quốc tế (Visa, Master, Amex, JCB)',
-    color: 'bg-blue-800',
-    icon: '💳'
-  },
-  {
-    id: 'MOMO' as PaymentMethod,
-    name: 'Ví MoMo',
-    color: 'bg-pink-500',
-    icon: '📱',
-    promo: 'Giảm 5K cho đơn từ 50K'
-  },
-  {
-    id: 'ZALOPAY' as PaymentMethod,
-    name: 'ZaloPay',
-    color: 'bg-blue-500',
-    icon: '💙',
-    promo: 'Giảm 5K mọi đơn lần đầu'
-  },
-  {
-    id: 'VNPAY' as PaymentMethod,
-    name: 'VNPay',
-    color: 'bg-red-600',
-    icon: '🔴'
-  },
-  {
-    id: 'BANK_TRANSFER' as PaymentMethod,
-    name: 'ShopeePay',
-    color: 'bg-orange-500',
-    icon: '🧡',
-    promo: 'Giảm đến 50.000đ!'
-  },
-];
+// Payment methods config đã được chuyển vào component PaymentMethodSelector
 
 function BookingContent() {
   const searchParams = useSearchParams();
@@ -375,6 +334,25 @@ function BookingContent() {
 
     try {
       setProcessing(true);
+
+      // Online gateway (VNPay, MoMo, ZaloPay) → tạo URL + redirect
+      if (isOnlinePaymentMethod(paymentMethod)) {
+        const result = await paymentService.createPaymentUrl({
+          bookingId: booking.id,
+          paymentMethod,
+          pointsToUse: usePoints ? pointsToUse : 0,
+        });
+
+        if (result.paymentUrl) {
+          // Redirect user đến cổng thanh toán
+          window.location.href = result.paymentUrl;
+          return; // Không setProcessing(false) vì đang redirect
+        } else {
+          throw new Error('Không thể tạo liên kết thanh toán');
+        }
+      }
+
+      // Offline methods (CASH, CREDIT_CARD, etc.) → xử lý trực tiếp
       const payment = await paymentService.createPayment({
         bookingId: booking.id,
         paymentMethod,
@@ -394,19 +372,9 @@ function BookingContent() {
       setStep(4);
     } catch (err: any) {
       console.error('Payment error:', err);
-      // Giả lập thanh toán thành công khi API lỗi
-      console.log('Simulating successful payment...');
-
-      // Cập nhật điểm thưởng (giả lập)
-      const earnedPoints = Math.floor((totalAmount - totalDiscount) / 10000);
-      setUserPoints(prev => {
-        if (!prev) return prev;
-        const newPoints = prev.currentPoints - (usePoints ? pointsToUse : 0) + earnedPoints;
-        return { ...prev, currentPoints: newPoints };
-      });
-
-      // Chuyển sang bước thành công
-      setStep(4);
+      const errorMsg = err.response?.data?.message || err.message || 'Thanh toán thất bại';
+      setError(errorMsg);
+      alert('Lỗi thanh toán: ' + errorMsg);
     } finally {
       setProcessing(false);
     }
@@ -1166,33 +1134,12 @@ function BookingContent() {
                     <span className="font-semibold">Bước 2: HÌNH THỨC THANH TOÁN</span>
                   </div>
 
-                  <div className="divide-y divide-zinc-100">
-                    {PAYMENT_METHODS.map((method) => (
-                      <label
-                        key={method.id}
-                        className={`flex items-center p-4 cursor-pointer hover:bg-zinc-50 transition-colors ${paymentMethod === method.id ? 'bg-zinc-100' : ''
-                          }`}
-                      >
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value={method.id}
-                          checked={paymentMethod === method.id}
-                          onChange={() => setPaymentMethod(method.id)}
-                          className="w-4 h-4 text-zinc-800 border-zinc-300 focus:ring-zinc-500"
-                        />
-                        <div className={`w-10 h-10 ${method.color} rounded-lg flex items-center justify-center ml-3`}>
-                          <span className="text-lg">{method.icon}</span>
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <span className="text-sm font-medium text-zinc-900">{method.name}</span>
-                          {method.promo && (
-                            <p className="text-xs text-green-600">{method.promo}</p>
-                          )}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                  <PaymentMethodSelector
+                    selectedMethod={paymentMethod}
+                    onMethodChange={setPaymentMethod}
+                    disabled={processing}
+                    loading={processing}
+                  />
                 </div>
 
                 {/* ===== ĐIỀU KHOẢN & NÚT THANH TOÁN ===== */}

@@ -16,25 +16,42 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
       - name: Run Backend Tests
-        run: |
-          cd backend
-          mvn test
+        working-directory: backend
+        run: mvn test
+          
       - name: Run Frontend Tests  
+        working-directory: frontend
         run: |
-          cd frontend
-          npm ci
+          echo "Current directory: $(pwd)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          ls -la
+          npm ci --silent --prefer-offline --no-audit
           npm test
 
   # Only deploy after tests pass
   build-and-deploy:
     needs: test
     runs-on: ubuntu-latest
-    # Require manual approval for production
-    environment: production
-    # Skip deployment if commit message contains [skip ci] or [skip deploy]
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip deploy]')"
+    # Only deploy on push to main or manual trigger (NOT on pull_request)
+    if: "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip deploy]')"
     permissions:
       id-token: write
       contents: read

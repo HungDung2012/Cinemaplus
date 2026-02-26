@@ -40,13 +40,13 @@ public class UserServiceImpl implements UserService {
     public PageResponse<UserResponse> getAllUsersPaged(String search, String role, Pageable pageable) {
         Page<User> users;
         if (search != null && !search.trim().isEmpty() && role != null && !role.trim().isEmpty()) {
-            users = userRepository.findByFullNameContainingIgnoreCaseAndRoleAndEnabledTrueOrderByCreatedAtDesc(search, User.Role.valueOf(role), pageable);
+            users = userRepository.findByFullNameContainingIgnoreCaseAndRoleAndActiveTrueOrderByCreatedAtDesc(search, User.Role.valueOf(role), pageable);
         } else if (search != null && !search.trim().isEmpty()) {
-            users = userRepository.findByFullNameContainingIgnoreCaseAndEnabledTrueOrderByCreatedAtDesc(search, pageable);
+            users = userRepository.findByFullNameContainingIgnoreCaseAndActiveTrueOrderByCreatedAtDesc(search, pageable);
         } else if (role != null && !role.trim().isEmpty()) {
-            users = userRepository.findByRoleAndEnabledTrueOrderByCreatedAtDesc(User.Role.valueOf(role), pageable);
+            users = userRepository.findByRoleAndActiveTrueOrderByCreatedAtDesc(User.Role.valueOf(role), pageable);
         } else {
-            users = userRepository.findByEnabledTrueOrderByCreatedAtDesc(pageable);
+            users = userRepository.findByActiveTrueOrderByCreatedAtDesc(pageable);
         }
         return createPageResponse(users);
     }

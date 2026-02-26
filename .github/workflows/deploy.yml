@@ -50,10 +50,8 @@ jobs:
   build-and-deploy:
     needs: test
     runs-on: ubuntu-latest
-    # Require manual approval for production
-    environment: production
-    # Skip deployment if commit message contains [skip ci] or [skip deploy]
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip deploy]')"
+    # Only deploy on push to main or manual trigger (NOT on pull_request)
+    if: "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip deploy]')"
     permissions:
       id-token: write
       contents: read

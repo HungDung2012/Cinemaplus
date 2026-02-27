@@ -32,6 +32,11 @@ export default function CouponsManagementPage() {
     const [saving, setSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const pageSize = 20;
+
     const [formData, setFormData] = useState({
         couponCode: '',
         pinCode: '',
@@ -48,17 +53,29 @@ export default function CouponsManagementPage() {
 
     useEffect(() => {
         fetchCoupons();
-    }, []);
+    }, [currentPage]);
 
     const fetchCoupons = async () => {
         try {
-            const response = await adminCouponService.getAll({ size: 100 });
-            setCoupons(response.content);
+            setLoading(true);
+            const response = await adminCouponService.getAllPaged({
+                page: currentPage,
+                size: pageSize,
+                search: searchTerm || undefined,
+            });
+            setCoupons(response?.content || []);
+            setTotalPages(response?.totalPages || 0);
+            setTotalElements(response?.totalElements || 0);
         } catch (error) {
             console.error('Error fetching coupons:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSearch = () => {
+        setCurrentPage(0);
+        fetchCoupons();
     };
 
     const openCreateModal = () => {
@@ -133,7 +150,7 @@ export default function CouponsManagementPage() {
 
         try {
             await adminCouponService.delete(deleteModal.coupon.id);
-            setCoupons(coupons.filter(c => c.id !== deleteModal.coupon?.id));
+            await fetchCoupons();
             setDeleteModal({ open: false, coupon: null });
         } catch (error: any) {
             console.error('Error deleting coupon:', error);
@@ -141,16 +158,7 @@ export default function CouponsManagementPage() {
         }
     };
 
-    const filteredCoupons = coupons.filter(coupon => {
-        if (searchTerm) {
-            const search = searchTerm.toLowerCase();
-            return (
-                coupon.couponCode.toLowerCase().includes(search) ||
-                coupon.description?.toLowerCase().includes(search)
-            );
-        }
-        return true;
-    });
+    // Filtering is handled server-side via getAllPaged
 
     const getStatusInfo = (coupon: Coupon) => {
         const now = new Date();
@@ -200,6 +208,7 @@ export default function CouponsManagementPage() {
                         placeholder="Tìm kiếm theo mã hoặc mô tả..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                     <svg
@@ -229,7 +238,7 @@ export default function CouponsManagementPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200">
-                            {filteredCoupons.map((coupon) => {
+                            {coupons.map((coupon) => {
                                 const status = getStatusInfo(coupon);
                                 return (
                                     <tr key={coupon.id} className="hover:bg-zinc-50">
@@ -290,12 +299,45 @@ export default function CouponsManagementPage() {
                     </table>
                 </div>
 
-                {filteredCoupons.length === 0 && (
+                {coupons.length === 0 && !loading && (
                     <div className="text-center py-12">
                         <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                         </svg>
                         <p className="text-zinc-500">Không tìm thấy coupon nào</p>
+                    </div>
+                )}
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200">
+                        <p className="text-sm text-zinc-500">
+                            Hiển thị {coupons.length > 0 ? currentPage * pageSize + 1 : 0} đến {Math.min((currentPage + 1) * pageSize, totalElements)} trong số {totalElements} kết quả
+                        </p>
+                        <div className="flex gap-2">
+                            {(() => {
+                                const pages = [];
+                                const siblingCount = 3;
+                                const startPage = Math.max(0, currentPage - siblingCount);
+                                const endPage = Math.min(totalPages - 1, currentPage + siblingCount);
+                                if (startPage > 0) {
+                                    pages.push(<button key="first" onClick={() => setCurrentPage(0)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">1</button>);
+                                    if (startPage > 1) pages.push(<span key="ellipsis-start" className="px-2 self-end">...</span>);
+                                }
+                                for (let i = startPage; i <= endPage; i++) {
+                                    pages.push(
+                                        <button key={i} onClick={() => setCurrentPage(i)}
+                                            className={`px-3 py-1 border rounded transition-colors ${
+                                                currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                                            }`}>{i + 1}</button>
+                                    );
+                                }
+                                if (endPage < totalPages - 1) {
+                                    if (endPage < totalPages - 2) pages.push(<span key="ellipsis-end" className="px-2 self-end">...</span>);
+                                    pages.push(<button key="last" onClick={() => setCurrentPage(totalPages - 1)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">{totalPages}</button>);
+                                }
+                                return pages;
+                            })()}
+                        </div>
                     </div>
                 )}
             </div>

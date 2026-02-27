@@ -13,6 +13,9 @@
 *.project
 *.settings/
 
+# Maven wrapper at root (no root pom.xml)
+.mvn/
+
 # OS
 .DS_Store
 Thumbs.db

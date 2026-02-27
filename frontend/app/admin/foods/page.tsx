@@ -34,6 +34,11 @@ export default function FoodsManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -45,17 +50,30 @@ export default function FoodsManagementPage() {
 
   useEffect(() => {
     fetchFoods();
-  }, []);
+  }, [currentPage, categoryFilter]);
 
   const fetchFoods = async () => {
     try {
-      const response = await adminFoodService.getAll();
-      setFoods(response);
+      setLoading(true);
+      const response = await adminFoodService.getAllPaged({
+        page: currentPage,
+        size: pageSize,
+        search: searchTerm || undefined,
+        category: categoryFilter || undefined,
+      });
+      setFoods(response?.content || []);
+      setTotalPages(response?.totalPages || 0);
+      setTotalElements(response?.totalElements || 0);
     } catch (error) {
       console.error('Error fetching foods:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(0);
+    fetchFoods();
   };
 
   const openCreateModal = () => {
@@ -127,7 +145,7 @@ export default function FoodsManagementPage() {
 
     try {
       await adminFoodService.delete(deleteModal.food.id);
-      setFoods(foods.filter(f => f.id !== deleteModal.food?.id));
+      await fetchFoods();
       setDeleteModal({ open: false, food: null });
     } catch (error: any) {
       console.error('Error deleting food:', error);
@@ -143,11 +161,7 @@ export default function FoodsManagementPage() {
     return CATEGORIES.find(c => c.value === category)?.label || category;
   };
 
-  const filteredFoods = foods.filter(food => {
-    if (categoryFilter && food.category !== categoryFilter) return false;
-    if (searchTerm && !food.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
+  // Filtering is handled server-side via getAllPaged
 
   if (loading) {
     return (
@@ -185,6 +199,7 @@ export default function FoodsManagementPage() {
               placeholder="Tìm kiếm sản phẩm..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
             />
             <svg
@@ -198,7 +213,7 @@ export default function FoodsManagementPage() {
           </div>
           <select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(0); }}
             className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Tất cả danh mục</option>
@@ -207,7 +222,7 @@ export default function FoodsManagementPage() {
             ))}
           </select>
           <button
-            onClick={() => { setSearchTerm(''); setCategoryFilter(''); }}
+            onClick={() => { setSearchTerm(''); setCategoryFilter(''); setCurrentPage(0); }}
             className="px-4 py-2 text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
           >
             Xóa bộ lọc
@@ -230,7 +245,7 @@ export default function FoodsManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {filteredFoods.map((food) => (
+              {foods.map((food) => (
                 <tr key={food.id} className="hover:bg-zinc-50">
                   <td className="px-6 py-4 w-24">
                     <div className="w-12 h-12 rounded-lg bg-zinc-100 overflow-hidden">
@@ -300,12 +315,45 @@ export default function FoodsManagementPage() {
           </table>
         </div>
 
-        {filteredFoods.length === 0 && (
+        {foods.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p className="text-zinc-500">Không tìm thấy sản phẩm nào</p>
+          </div>
+        )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200">
+            <p className="text-sm text-zinc-500">
+              Hiển thị {foods.length > 0 ? currentPage * pageSize + 1 : 0} đến {Math.min((currentPage + 1) * pageSize, totalElements)} trong số {totalElements} kết quả
+            </p>
+            <div className="flex gap-2">
+              {(() => {
+                const pages = [];
+                const siblingCount = 3;
+                const startPage = Math.max(0, currentPage - siblingCount);
+                const endPage = Math.min(totalPages - 1, currentPage + siblingCount);
+                if (startPage > 0) {
+                  pages.push(<button key="first" onClick={() => setCurrentPage(0)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">1</button>);
+                  if (startPage > 1) pages.push(<span key="ellipsis-start" className="px-2 self-end">...</span>);
+                }
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button key={i} onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-1 border rounded transition-colors ${
+                        currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                      }`}>{i + 1}</button>
+                  );
+                }
+                if (endPage < totalPages - 1) {
+                  if (endPage < totalPages - 2) pages.push(<span key="ellipsis-end" className="px-2 self-end">...</span>);
+                  pages.push(<button key="last" onClick={() => setCurrentPage(totalPages - 1)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">{totalPages}</button>);
+                }
+                return pages;
+              })()}
+            </div>
           </div>
         )}
       </div>

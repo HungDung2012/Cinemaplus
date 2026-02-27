@@ -211,6 +211,11 @@ export const adminVoucherService = {
     const response = await api.get('/admin/vouchers', { params });
     return response.data?.data;
   },
+
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/vouchers', { params });
+    return response.data?.data;
+  },
   getById: async (id: number) => {
     const response = await api.get(`/admin/vouchers/${id}`);
     return response.data?.data;
@@ -232,6 +237,11 @@ export const adminVoucherService = {
 // ===================== COUPONS =====================
 export const adminCouponService = {
   getAll: async (params?: any) => {
+    const response = await api.get('/admin/coupons', { params });
+    return response.data?.data;
+  },
+
+  getAllPaged: async (params?: any) => {
     const response = await api.get('/admin/coupons', { params });
     return response.data?.data;
   },
@@ -323,6 +333,11 @@ export const adminPromotionService = {
 export const adminReviewService = {
   getAll: async () => {
     const response = await api.get('/admin/reviews');
+    return response.data?.data;
+  },
+
+  getAllPaged: async (params?: any) => {
+    const response = await api.get('/admin/reviews/paged', { params });
     return response.data?.data;
   },
 

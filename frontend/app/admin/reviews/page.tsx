@@ -32,14 +32,27 @@ export default function ReviewsManagementPage() {
     rating: '',
   });
 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
+
   useEffect(() => {
     fetchReviews();
-  }, []);
+  }, [currentPage, filters.rating]);
 
   const fetchReviews = async () => {
     try {
-      const response = await adminReviewService.getAll();
-      setReviews(response);
+      setLoading(true);
+      const response = await adminReviewService.getAllPaged({
+        page: currentPage,
+        size: pageSize,
+        search: filters.searchTerm || undefined,
+        rating: filters.rating || undefined,
+      });
+      setReviews(response?.content || []);
+      setTotalPages(response?.totalPages || 0);
+      setTotalElements(response?.totalElements || 0);
     } catch (error) {
       console.error('Error fetching reviews:', error);
     } finally {
@@ -47,12 +60,17 @@ export default function ReviewsManagementPage() {
     }
   };
 
+  const handleSearch = () => {
+    setCurrentPage(0);
+    fetchReviews();
+  };
+
   const handleDelete = async () => {
     if (!deleteModal.review) return;
 
     try {
       await adminReviewService.delete(deleteModal.review.id);
-      setReviews(reviews.filter(r => r.id !== deleteModal.review?.id));
+      await fetchReviews();
       setDeleteModal({ open: false, review: null });
     } catch (error: any) {
       console.error('Error deleting review:', error);
@@ -93,20 +111,7 @@ export default function ReviewsManagementPage() {
     );
   };
 
-  const filteredReviews = reviews.filter(review => {
-    if (filters.rating && review.rating !== parseInt(filters.rating)) return false;
-    if (filters.searchTerm) {
-      const search = filters.searchTerm.toLowerCase();
-      if (
-        !review.userName?.toLowerCase().includes(search) &&
-        !review.movieTitle?.toLowerCase().includes(search) &&
-        !review.content?.toLowerCase().includes(search)
-      ) {
-        return false;
-      }
-    }
-    return true;
-  });
+  // Filtering is handled server-side via getAllPaged
 
   // Calculate stats
   const avgRating = reviews.length > 0
@@ -132,7 +137,7 @@ export default function ReviewsManagementPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-          <div className="text-2xl font-bold text-zinc-900">{reviews.length}</div>
+          <div className="text-2xl font-bold text-zinc-900">{totalElements}</div>
           <div className="text-sm text-zinc-500">Tổng đánh giá</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
@@ -165,6 +170,7 @@ export default function ReviewsManagementPage() {
               placeholder="Tìm kiếm..."
               value={filters.searchTerm}
               onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
             />
             <svg
@@ -178,7 +184,7 @@ export default function ReviewsManagementPage() {
           </div>
           <select
             value={filters.rating}
-            onChange={(e) => setFilters({ ...filters, rating: e.target.value })}
+            onChange={(e) => { setFilters({ ...filters, rating: e.target.value }); setCurrentPage(0); }}
             className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Tất cả đánh giá</option>
@@ -189,7 +195,7 @@ export default function ReviewsManagementPage() {
             <option value="1">1 sao</option>
           </select>
           <button
-            onClick={() => setFilters({ searchTerm: '', rating: '' })}
+            onClick={() => { setFilters({ searchTerm: '', rating: '' }); setCurrentPage(0); }}
             className="px-4 py-2 text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
           >
             Xóa bộ lọc
@@ -212,7 +218,7 @@ export default function ReviewsManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {filteredReviews.map((review) => (
+              {reviews.map((review) => (
                 <tr key={review.id} className="hover:bg-zinc-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -279,12 +285,45 @@ export default function ReviewsManagementPage() {
           </table>
         </div>
 
-        {filteredReviews.length === 0 && (
+        {reviews.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <p className="text-zinc-500">Không tìm thấy đánh giá nào</p>
+          </div>
+        )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200">
+            <p className="text-sm text-zinc-500">
+              Hiển thị {reviews.length > 0 ? currentPage * pageSize + 1 : 0} đến {Math.min((currentPage + 1) * pageSize, totalElements)} trong số {totalElements} kết quả
+            </p>
+            <div className="flex gap-2">
+              {(() => {
+                const pages = [];
+                const siblingCount = 3;
+                const startPage = Math.max(0, currentPage - siblingCount);
+                const endPage = Math.min(totalPages - 1, currentPage + siblingCount);
+                if (startPage > 0) {
+                  pages.push(<button key="first" onClick={() => setCurrentPage(0)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">1</button>);
+                  if (startPage > 1) pages.push(<span key="ellipsis-start" className="px-2 self-end">...</span>);
+                }
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button key={i} onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-1 border rounded transition-colors ${
+                        currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                      }`}>{i + 1}</button>
+                  );
+                }
+                if (endPage < totalPages - 1) {
+                  if (endPage < totalPages - 2) pages.push(<span key="ellipsis-end" className="px-2 self-end">...</span>);
+                  pages.push(<button key="last" onClick={() => setCurrentPage(totalPages - 1)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">{totalPages}</button>);
+                }
+                return pages;
+              })()}
+            </div>
           </div>
         )}
       </div>

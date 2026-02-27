@@ -29,4 +29,14 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByMovieIdAndUserId(Long movieId, Long userId);
 
     List<Review> findTop5ByMovieIdOrderByLikesCountDesc(Long movieId);
+
+    @Query("SELECT r FROM Review r WHERE " +
+            "(:search IS NULL OR LOWER(r.user.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(r.movie.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(r.content) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:rating IS NULL OR r.rating = :rating) " +
+            "ORDER BY r.createdAt DESC")
+    Page<Review> findAllWithFilters(@Param("search") String search,
+                                    @Param("rating") Integer rating,
+                                    Pageable pageable);
 }

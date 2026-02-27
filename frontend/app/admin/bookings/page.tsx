@@ -81,19 +81,38 @@ export default function BookingsManagementPage() {
     searchTerm: '',
   });
 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
+
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [currentPage, filters.status, filters.paymentStatus]);
 
   const fetchBookings = async () => {
     try {
-      const response = await adminBookingService.getAll();
-      setBookings(response);
+      setLoading(true);
+      const response = await adminBookingService.getAllPaged({
+        page: currentPage,
+        size: pageSize,
+        search: filters.searchTerm || undefined,
+        status: filters.status || undefined,
+        paymentStatus: filters.paymentStatus || undefined,
+      });
+      setBookings(response?.content || []);
+      setTotalPages(response?.totalPages || 0);
+      setTotalElements(response?.totalElements || 0);
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(0);
+    fetchBookings();
   };
 
   const handleStatusChangeRequest = (booking: Booking, newStatus: string) => {
@@ -155,22 +174,7 @@ export default function BookingsManagementPage() {
     return PAYMENT_STATUS_OPTIONS.find(s => s.value === status) || { label: status, color: 'bg-zinc-100 text-zinc-700' };
   };
 
-  const filteredBookings = bookings.filter(booking => {
-    if (filters.status && booking.status !== filters.status) return false;
-    if (filters.paymentStatus && booking.paymentStatus !== filters.paymentStatus) return false;
-    if (filters.searchTerm) {
-      const search = filters.searchTerm.toLowerCase();
-      const code = booking.bookingCode?.toLowerCase() || '';
-      const userName = (booking.userFullName || booking.user?.fullName || '').toLowerCase();
-      const email = (booking.userEmail || booking.user?.email || '').toLowerCase();
-      const movie = (booking.movieTitle || booking.showtime?.movie?.title || '').toLowerCase();
-
-      if (!code.includes(search) && !userName.includes(search) && !email.includes(search) && !movie.includes(search)) {
-        return false;
-      }
-    }
-    return true;
-  });
+  // Filtering is handled server-side via getAllPaged
 
   if (loading) {
     return (
@@ -197,6 +201,7 @@ export default function BookingsManagementPage() {
               placeholder="Tìm kiếm..."
               value={filters.searchTerm}
               onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
             />
             <svg
@@ -210,7 +215,7 @@ export default function BookingsManagementPage() {
           </div>
           <select
             value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setCurrentPage(0); }}
             className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Tất cả trạng thái</option>
@@ -220,7 +225,7 @@ export default function BookingsManagementPage() {
           </select>
           <select
             value={filters.paymentStatus}
-            onChange={(e) => setFilters({ ...filters, paymentStatus: e.target.value })}
+            onChange={(e) => { setFilters({ ...filters, paymentStatus: e.target.value }); setCurrentPage(0); }}
             className="px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="">Tất cả thanh toán</option>
@@ -229,7 +234,7 @@ export default function BookingsManagementPage() {
             ))}
           </select>
           <button
-            onClick={() => setFilters({ status: '', paymentStatus: '', searchTerm: '' })}
+            onClick={() => { setFilters({ status: '', paymentStatus: '', searchTerm: '' }); setCurrentPage(0); }}
             className="px-4 py-2 text-zinc-600 bg-zinc-100 rounded-lg hover:bg-zinc-200 transition-colors"
           >
             Xóa bộ lọc
@@ -240,7 +245,7 @@ export default function BookingsManagementPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-          <div className="text-2xl font-bold text-zinc-900">{bookings.length}</div>
+          <div className="text-2xl font-bold text-zinc-900">{totalElements}</div>
           <div className="text-sm text-zinc-500">Tổng đơn</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
@@ -280,7 +285,7 @@ export default function BookingsManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {filteredBookings.map((booking) => {
+              {bookings.map((booking) => {
                 const statusInfo = getStatusInfo(booking.status);
                 // const paymentInfo = getPaymentStatusInfo(booking.paymentStatus); // Disabled as requested
 
@@ -377,12 +382,45 @@ export default function BookingsManagementPage() {
           </table>
         </div>
 
-        {filteredBookings.length === 0 && (
+        {bookings.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <p className="text-zinc-500">Không tìm thấy đơn đặt vé nào</p>
+          </div>
+        )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200">
+            <p className="text-sm text-zinc-500">
+              Hiển thị {bookings.length > 0 ? currentPage * pageSize + 1 : 0} đến {Math.min((currentPage + 1) * pageSize, totalElements)} trong số {totalElements} kết quả
+            </p>
+            <div className="flex gap-2">
+              {(() => {
+                const pages = [];
+                const siblingCount = 3;
+                const startPage = Math.max(0, currentPage - siblingCount);
+                const endPage = Math.min(totalPages - 1, currentPage + siblingCount);
+                if (startPage > 0) {
+                  pages.push(<button key="first" onClick={() => setCurrentPage(0)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">1</button>);
+                  if (startPage > 1) pages.push(<span key="ellipsis-start" className="px-2 self-end">...</span>);
+                }
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button key={i} onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-1 border rounded transition-colors ${
+                        currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                      }`}>{i + 1}</button>
+                  );
+                }
+                if (endPage < totalPages - 1) {
+                  if (endPage < totalPages - 2) pages.push(<span key="ellipsis-end" className="px-2 self-end">...</span>);
+                  pages.push(<button key="last" onClick={() => setCurrentPage(totalPages - 1)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">{totalPages}</button>);
+                }
+                return pages;
+              })()}
+            </div>
           </div>
         )}
       </div>

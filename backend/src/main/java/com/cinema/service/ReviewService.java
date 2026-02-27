@@ -108,6 +108,12 @@ public class ReviewService {
 
     // ================= ADMIN METHODS =================
 
+    public Page<ReviewResponse> getAllReviewsPaged(String search, Integer rating, Pageable pageable) {
+        String searchParam = (search != null && !search.isEmpty()) ? search : null;
+        return reviewRepository.findAllWithFilters(searchParam, rating, pageable)
+                .map(this::mapToResponse);
+    }
+
     public List<ReviewResponse> getAllReviews() {
         return reviewRepository.findAll().stream()
                 .map(this::mapToResponse)

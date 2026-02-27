@@ -49,6 +49,11 @@ export default function PromotionsManagementPage() {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -67,17 +72,29 @@ export default function PromotionsManagementPage() {
 
   useEffect(() => {
     fetchPromotions();
-  }, []);
+  }, [currentPage]);
 
   const fetchPromotions = async () => {
     try {
-      const response = await adminPromotionService.getAll();
-      setPromotions(response);
+      setLoading(true);
+      const response = await adminPromotionService.getAllPaged({
+        page: currentPage,
+        size: pageSize,
+        search: searchTerm || undefined,
+      });
+      setPromotions(response?.content || []);
+      setTotalPages(response?.totalPages || 0);
+      setTotalElements(response?.totalElements || 0);
     } catch (error) {
       console.error('Error fetching promotions:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(0);
+    fetchPromotions();
   };
 
   const openCreateModal = () => {
@@ -155,7 +172,7 @@ export default function PromotionsManagementPage() {
 
     try {
       await adminPromotionService.delete(deleteModal.promotion.id);
-      setPromotions(promotions.filter(p => p.id !== deleteModal.promotion?.id));
+      await fetchPromotions();
       setDeleteModal({ open: false, promotion: null });
     } catch (error: any) {
       console.error('Error deleting promotion:', error);
@@ -182,18 +199,7 @@ export default function PromotionsManagementPage() {
     return { label: 'Đang hoạt động', color: 'bg-green-100 text-green-700' };
   };
 
-  const filteredPromotions = promotions.filter(promotion => {
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      if (
-        !promotion.title?.toLowerCase().includes(search) &&
-        !promotion.code?.toLowerCase().includes(search)
-      ) {
-        return false;
-      }
-    }
-    return true;
-  });
+  // Filtering is handled server-side via getAllPaged
 
   if (loading) {
     return (
@@ -225,7 +231,7 @@ export default function PromotionsManagementPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-          <div className="text-2xl font-bold text-zinc-900">{promotions.length}</div>
+          <div className="text-2xl font-bold text-zinc-900">{totalElements}</div>
           <div className="text-sm text-zinc-500">Tổng khuyến mãi</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
@@ -259,6 +265,7 @@ export default function PromotionsManagementPage() {
             placeholder="Tìm kiếm theo tên hoặc mã..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <svg
@@ -289,7 +296,7 @@ export default function PromotionsManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {filteredPromotions.map((promotion) => {
+              {promotions.map((promotion) => {
                 const status = getPromotionStatus(promotion);
 
                 return (
@@ -371,12 +378,45 @@ export default function PromotionsManagementPage() {
           </table>
         </div>
 
-        {filteredPromotions.length === 0 && (
+        {promotions.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
             <p className="text-zinc-500">Không tìm thấy khuyến mãi nào</p>
+          </div>
+        )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-200">
+            <p className="text-sm text-zinc-500">
+              Hiển thị {promotions.length > 0 ? currentPage * pageSize + 1 : 0} đến {Math.min((currentPage + 1) * pageSize, totalElements)} trong số {totalElements} kết quả
+            </p>
+            <div className="flex gap-2">
+              {(() => {
+                const pages = [];
+                const siblingCount = 3;
+                const startPage = Math.max(0, currentPage - siblingCount);
+                const endPage = Math.min(totalPages - 1, currentPage + siblingCount);
+                if (startPage > 0) {
+                  pages.push(<button key="first" onClick={() => setCurrentPage(0)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">1</button>);
+                  if (startPage > 1) pages.push(<span key="ellipsis-start" className="px-2 self-end">...</span>);
+                }
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button key={i} onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-1 border rounded transition-colors ${
+                        currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                      }`}>{i + 1}</button>
+                  );
+                }
+                if (endPage < totalPages - 1) {
+                  if (endPage < totalPages - 2) pages.push(<span key="ellipsis-end" className="px-2 self-end">...</span>);
+                  pages.push(<button key="last" onClick={() => setCurrentPage(totalPages - 1)} className="px-3 py-1 border border-zinc-200 rounded hover:bg-zinc-50">{totalPages}</button>);
+                }
+                return pages;
+              })()}
+            </div>
           </div>
         )}
       </div>

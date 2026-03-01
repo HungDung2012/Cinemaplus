@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { adminRoomService } from '@/services/adminService';
 import SeatGridEditor from '@/components/admin/SeatGridEditor';
 
-export default function RoomLayoutPage({ params }: { params: { id: string } }) {
+export default function RoomLayoutPage() {
     const router = useRouter();
+    const params = useParams();
     const roomId = Number(params.id);
     const [room, setRoom] = useState<any>(null);
     const [loading, setLoading] = useState(true);

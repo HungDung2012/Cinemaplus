@@ -99,8 +99,12 @@ export interface Seat {
   rowName: string;
   seatNumber: number;
   seatLabel: string;
-  seatType: SeatType;
+  seatType: SeatType;       // legacy / mapped field
+  seatTypeCode?: string;    // actual code from backend (e.g. 'VIP', 'COUPLE')
+  seatTypeName?: string;    // display name from backend
+  seatColor?: string;       // hex color from backend
   priceMultiplier: number;
+  extraFee?: number;
   active: boolean;
   isBooked: boolean;
 }

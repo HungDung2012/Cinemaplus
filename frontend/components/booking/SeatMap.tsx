@@ -14,8 +14,11 @@ interface SeatMapProps {
 export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats = 8 }: SeatMapProps) {
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
 
+  // Only render active seats (inactive = position removed from room layout)
+  const activeSeats = seats.filter((s) => s.active);
+
   // Group seats by row
-  const seatsByRow = seats.reduce((acc, seat) => {
+  const seatsByRow = activeSeats.reduce((acc, seat) => {
     if (!acc[seat.rowName]) {
       acc[seat.rowName] = [];
     }
@@ -28,6 +31,12 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
   sortedRows.forEach((row) => {
     seatsByRow[row].sort((a, b) => a.seatNumber - b.seatNumber);
   });
+
+  // Compute the full column range across all rows so gaps are shown as empty cells
+  const allSeatNumbers = activeSeats.map((s) => s.seatNumber);
+  const minCol = allSeatNumbers.length ? Math.min(...allSeatNumbers) : 1;
+  const maxCol = allSeatNumbers.length ? Math.max(...allSeatNumbers) : 1;
+  const allColumns = Array.from({ length: maxCol - minCol + 1 }, (_, i) => i + minCol);
 
   const handleSeatClick = (seat: Seat) => {
     if (seat.isBooked || !seat.active) return;
@@ -49,21 +58,24 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
     onSelectionChange(newSelection);
   };
 
-  const getSeatColor = (seat: Seat) => {
-    if (seat.isBooked) return 'bg-gray-400 cursor-not-allowed';
-    if (!seat.active) return 'bg-gray-300 cursor-not-allowed';
-    if (selectedSeats.find((s) => s.id === seat.id)) return 'bg-green-500 text-white';
-    
-    switch (seat.seatType) {
-      case 'VIP':
-        return 'bg-yellow-400 hover:bg-yellow-500';
-      case 'COUPLE':
-        return 'bg-pink-400 hover:bg-pink-500';
-      case 'DISABLED':
-        return 'bg-blue-400 hover:bg-blue-500';
-      default:
-        return 'bg-white border-2 border-gray-300 hover:bg-gray-100';
-    }
+  // Fallback colors by code when backend doesn't supply seatColor
+  // Cinema-style palette inspired by CGV/Lotte
+  const FALLBACK_COLORS: Record<string, string> = {
+    STANDARD: '#6b7280',  // slate gray
+    VIP:      '#b45309',  // deep amber/gold
+    COUPLE:   '#be185d',  // rose/magenta
+    DISABLED: '#2563eb',  // blue (accessible)
+  };
+
+  const getSeatBgColor = (seat: Seat): string => {
+    const code = seat.seatTypeCode || seat.seatType || 'STANDARD';
+    return seat.seatColor || FALLBACK_COLORS[code] || '#64748b';
+  };
+
+  const getSeatClass = (seat: Seat) => {
+    if (seat.isBooked) return 'cursor-not-allowed opacity-60';
+    if (selectedSeats.find((s) => s.id === seat.id)) return 'ring-4 ring-green-400 ring-offset-1 scale-110 shadow-lg';
+    return 'hover:brightness-125 hover:scale-105 hover:shadow-md cursor-pointer';
   };
 
   const totalAmount = selectedSeats.reduce((sum, seat) => {
@@ -82,48 +94,59 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
       {/* Seat Map */}
       <div className="overflow-x-auto">
         <div className="inline-block min-w-full">
-          {sortedRows.map((row) => (
-            <div key={row} className="flex items-center justify-center gap-2 mb-2">
-              <span className="w-6 text-center font-bold text-gray-600">{row}</span>
-              <div className="flex gap-1">
-                {seatsByRow[row].map((seat) => (
-                  <button
-                    key={seat.id}
-                    onClick={() => handleSeatClick(seat)}
-                    disabled={seat.isBooked || !seat.active}
-                    className={`w-8 h-8 text-xs font-medium rounded transition-colors ${getSeatColor(seat)}`}
-                    title={`${seat.seatLabel} - ${seat.seatType} - ${formatCurrency(basePrice * seat.priceMultiplier)}`}
-                  >
-                    {seat.seatNumber}
-                  </button>
-                ))}
+          {sortedRows.map((row) => {
+            const seatMap = new Map(seatsByRow[row].map((s) => [s.seatNumber, s]));
+            return (
+              <div key={row} className="flex items-center justify-center gap-2 mb-2">
+                <span className="w-6 text-center font-bold text-gray-600">{row}</span>
+                <div className="flex gap-1">
+                  {allColumns.map((col) => {
+                    const seat = seatMap.get(col);
+                    if (!seat) {
+                      // Empty gap — matches deleted/NONE column in admin editor
+                      return <div key={col} className="w-8 h-8" />;
+                    }
+                    return (
+                      <button
+                        key={seat.id}
+                        onClick={() => handleSeatClick(seat)}
+                        disabled={seat.isBooked}
+                        className={`w-8 h-8 text-xs font-semibold rounded transition-all duration-150 text-white shadow-sm ${getSeatClass(seat)}`}
+                        style={{ backgroundColor: seat.isBooked ? '#374151' : getSeatBgColor(seat) }}
+                        title={`${seat.seatLabel} - ${seat.seatTypeName || seat.seatType} - ${formatCurrency(basePrice * seat.priceMultiplier)}`}
+                      >
+                        {seat.seatNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className="w-6 text-center font-bold text-gray-600">{row}</span>
               </div>
-              <span className="w-6 text-center font-bold text-gray-600">{row}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* Legend */}
       <div className="flex flex-wrap justify-center gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-white border-2 border-gray-300 rounded"></div>
+          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#6b7280' }}></div>
           <span>Thường</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-yellow-400 rounded"></div>
+          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#b45309' }}></div>
           <span>VIP</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-pink-400 rounded"></div>
-          <span>Couple</span>
+          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#be185d' }}></div>
+          <span>Đôi</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-green-500 rounded"></div>
+          <div className="w-6 h-6 rounded ring-4 ring-green-400 ring-offset-1 shadow-sm" style={{ backgroundColor: '#22c55e' }}></div>
           <span>Đang chọn</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-gray-400 rounded"></div>
+          <div className="w-6 h-6 rounded opacity-60" style={{ backgroundColor: '#374151' }}></div>
           <span>Đã đặt</span>
         </div>
       </div>

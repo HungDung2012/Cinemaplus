@@ -18,7 +18,9 @@ public class SeatService {
     private final BookingSeatRepository bookingSeatRepository;
 
     public List<SeatResponse> getSeatsByRoom(Long roomId) {
-        return seatRepository.findByRoomIdOrderByRowAndNumber(roomId).stream()
+        return seatRepository.findByRoomIdAndActiveTrue(roomId).stream()
+                .sorted(java.util.Comparator.comparing(Seat::getRowName)
+                        .thenComparingInt(Seat::getSeatNumber))
                 .map(seat -> mapToResponse(seat, null))
                 .collect(Collectors.toList());
     }
@@ -26,7 +28,9 @@ public class SeatService {
     public List<SeatResponse> getSeatsByShowtime(Long roomId, Long showtimeId) {
         List<Long> bookedSeatIds = bookingSeatRepository.findBookedSeatIdsByShowtime(showtimeId);
 
-        return seatRepository.findByRoomIdOrderByRowAndNumber(roomId).stream()
+        return seatRepository.findByRoomIdAndActiveTrue(roomId).stream()
+                .sorted(java.util.Comparator.comparing(Seat::getRowName)
+                        .thenComparingInt(Seat::getSeatNumber))
                 .map(seat -> {
                     SeatResponse response = mapToResponse(seat, showtimeId);
                     response.setIsBooked(bookedSeatIds.contains(seat.getId()));

@@ -9,12 +9,10 @@ export interface SeatDTO {
     id: number;
     rowName: string;
     seatNumber: number;
-    seatType: string; // Changed from enum to string
-    priceMultiplier: number;
+    seatType?: string;     // legacy field (may be absent)
+    seatTypeCode?: string; // actual field from backend
+    priceMultiplier?: number;
     active: boolean;
-    // We might need color here if provided by backend, 
-    // but usually backend RoomDTO -> SeatDTO doesn't have color details directly unless mapped.
-    // We will rely on fetching seat types config to know colors.
 }
 
 export interface RoomDTO {
@@ -65,7 +63,11 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
     const fetchSeatTypes = async () => {
         try {
             const types = await pricingService.getAllSeatTypes();
-            setSeatTypes(types);
+            // Deduplicate by code in case API returns duplicates
+            const uniqueTypes = types.filter((t: SeatTypeConfig, index: number, self: SeatTypeConfig[]) =>
+                self.findIndex((x: SeatTypeConfig) => x.code === t.code) === index
+            );
+            setSeatTypes(uniqueTypes);
             // Ensure STANDARD exists or pick first
             if (types.length > 0 && !types.find((t: SeatTypeConfig) => t.code === 'STANDARD')) {
                 // If standard not in DB, we rely on what is there
@@ -83,7 +85,8 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                 setRowCount(room.rowsCount);
                 setColCount(room.columnsCount);
 
-                const newGrid = createEmptyGrid(room.rowsCount, room.columnsCount);
+                // Start with all-NONE grid — only DB seats get filled in
+                const newGrid = createNoneGrid(room.rowsCount, room.columnsCount);
 
                 if (room.seats && room.seats.length > 0) {
                     fillGridWithSeats(newGrid, room.seats);
@@ -98,19 +101,28 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
         }
     };
 
+    // All-STANDARD grid — used for new rooms (create mode)
     const createEmptyGrid = (r: number, c: number): SeatCell[][] => {
         const newGrid: SeatCell[][] = [];
         for (let i = 0; i < r; i++) {
             const row: SeatCell[] = [];
             const rowLabel = String.fromCharCode(65 + i);
             for (let j = 0; j < c; j++) {
-                row.push({
-                    id: `${rowLabel}${j + 1}`,
-                    row: i,
-                    col: j,
-                    type: 'STANDARD', // Default to STANDARD, assume exists
-                    label: `${rowLabel}${j + 1}`
-                });
+                row.push({ id: `${rowLabel}${j + 1}`, row: i, col: j, type: 'STANDARD', label: `${rowLabel}${j + 1}` });
+            }
+            newGrid.push(row);
+        }
+        return newGrid;
+    };
+
+    // All-NONE grid — used when loading an existing room (only DB seats become visible)
+    const createNoneGrid = (r: number, c: number): SeatCell[][] => {
+        const newGrid: SeatCell[][] = [];
+        for (let i = 0; i < r; i++) {
+            const row: SeatCell[] = [];
+            const rowLabel = String.fromCharCode(65 + i);
+            for (let j = 0; j < c; j++) {
+                row.push({ id: `${rowLabel}${j + 1}`, row: i, col: j, type: 'NONE', label: '' });
             }
             newGrid.push(row);
         }
@@ -123,11 +135,13 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
             const colIndex = seat.seatNumber - 1;
 
             if (rowIndex >= 0 && rowIndex < grid.length && colIndex >= 0 && colIndex < grid[0].length) {
+                // Backend returns seatTypeCode; fall back to seatType or STANDARD
+                const typeCode = seat.seatTypeCode || seat.seatType || 'STANDARD';
                 grid[rowIndex][colIndex] = {
                     id: `${seat.rowName}${seat.seatNumber}`,
                     row: rowIndex,
                     col: colIndex,
-                    type: seat.seatType, // This is the code string
+                    type: typeCode,
                     label: `${seat.rowName}${seat.seatNumber}`,
                     dbId: seat.id
                 };
@@ -140,15 +154,20 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
     };
 
     const handleCellClick = (r: number, c: number) => {
-        const newGrid = [...grid];
-        newGrid[r][c].type = selectedType;
-        if (selectedType === 'NONE') {
-            newGrid[r][c].label = '';
-        } else {
-            const rowLabel = String.fromCharCode(65 + r);
-            newGrid[r][c].label = `${rowLabel}${c + 1}`;
-        }
-        setGrid(newGrid);
+        const rowLabel = String.fromCharCode(65 + r);
+        setGrid(prev => prev.map((row, ri) =>
+            ri === r
+                ? row.map((cell, ci) =>
+                    ci === c
+                        ? {
+                            ...cell,
+                            type: selectedType,
+                            label: selectedType === 'NONE' ? '' : `${rowLabel}${c + 1}`
+                        }
+                        : cell
+                )
+                : row
+        ));
     };
 
     const handleSave = () => {

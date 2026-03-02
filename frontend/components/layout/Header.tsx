@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+
+const ADMIN_ROLES = ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'];
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/dist/client/components/navigation';
 
@@ -87,7 +89,7 @@ export default function Header() {
                     >
                       Tài khoản
                     </Link>
-                    {user?.role === 'ADMIN' && (
+                    {user?.role && ADMIN_ROLES.includes(user.role) && (
                       <Link
                         href="/admin"
                         className="block px-4 py-2 hover:bg-gray-100"

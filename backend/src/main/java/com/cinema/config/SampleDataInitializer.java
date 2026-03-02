@@ -102,24 +102,14 @@ public class SampleDataInitializer implements CommandLineRunner {
                 if (roomRepository.count() == 0 && theaterRepository.count() > 0) {
                         initRoomsAndSeats();
                 }
-                if (movieRepository.count() == 0) {
-                        initSampleMovies();
-                }
                 // Init pricing logic (Rate Cards)
                 if (priceHeaderRepository.count() == 0) {
                         initPricingLogic();
                 }
-                // Init showtimes for existing movies
-                if (showtimeRepository.count() == 0 && movieRepository.count() > 0) {
-                        initShowtimes();
-                }
                 // Init sample users
                 if (userRepository.count() <= 1) { // only admin exists
                         initSampleUsers();
-                }
-                // Init sample reviews
-                if (reviewRepository.count() == 0 && movieRepository.count() > 0) {
-                        initSampleReviews();
+                        initStaffUsers();
                 }
                 // Init foods and combos
                 if (foodRepository.count() == 0) {
@@ -137,11 +127,7 @@ public class SampleDataInitializer implements CommandLineRunner {
                 if (promotionRepository.count() == 0) {
                         initPromotions();
                 }
-
-                // Init sample bookings
-                if (bookingRepository.count() == 0) {
-                        initSampleBookings();
-                }
+                // NOTE: Movies, showtimes, reviews and bookings are managed manually via admin UI
         }
 
         private void initRoomsAndSeats() {
@@ -1045,12 +1031,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                 // Lấy tất cả phim đang chiếu
                 List<Movie> nowShowingMovies = movieRepository.findByStatus(Movie.MovieStatus.NOW_SHOWING,
                                 org.springframework.data.domain.Pageable.unpaged()).getContent();
-
-                // Nếu không có phim đang chiếu, lấy tất cả phim
-                if (nowShowingMovies.isEmpty()) {
-                        nowShowingMovies = movieRepository.findAll();
-                        log.info("No NOW_SHOWING movies found, using all {} movies", nowShowingMovies.size());
-                }
 
                 List<Room> rooms = roomRepository.findAll();
 
@@ -2380,96 +2360,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                 log.info("Created {} promotions", promotions.size());
         }
 
-        private void initSampleBookings() {
-                log.info("Initializing sample bookings...");
-                List<User> users = userRepository.findAll();
-                List<Showtime> showtimes = showtimeRepository.findAll();
-
-                if (users.isEmpty() || showtimes.isEmpty()) {
-                        log.warn("Cannot init bookings: users or showtimes missing");
-                        return;
-                }
-
-                Random random = new Random();
-                List<Booking> bookings = new ArrayList<>();
-
-                for (int i = 0; i < 50; i++) {
-                        User user = users.get(random.nextInt(users.size()));
-                        Showtime showtime = showtimes.get(random.nextInt(showtimes.size()));
-
-                        // Skip if user is admin (optional, assuming role checks not needed for data
-                        // init)
-                        if (user.getRole() == User.Role.ADMIN)
-                                continue;
-
-                        int seatsToBook = 1 + random.nextInt(4);
-                        List<String> seatLabels = new ArrayList<>();
-                        // Simple logic: pick random seats (collision possible but acceptable for sample
-                        // data if we don't validate strictly here)
-                        // Or better: use seats not yet booked for this showtime?
-                        // For simplicity in sample data, we'll just pick random seat names like A1, B2
-                        char row = (char) ('A' + random.nextInt(8));
-                        for (int j = 1; j <= seatsToBook; j++) {
-                                seatLabels.add("" + row + (random.nextInt(10) + 1));
-                        }
-
-                        double totalAmount = seatsToBook * 80000.0; // Approx price
-
-                        Booking booking = Booking.builder()
-                                        .user(user)
-                                        .showtime(showtime)
-                                        .bookingCode("BK" + System.currentTimeMillis() + i)
-                                        .numberOfSeats(seatsToBook)
-                                        .seatAmount(new BigDecimal(totalAmount)) // Fix: convert double to BigDecimal
-                                        .foodAmount(BigDecimal.ZERO)
-                                        .totalAmount(new BigDecimal(totalAmount))
-                                        .discountAmount(BigDecimal.ZERO)
-                                        .finalAmount(new BigDecimal(totalAmount))
-                                        .status(Booking.BookingStatus.values()[random
-                                                        .nextInt(Booking.BookingStatus.values().length)])
-                                        .createdAt(LocalDateTime.now().minusDays(random.nextInt(30))
-                                                        .minusHours(random.nextInt(24)))
-                                        .build();
-
-                        // Sync payment status
-                        Payment.PaymentStatus paymentStatus;
-                        if (booking.getStatus() == Booking.BookingStatus.COMPLETED
-                                        || booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
-                                paymentStatus = Payment.PaymentStatus.COMPLETED;
-                        } else if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
-                                paymentStatus = random.nextBoolean() ? Payment.PaymentStatus.REFUNDED
-                                                : Payment.PaymentStatus.FAILED;
-                        } else {
-                                paymentStatus = Payment.PaymentStatus.PENDING;
-                        }
-
-                        // Create Payment
-                        Payment payment = Payment.builder()
-                                        .booking(booking)
-                                        .amount(booking.getFinalAmount())
-                                        .paymentMethod(Payment.PaymentMethod.values()[random
-                                                        .nextInt(Payment.PaymentMethod.values().length)])
-                                        .status(paymentStatus)
-                                        .transactionId("TXN" + System.currentTimeMillis() + i)
-                                        .createdAt(booking.getCreatedAt())
-                                        .build();
-
-                        booking.setPayment(payment);
-
-                        // Save booking first to get ID if needed, but cascade PERSIST on Payment
-                        // usually handles it?
-                        // Actually usually we save booking, then payment.
-                        // Let's add into list and save all?
-                        // Better to save individually to handle relationships if CascadeType.ALL is set
-                        // correct.
-                        // Assuming CascadeType.ALL on Booking -> Payment
-
-                        bookings.add(booking);
-                }
-
-                bookingRepository.saveAll(bookings);
-                log.info("Created {} sample bookings", bookings.size());
-        }
 
         private void initSampleUsers() {
                 log.info("Initializing sample users...");
@@ -2525,5 +2415,69 @@ public class SampleDataInitializer implements CommandLineRunner {
 
                 userRepository.saveAll(users);
                 log.info("Created {} sample users", users.size());
+        }
+
+        private void initStaffUsers() {
+                log.info("Initializing staff/manager/technician users...");
+                List<User> staffUsers = new ArrayList<>();
+
+                // Manager accounts
+                String[][] managerData = {
+                        {"manager@cinema.vn", "Manager123!", "Trần Quốc Bảo", "0911000001", "MALE", "1985-03-15"},
+                        {"manager2@cinema.vn", "Manager123!", "Lê Thị Hương", "0911000002", "FEMALE", "1988-07-22"},
+                };
+
+                for (String[] m : managerData) {
+                        if (userRepository.existsByEmail(m[0])) continue;
+                        staffUsers.add(User.builder()
+                                .email(m[0]).password(passwordEncoder.encode(m[1])).fullName(m[2])
+                                .phone(m[3]).gender(User.Gender.valueOf(m[4]))
+                                .dateOfBirth(LocalDate.parse(m[5]))
+                                .role(User.Role.MANAGER).active(true)
+                                .membershipLevel(User.MembershipLevel.NORMAL)
+                                .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
+                                .build());
+                }
+
+                // Staff accounts
+                String[][] staffData = {
+                        {"staff1@cinema.vn", "Staff123!", "Nguyễn Văn Tâm", "0922000001", "MALE", "1997-05-10"},
+                        {"staff2@cinema.vn", "Staff123!", "Phạm Thị Ngọc", "0922000002", "FEMALE", "1999-11-08"},
+                        {"staff3@cinema.vn", "Staff123!", "Hoàng Đức Hậu", "0922000003", "MALE", "2000-01-20"},
+                };
+
+                for (String[] s : staffData) {
+                        if (userRepository.existsByEmail(s[0])) continue;
+                        staffUsers.add(User.builder()
+                                .email(s[0]).password(passwordEncoder.encode(s[1])).fullName(s[2])
+                                .phone(s[3]).gender(User.Gender.valueOf(s[4]))
+                                .dateOfBirth(LocalDate.parse(s[5]))
+                                .role(User.Role.STAFF).active(true)
+                                .membershipLevel(User.MembershipLevel.NORMAL)
+                                .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
+                                .build());
+                }
+
+                // Technician accounts
+                String[][] techData = {
+                        {"tech1@cinema.vn", "Tech123!", "Vũ Minh Đức", "0933000001", "MALE", "1995-09-14"},
+                        {"tech2@cinema.vn", "Tech123!", "Đặng Thị Mai", "0933000002", "FEMALE", "1998-04-25"},
+                };
+
+                for (String[] t : techData) {
+                        if (userRepository.existsByEmail(t[0])) continue;
+                        staffUsers.add(User.builder()
+                                .email(t[0]).password(passwordEncoder.encode(t[1])).fullName(t[2])
+                                .phone(t[3]).gender(User.Gender.valueOf(t[4]))
+                                .dateOfBirth(LocalDate.parse(t[5]))
+                                .role(User.Role.TECHNICIAN).active(true)
+                                .membershipLevel(User.MembershipLevel.NORMAL)
+                                .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
+                                .build());
+                }
+
+                userRepository.saveAll(staffUsers);
+                log.info("Created {} staff users (managers={}, staff={}, technicians={})", 
+                        staffUsers.size(), 2, 3, 2);
         }
 }

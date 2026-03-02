@@ -1,5 +1,6 @@
 package com.cinema.service;
 
+import com.cinema.config.PermissionConstants;
 import com.cinema.dto.request.LoginRequest;
 import com.cinema.dto.request.RegisterRequest;
 import com.cinema.dto.response.AuthResponse;
@@ -18,6 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +50,8 @@ public class AuthService {
         
         user = userRepository.save(user);
         
-        String token = jwtTokenProvider.generateToken(user.getEmail());
+        Set<String> permissions = PermissionConstants.getPermissions(user.getRole());
+        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), permissions);
         
         return AuthResponse.builder()
                 .token(token)
@@ -56,20 +60,26 @@ public class AuthService {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .permissions(permissions)
                 .build();
     }
     
     public AuthResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
+        authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        String token = jwtTokenProvider.generateToken(authentication);
-        
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getEmail()));
+        
+        Set<String> permissions = PermissionConstants.getPermissions(user.getRole());
+        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), permissions);
+        
+        // Set authentication in context
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                com.cinema.security.UserPrincipal.create(user), null,
+                com.cinema.security.UserPrincipal.create(user).getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         
         return AuthResponse.builder()
                 .token(token)
@@ -78,6 +88,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .permissions(permissions)
                 .build();
     }
     

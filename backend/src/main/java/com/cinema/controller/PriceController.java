@@ -9,14 +9,15 @@ import com.cinema.repository.PriceLineRepository;
 import com.cinema.repository.SurchargeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/pricing")
-// /api/v1/admin
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('MANAGE_PRICING')")
 public class PriceController {
 
     private final PriceHeaderRepository priceHeaderRepository;

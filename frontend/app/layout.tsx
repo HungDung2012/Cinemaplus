@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ['latin', 'vietnamese'] });
 export const metadata: Metadata = {
   title: 'CinemaPlus - Đặt vé xem phim trực tuyến',
   description: 'Hệ thống đặt vé xem phim trực tuyến hàng đầu Việt Nam. Trải nghiệm điện ảnh tuyệt vời cùng CinemaPlus.',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
@@ -20,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
-      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50`}>
+      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-50 overflow-x-hidden`}>
         <ToastProvider>
           <AuthProvider>
             <LayoutWrapper>{children}</LayoutWrapper>

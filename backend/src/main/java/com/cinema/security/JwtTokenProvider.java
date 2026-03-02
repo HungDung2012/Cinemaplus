@@ -37,6 +37,20 @@ public class JwtTokenProvider {
                 .compact();
     }
     
+    public String generateToken(String email, String role, java.util.Set<String> permissions) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpiration);
+        
+        return Jwts.builder()
+                .subject(email)
+                .claim("role", role)
+                .claim("permissions", String.join(",", permissions))
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+    
     public String getEmailFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())

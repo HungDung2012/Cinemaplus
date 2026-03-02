@@ -100,7 +100,7 @@ public class User {
     private List<UserCoupon> userCoupons = new ArrayList<>();
 
     public enum Role {
-        USER, ADMIN
+        USER, ADMIN, MANAGER, STAFF, TECHNICIAN
     }
     
     public enum Gender {

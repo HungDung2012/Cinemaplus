@@ -6,7 +6,7 @@ export interface User {
   phone?: string;
   address?: string;
   avatar?: string;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'TECHNICIAN';
   active: boolean;
   createdAt: string;
 }
@@ -211,7 +211,8 @@ export interface AuthResponse {
   id: number;
   email: string;
   fullName: string;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'TECHNICIAN';
+  permissions?: string[];
 }
 
 export interface LoginRequest {

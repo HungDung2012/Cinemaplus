@@ -20,4 +20,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findByTheaterIdAndActiveTrue(Long theaterId);
 
     List<Room> findByRoomType(Room.RoomType roomType);
+
+    @Query("SELECT r FROM Room r JOIN FETCH r.theater WHERE r.theater.id IN :theaterIds AND r.active = true")
+    List<Room> findActiveByTheaterIds(@Param("theaterIds") List<Long> theaterIds);
 }

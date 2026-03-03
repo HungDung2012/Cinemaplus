@@ -8,6 +8,7 @@ import { adminMovieService, adminRoomService, adminShowtimeService, adminTheater
 
 import { Showtime, Movie, Theater, Room, Pagination } from '@/types';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { movieService } from '@/services';
 
 export default function ShowtimesManagementPage() {
@@ -335,6 +336,7 @@ export default function ShowtimesManagementPage() {
               Lịch biểu
             </button>
           </div>
+
 
           <button onClick={() => router.push('/admin/showtimes/create')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm font-medium flex items-center gap-2">
             Thay đổi lịch chiếu

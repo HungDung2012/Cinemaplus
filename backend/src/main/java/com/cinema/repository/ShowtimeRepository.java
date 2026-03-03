@@ -100,4 +100,20 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, Long> {
                      @Param("movieIds") List<Long> movieIds,
                      org.springframework.data.domain.Pageable pageable);
 
+       /**
+        * Fetch all non-cancelled showtimes for given theaters in a date range (for auto-schedule)
+        */
+       @Query("SELECT s FROM Showtime s " +
+                     "JOIN FETCH s.movie m " +
+                     "JOIN FETCH s.room r " +
+                     "JOIN FETCH r.theater t " +
+                     "WHERE r.theater.id IN :theaterIds " +
+                     "AND s.showDate BETWEEN :startDate AND :endDate " +
+                     "AND s.status != 'CANCELLED' " +
+                     "ORDER BY s.showDate ASC, s.startTime ASC")
+       List<Showtime> findByTheaterIdsAndDateRange(
+                     @Param("theaterIds") List<Long> theaterIds,
+                     @Param("startDate") LocalDate startDate,
+                     @Param("endDate") LocalDate endDate);
+
 }

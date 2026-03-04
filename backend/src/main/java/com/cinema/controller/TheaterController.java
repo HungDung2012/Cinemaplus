@@ -43,12 +43,6 @@ public class TheaterController {
         return ResponseEntity.ok(ApiResponse.success("Danh sách rạp theo thành phố", theaters));
     }
 
-    @GetMapping("/region/{regionId}")
-    public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheatersByRegion(@PathVariable Long regionId) {
-        List<TheaterResponse> theaters = theaterService.getTheatersByRegion(regionId);
-        return ResponseEntity.ok(ApiResponse.success("Danh sách rạp theo khu vực", theaters));
-    }
-
     @GetMapping("/region/code/{regionCode}")
     public ResponseEntity<ApiResponse<List<TheaterResponse>>> getTheatersByRegionCode(@PathVariable String regionCode) {
         List<TheaterResponse> theaters = theaterService.getTheatersByRegionCode(regionCode);

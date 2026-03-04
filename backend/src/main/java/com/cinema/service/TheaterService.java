@@ -7,7 +7,6 @@ import com.cinema.dto.response.TheaterResponse;
 import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.City;
-import com.cinema.model.Region;
 import com.cinema.model.Room;
 import com.cinema.model.Showtime;
 import com.cinema.model.Theater;
@@ -42,7 +41,8 @@ public class TheaterService {
         public PageResponse<TheaterResponse> getAllTheatersPaged(String search, String cityName, Pageable pageable) {
                 Page<Theater> theaters;
                 if (search != null && !search.trim().isEmpty() && cityName != null && !cityName.trim().isEmpty()) {
-                        theaters = theaterRepository.findByNameContainingAndCityNameAndActiveTrueOrderByNameAsc(search, cityName, pageable);
+                        theaters = theaterRepository.findByNameContainingAndCityNameAndActiveTrueOrderByNameAsc(search,
+                                        cityName, pageable);
                 } else if (search != null && !search.trim().isEmpty()) {
                         theaters = theaterRepository.findByNameContainingAndActiveTrueOrderByNameAsc(search, pageable);
                 } else if (cityName != null && !cityName.trim().isEmpty()) {
@@ -65,16 +65,15 @@ public class TheaterService {
                                 .collect(Collectors.toList());
         }
 
-        public List<TheaterResponse> getTheatersByRegion(Long regionId) {
-                return theaterRepository.findByRegionIdAndActiveTrue(regionId).stream()
-                                .map(this::mapToResponse)
-                                .collect(Collectors.toList());
-        }
-
         public List<TheaterResponse> getTheatersByRegionCode(String regionCode) {
-                return theaterRepository.findByRegionCodeAndActiveTrue(regionCode).stream()
-                                .map(this::mapToResponse)
-                                .collect(Collectors.toList());
+                try {
+                        City.RegionType regionType = City.RegionType.valueOf(regionCode.toUpperCase());
+                        return theaterRepository.findByCityRegionTypeAndActiveTrue(regionType).stream()
+                                        .map(this::mapToResponse)
+                                        .collect(Collectors.toList());
+                } catch (IllegalArgumentException e) {
+                        return List.of();
+                }
         }
 
         public TheaterResponse getTheaterById(Long id) {
@@ -103,11 +102,16 @@ public class TheaterService {
                         response.setCityName(city.getName());
                         response.setCityCode(city.getCode());
 
-                        Region region = city.getRegion();
-                        if (region != null) {
-                                response.setRegionId(region.getId());
-                                response.setRegionName(region.getName());
-                                response.setRegionCode(region.getCode());
+                        if (city.getRegionType() != null) {
+                                City.RegionType regionType = city.getRegionType();
+                                response.setRegionCode(regionType.name());
+                                // Set name based on enum
+                                if (regionType == City.RegionType.NORTH)
+                                        response.setRegionName("Miền Bắc");
+                                else if (regionType == City.RegionType.CENTRAL)
+                                        response.setRegionName("Miền Trung");
+                                else if (regionType == City.RegionType.SOUTH)
+                                        response.setRegionName("Miền Nam");
                         }
                 }
 

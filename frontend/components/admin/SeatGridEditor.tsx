@@ -268,9 +268,9 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                   ${cell.type === 'NONE' ? 'opacity-0 pointer-events-none' : 'shadow-sm border border-gray-200'}
                 `}
                                 style={{
-                                    backgroundColor: cell.type !== 'NONE' ? getSeatColor(cell.type) : 'transparent',
-                                    color: cell.type !== 'NONE' ? '#fff' : 'inherit', // Should ideally contrast text
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                    backgroundColor: cell.type !== 'NONE' ? (cell.type === 'STANDARD' || cell.type === 'VIP' ? '#fff' : getSeatColor(cell.type)) : 'transparent',
+                                    color: cell.type !== 'NONE' ? (cell.type === 'COUPLE' ? '#fff' : '#1f2937') : 'inherit',
+                                    borderColor: cell.type !== 'NONE' ? getSeatColor(cell.type) : 'transparent',
                                 }}
                                 title={`${cell.label} (${cell.type})`}
                             >

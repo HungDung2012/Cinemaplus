@@ -61,9 +61,7 @@ export interface City {
   code: string;
   provinceCode?: string;
   active: boolean;
-  regionId: number;
-  regionName: string;
-  regionCode: string;
+  regionType: 'NORTH' | 'CENTRAL' | 'SOUTH';
   theaterCount: number;
 }
 
@@ -291,13 +289,7 @@ export interface Review {
   isSpoiler: boolean;
 }
 
-// Region types
-export interface Region {
-  id: number;
-  name: string;
-  code: string;
-  theaterCount: number;
-}
+
 
 // Food types
 export type FoodCategory = 'POPCORN' | 'DRINK' | 'SNACK' | 'COMBO' | 'FAST_FOOD' | 'CANDY' | 'ICE_CREAM';

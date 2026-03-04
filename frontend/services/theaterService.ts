@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios';
-import { ApiResponse, Theater, Room, Seat, Region, City, GroupedTheaterResponse, TheaterScheduleResponse } from '@/types';
+import { ApiResponse, Theater, Room, Seat, City, GroupedTheaterResponse, TheaterScheduleResponse } from '@/types';
 
 export const theaterService = {
   async getAllTheaters(): Promise<Theater[]> {
@@ -22,15 +22,6 @@ export const theaterService = {
     return response.data.data;
   },
 
-  async getTheatersByRegion(regionId: number): Promise<Theater[]> {
-    const response = await api.get<ApiResponse<Theater[]>>(`/theaters/region/${regionId}`);
-    return response.data.data;
-  },
-
-  async getTheatersByRegionCode(regionCode: string): Promise<Theater[]> {
-    const response = await api.get<ApiResponse<Theater[]>>(`/theaters/region/code/${regionCode}`);
-    return response.data.data;
-  },
 
   async getTheatersGroupedByCity(): Promise<GroupedTheaterResponse> {
     const response = await api.get<ApiResponse<GroupedTheaterResponse>>('/theaters/grouped');
@@ -60,15 +51,6 @@ export const cityService = {
     return response.data.data;
   },
 
-  async getCitiesByRegion(regionId: number): Promise<City[]> {
-    const response = await api.get<ApiResponse<City[]>>(`/cities/region/${regionId}`);
-    return response.data.data;
-  },
-
-  async getCitiesByRegionCode(regionCode: string): Promise<City[]> {
-    const response = await api.get<ApiResponse<City[]>>(`/cities/region/code/${regionCode}`);
-    return response.data.data;
-  },
 
   async getCitiesWithActiveTheaters(): Promise<City[]> {
     const response = await api.get<ApiResponse<City[]>>('/cities/with-theaters');
@@ -76,17 +58,6 @@ export const cityService = {
   }
 };
 
-export const regionService = {
-  async getAllRegions(): Promise<Region[]> {
-    const response = await api.get<ApiResponse<Region[]>>('/regions');
-    return response.data.data;
-  },
-
-  async getRegionById(id: number): Promise<Region> {
-    const response = await api.get<ApiResponse<Region>>(`/regions/${id}`);
-    return response.data.data;
-  }
-};
 
 export const roomService = {
   async getRoomsByTheater(theaterId: number): Promise<Room[]> {

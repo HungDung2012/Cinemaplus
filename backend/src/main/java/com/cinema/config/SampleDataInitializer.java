@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Order(2)
 public class SampleDataInitializer implements CommandLineRunner {
 
-        private final RegionRepository regionRepository;
         private final CityRepository cityRepository;
         private final TheaterRepository theaterRepository;
         private final RoomRepository roomRepository;
@@ -72,7 +71,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         roomRepository.deleteAll();
                         theaterRepository.deleteAll();
                         cityRepository.deleteAll();
-                        regionRepository.deleteAll();
                         movieRepository.deleteAll();
                         foodRepository.deleteAll();
                         couponRepository.deleteAll();
@@ -86,9 +84,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         log.info("All data deleted.");
                 }
 
-                if (regionRepository.count() == 0) {
-                        initRegions();
-                }
                 if (cityRepository.count() == 0) {
                         initCities();
                 }
@@ -147,54 +142,34 @@ public class SampleDataInitializer implements CommandLineRunner {
                 log.info("Created rooms and seats for {} theaters", theaters.size());
         }
 
-        private void initRegions() {
-                log.info("Initializing regions...");
-                List<Region> regions = List.of(
-                                Region.builder().name("Miền Bắc").code("NORTH").build(),
-                                Region.builder().name("Miền Trung").code("CENTRAL").build(),
-                                Region.builder().name("Miền Nam").code("SOUTH").build());
-                regionRepository.saveAll(regions);
-                log.info("Created {} regions", regions.size());
-        }
-
         private void initCities() {
                 log.info("Initializing cities...");
-
-                Region north = regionRepository.findByCode("NORTH").orElse(null);
-                Region central = regionRepository.findByCode("CENTRAL").orElse(null);
-                Region south = regionRepository.findByCode("SOUTH").orElse(null);
-
-                if (north == null || central == null || south == null) {
-                        log.warn("Regions not found, skipping city initialization");
-                        return;
-                }
-
                 List<City> cities = new ArrayList<>();
 
                 // Miền Bắc
-                cities.add(createCity("Hà Nội", "HA_NOI", north));
-                cities.add(createCity("Hải Phòng", "HAI_PHONG", north));
-                cities.add(createCity("Quảng Ninh", "QUANG_NINH", north));
+                cities.add(createCity("Hà Nội", "HA_NOI", City.RegionType.NORTH));
+                cities.add(createCity("Hải Phòng", "HAI_PHONG", City.RegionType.NORTH));
+                cities.add(createCity("Quảng Ninh", "QUANG_NINH", City.RegionType.NORTH));
 
                 // Miền Trung
-                cities.add(createCity("Đà Nẵng", "DA_NANG", central));
-                cities.add(createCity("Huế", "HUE", central));
-                cities.add(createCity("Nha Trang", "NHA_TRANG", central));
+                cities.add(createCity("Đà Nẵng", "DA_NANG", City.RegionType.CENTRAL));
+                cities.add(createCity("Huế", "HUE", City.RegionType.CENTRAL));
+                cities.add(createCity("Nha Trang", "NHA_TRANG", City.RegionType.CENTRAL));
 
                 // Miền Nam
-                cities.add(createCity("TP.HCM", "HO_CHI_MINH", south));
-                cities.add(createCity("Cần Thơ", "CAN_THO", south));
-                cities.add(createCity("Biên Hòa", "BIEN_HOA", south));
+                cities.add(createCity("TP.HCM", "HO_CHI_MINH", City.RegionType.SOUTH));
+                cities.add(createCity("Cần Thơ", "CAN_THO", City.RegionType.SOUTH));
+                cities.add(createCity("Biên Hòa", "BIEN_HOA", City.RegionType.SOUTH));
 
                 cityRepository.saveAll(cities);
                 log.info("Created {} cities", cities.size());
         }
 
-        private City createCity(String name, String code, Region region) {
+        private City createCity(String name, String code, City.RegionType regionType) {
                 return City.builder()
                                 .name(name)
                                 .code(code)
-                                .region(region)
+                                .regionType(regionType)
                                 .active(true)
                                 .build();
         }
@@ -208,20 +183,23 @@ public class SampleDataInitializer implements CommandLineRunner {
                         // Standard - usually 0 surcharge
                         surcharges.add(Surcharge.builder()
                                         .name("Ghế Thường")
-                                        .code("STANDARD")
                                         .type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .amount(BigDecimal.ZERO)
+                                        .targetId("STANDARD")
+                                        .amount(new BigDecimal("0.0"))
+                                        .color("#22c55e")
+                                        .code("STANDARD")
                                         .active(true)
                                         .build());
 
                         // VIP - Add 10000
                         surcharges.add(Surcharge.builder()
                                         .name("Ghế VIP")
-                                        .code("VIP")
                                         .type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .amount(new BigDecimal("10000"))
+                                        .targetId("VIP")
+                                        .amount(new BigDecimal("20000.0"))
+                                        .color("#ef4444")
+                                        .code("VIP")
                                         .active(true)
-                                        .color("#D69E2E")
                                         .build());
 
                         // Couple - Add 50000
@@ -229,9 +207,10 @@ public class SampleDataInitializer implements CommandLineRunner {
                                         .name("Ghế Đôi")
                                         .code("COUPLE")
                                         .type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .targetId("COUPLE")
                                         .amount(new BigDecimal("50000"))
                                         .active(true)
-                                        .color("#E53E3E")
+                                        .color("#f472b6")
                                         .build());
 
                         surchargeRepository.saveAll(surcharges);
@@ -833,15 +812,17 @@ public class SampleDataInitializer implements CommandLineRunner {
 
                 // VIP Seat
                 if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
-                                .noneMatch(s -> "VIP".equals(s.getTargetId()))) {
+                                .noneMatch(s -> "VIP".equals(s.getCode()))) {
                         surcharges.add(Surcharge.builder().name("VIP Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .targetId("VIP").amount(new BigDecimal("15000")).active(true).build());
+                                        .amount(new BigDecimal("20000.0")).color("#ef4444").code("VIP").targetId("VIP")
+                                        .active(true).build());
                 }
                 // Couple Seat
                 if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
-                                .noneMatch(s -> "COUPLE".equals(s.getTargetId()))) {
+                                .noneMatch(s -> "COUPLE".equals(s.getCode()))) {
                         surcharges.add(Surcharge.builder().name("Couple Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .targetId("COUPLE").amount(new BigDecimal("20000")).active(true).build());
+                                        .amount(new BigDecimal("50000.0")).color("#f472b6").code("COUPLE")
+                                        .targetId("COUPLE").active(true).build());
                 }
 
                 if (!surcharges.isEmpty()) {

@@ -27,7 +27,6 @@ public class TheaterResponse {
     private String cityCode;
 
     // Region information (through City)
-    private Long regionId;
     private String regionName;
     private String regionCode;
 }

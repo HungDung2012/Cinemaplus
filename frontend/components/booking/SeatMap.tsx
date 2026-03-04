@@ -58,24 +58,39 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
     onSelectionChange(newSelection);
   };
 
-  // Fallback colors by code when backend doesn't supply seatColor
-  // Cinema-style palette inspired by CGV/Lotte
-  const FALLBACK_COLORS: Record<string, string> = {
-    STANDARD: '#6b7280',  // slate gray
-    VIP:      '#b45309',  // deep amber/gold
-    COUPLE:   '#be185d',  // rose/magenta
-    DISABLED: '#2563eb',  // blue (accessible)
-  };
+  const getSeatStyles = (seat: Seat, isSelected: boolean) => {
+    // Basic shared classes
+    const base = "w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-[11px] font-medium rounded border transition-all duration-150 shadow-sm flex items-center justify-center";
 
-  const getSeatBgColor = (seat: Seat): string => {
+    if (seat.isBooked) {
+      return `${base} bg-gray-300 border-gray-300 text-white cursor-not-allowed`;
+    }
+
+    if (isSelected) {
+      return `${base} bg-[#b11515] border-[#b11515] text-white shadow-md transform scale-110`;
+    }
+
+    // Dynamic coloring based on seat.seatColor from DB (if missing fallback to manual logic)
     const code = seat.seatTypeCode || seat.seatType || 'STANDARD';
-    return seat.seatColor || FALLBACK_COLORS[code] || '#64748b';
-  };
+    const hexColor = seat.seatColor;
 
-  const getSeatClass = (seat: Seat) => {
-    if (seat.isBooked) return 'cursor-not-allowed opacity-60';
-    if (selectedSeats.find((s) => s.id === seat.id)) return 'ring-4 ring-green-400 ring-offset-1 scale-110 shadow-lg';
-    return 'hover:brightness-125 hover:scale-105 hover:shadow-md cursor-pointer';
+    if (hexColor) {
+      // Special case for couple seats (fill the whole box)
+      if (code === 'COUPLE') {
+        return `${base} text-white hover:brightness-110`;
+      }
+      // Outline style for VIP and Standard
+      return `${base} bg-white text-gray-800 hover:brightness-95`;
+    }
+
+    // Absolutely no hex from backend (Fallback default logic)
+    if (code === 'VIP') {
+      return `${base} bg-white border-red-500 text-gray-800 hover:bg-red-50`;
+    }
+    if (code === 'COUPLE') {
+      return `${base} bg-pink-400 border-pink-400 text-white hover:bg-pink-500`;
+    }
+    return `${base} bg-white border-green-500 text-gray-800 hover:bg-green-50`;
   };
 
   const totalAmount = selectedSeats.reduce((sum, seat) => {
@@ -97,30 +112,37 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
           {sortedRows.map((row) => {
             const seatMap = new Map(seatsByRow[row].map((s) => [s.seatNumber, s]));
             return (
-              <div key={row} className="flex items-center justify-center gap-2 mb-2">
-                <span className="w-6 text-center font-bold text-gray-600">{row}</span>
-                <div className="flex gap-1">
+              <div key={row} className="flex items-center justify-center gap-1 mb-1">
+                <div className="flex gap-[2px]">
                   {allColumns.map((col) => {
                     const seat = seatMap.get(col);
                     if (!seat) {
                       // Empty gap — matches deleted/NONE column in admin editor
-                      return <div key={col} className="w-8 h-8" />;
+                      return <div key={col} className="w-6 h-6 sm:w-7 sm:h-7" />;
                     }
+                    const isSelected = !!selectedSeats.find((s) => s.id === seat.id);
                     return (
                       <button
                         key={seat.id}
                         onClick={() => handleSeatClick(seat)}
                         disabled={seat.isBooked}
-                        className={`w-8 h-8 text-xs font-semibold rounded transition-all duration-150 text-white shadow-sm ${getSeatClass(seat)}`}
-                        style={{ backgroundColor: seat.isBooked ? '#374151' : getSeatBgColor(seat) }}
+                        className={getSeatStyles(seat, isSelected)}
+                        style={
+                          (!seat.isBooked && !isSelected && seat.seatColor)
+                            ? (
+                              (seat.seatTypeCode === 'COUPLE' || seat.seatType === 'COUPLE')
+                                ? { backgroundColor: seat.seatColor, borderColor: seat.seatColor }
+                                : { borderColor: seat.seatColor }
+                            )
+                            : {}
+                        }
                         title={`${seat.seatLabel} - ${seat.seatTypeName || seat.seatType} - ${formatCurrency(basePrice * seat.priceMultiplier)}`}
                       >
-                        {seat.seatNumber}
+                        {seat.isBooked ? 'X' : (seat.seatLabel || seat.seatNumber)}
                       </button>
                     );
                   })}
                 </div>
-                <span className="w-6 text-center font-bold text-gray-600">{row}</span>
               </div>
             );
           })}
@@ -128,26 +150,26 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-4 text-sm">
+      <div className="flex flex-wrap items-center justify-center gap-6 text-sm mt-8 border-t pt-6">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#6b7280' }}></div>
-          <span>Thường</span>
+          <div className="w-6 h-6 rounded border bg-white shadow-sm" style={{ borderColor: '#22c55e' }}></div>
+          <span className="text-gray-700">Thường</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#b45309' }}></div>
-          <span>VIP</span>
+          <div className="w-6 h-6 rounded border bg-white shadow-sm" style={{ borderColor: '#ef4444' }}></div>
+          <span className="text-gray-700">VIP</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#be185d' }}></div>
-          <span>Đôi</span>
+          <div className="w-6 h-6 rounded shadow-sm border" style={{ backgroundColor: '#f472b6', borderColor: '#f472b6' }}></div>
+          <span className="text-gray-700">Sweetbox (Đôi)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded ring-4 ring-green-400 ring-offset-1 shadow-sm" style={{ backgroundColor: '#22c55e' }}></div>
-          <span>Đang chọn</span>
+          <div className="w-6 h-6 rounded bg-[#b11515] shadow-sm border border-[#b11515]"></div>
+          <span className="text-gray-700">Đang chọn</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded opacity-60" style={{ backgroundColor: '#374151' }}></div>
-          <span>Đã đặt</span>
+          <div className="w-6 h-6 rounded bg-gray-300 shadow-sm border border-gray-300 flex items-center justify-center text-white text-xs font-bold">X</div>
+          <span className="text-gray-700">Không thể chọn</span>
         </div>
       </div>
 

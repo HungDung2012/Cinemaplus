@@ -209,6 +209,7 @@ function BookingContent() {
       setShowtime(showtimeData);
 
       const seatsData = await seatService.getSeatsByShowtime(showtimeId, showtimeData.roomId);
+      console.log(showtimeData.roomId, showtimeId);
       setSeats(seatsData);
     } catch (err) {
       setError('Không thể tải thông tin suất chiếu');

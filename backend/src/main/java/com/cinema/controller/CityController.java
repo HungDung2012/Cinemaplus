@@ -48,15 +48,6 @@ public class CityController {
     }
 
     /**
-     * Lấy danh sách thành phố theo region ID
-     */
-    @GetMapping("/region/{regionId}")
-    public ResponseEntity<ApiResponse<List<CityResponse>>> getCitiesByRegion(@PathVariable Long regionId) {
-        List<CityResponse> cities = cityService.getCitiesByRegion(regionId);
-        return ResponseEntity.ok(ApiResponse.success("Danh sách thành phố theo khu vực", cities));
-    }
-
-    /**
      * Lấy danh sách thành phố theo region code
      */
     @GetMapping("/region/code/{regionCode}")
@@ -83,12 +74,11 @@ public class CityController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> migrateTheatersToCities() {
         log.info("Admin triggered theater-to-city migration");
         int migratedCount = cityService.migrateTheatersToCities();
-        
+
         Map<String, Object> result = Map.of(
                 "migratedCount", migratedCount,
-                "message", "Đã migrate " + migratedCount + " rạp vào các thành phố"
-        );
-        
+                "message", "Đã migrate " + migratedCount + " rạp vào các thành phố");
+
         return ResponseEntity.ok(ApiResponse.success("Migration hoàn thành", result));
     }
 

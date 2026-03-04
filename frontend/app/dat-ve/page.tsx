@@ -3,9 +3,9 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Movie, Theater, Showtime, Region, RoomType } from '@/types';
+import { Movie, Theater, Showtime, City, RoomType } from '@/types';
 import { movieService } from '@/services/movieService';
-import { theaterService, regionService } from '@/services/theaterService';
+import { theaterService, cityService } from '@/services/theaterService';
 import { showtimeService } from '@/services/showtimeService';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -30,13 +30,13 @@ function BookingFlowContent() {
 
   // Data state
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [theaters, setTheaters] = useState<Theater[]>([]);
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
 
   // Selection state
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedRoomType, setSelectedRoomType] = useState<string>('STANDARD_2D');
 
@@ -67,7 +67,7 @@ function BookingFlowContent() {
   // Init
   useEffect(() => {
     fetchMovies();
-    fetchRegions();
+    fetchCities();
     // Set default date to today
     setSelectedDate(dates[0]?.date || '');
   }, []);
@@ -82,12 +82,12 @@ function BookingFlowContent() {
     }
   }, [preselectedMovieId, movies]);
 
-  // Fetch showtimes when movie, region, or date changes
+  // Fetch showtimes when movie, city, or date changes
   useEffect(() => {
-    if (selectedMovie && selectedRegion && selectedDate) {
-      fetchShowtimesForRegion();
+    if (selectedMovie && selectedCity && selectedDate) {
+      fetchShowtimesForCity();
     }
-  }, [selectedMovie, selectedRegion, selectedDate]);
+  }, [selectedMovie, selectedCity, selectedDate]);
 
   const fetchMovies = async () => {
     try {
@@ -101,27 +101,27 @@ function BookingFlowContent() {
     }
   };
 
-  const fetchRegions = async () => {
+  const fetchCities = async () => {
     try {
-      const data = await regionService.getAllRegions();
-      setRegions(data);
-      // Set default region (first one)
+      const data = await cityService.getCitiesWithActiveTheaters();
+      setCities(data);
+      // Set default city (first one)
       if (data.length > 0) {
-        setSelectedRegion(data[0]);
+        setSelectedCity(data[0]);
       }
     } catch (error) {
-      console.error('Error fetching regions:', error);
+      console.error('Error fetching cities:', error);
     }
   };
 
-  const fetchShowtimesForRegion = async () => {
-    if (!selectedMovie || !selectedRegion || !selectedDate) return;
+  const fetchShowtimesForCity = async () => {
+    if (!selectedMovie || !selectedCity || !selectedDate) return;
 
     try {
       setLoadingShowtimes(true);
 
-      // Get theaters in selected region
-      const theatersData = await theaterService.getTheatersByRegion(selectedRegion.id);
+      // Get theaters in selected city
+      const theatersData = await theaterService.getTheatersByCity(selectedCity.id);
       setTheaters(theatersData);
 
       // Get showtimes for movie and date at all theaters
@@ -130,7 +130,7 @@ function BookingFlowContent() {
         selectedDate
       );
 
-      // Filter showtimes by theaters in selected region
+      // Filter showtimes by theaters in selected city
       const theaterIds = theatersData.map(t => t.id);
       const filteredShowtimes = showtimesData.filter(s => theaterIds.includes(s.theaterId));
 
@@ -193,6 +193,13 @@ function BookingFlowContent() {
     router.push(`/booking?showtimeId=${showtime.id}`);
   };
 
+  const isBookingAvailable = (showDate: string, startTime: string) => {
+    if (!showDate || !startTime) return false;
+    const showtimeDate = new Date(`${showDate}T${startTime}`);
+    const nowPlus30 = new Date(Date.now() + 30 * 60000);
+    return showtimeDate > nowPlus30;
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -229,8 +236,8 @@ function BookingFlowContent() {
                       key={movie.id}
                       onClick={() => setSelectedMovie(movie)}
                       className={`flex-shrink-0 w-24 cursor-pointer transition-all ${selectedMovie?.id === movie.id
-                          ? 'ring-2 ring-red-500 rounded-lg'
-                          : 'opacity-70 hover:opacity-100'
+                        ? 'ring-2 ring-red-500 rounded-lg'
+                        : 'opacity-70 hover:opacity-100'
                         }`}
                     >
                       <img
@@ -264,10 +271,10 @@ function BookingFlowContent() {
                         key={d.date}
                         onClick={() => setSelectedDate(d.date)}
                         className={`flex flex-col items-center px-3 py-2 rounded transition-colors min-w-[56px] ${isSelected
-                            ? 'bg-red-500 text-white'
-                            : isToday
-                              ? 'bg-red-100 hover:bg-red-200'
-                              : 'hover:bg-gray-100'
+                          ? 'bg-red-500 text-white'
+                          : isToday
+                            ? 'bg-red-100 hover:bg-red-200'
+                            : 'hover:bg-gray-100'
                           }`}
                       >
                         <span className="text-xs text-gray-500" style={{ color: isSelected ? 'white' : undefined }}>
@@ -284,24 +291,24 @@ function BookingFlowContent() {
               </div>
             </div>
 
-            {/* Region Tabs */}
+            {/* City Tabs */}
             <div className="bg-white rounded-lg shadow p-4">
               <h2 className="font-semibold mb-3 flex items-center gap-2">
                 <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm">3</span>
-                Chọn khu vực
+                Chọn thành phố
               </h2>
 
               <div className="flex flex-wrap gap-2 border-b pb-3 mb-3">
-                {regions.map((region) => (
+                {cities.map((city) => (
                   <button
-                    key={region.id}
-                    onClick={() => setSelectedRegion(region)}
-                    className={`px-4 py-2 text-sm rounded-t transition-colors ${selectedRegion?.id === region.id
-                        ? 'bg-amber-100 text-amber-800 border-b-2 border-amber-500 font-medium'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    key={city.id}
+                    onClick={() => setSelectedCity(city)}
+                    className={`px-4 py-2 text-sm rounded-t transition-colors ${selectedCity?.id === city.id
+                      ? 'bg-amber-100 text-amber-800 border-b-2 border-amber-500 font-medium'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                       }`}
                   >
-                    {region.name}
+                    {city.name}
                   </button>
                 ))}
               </div>
@@ -321,8 +328,8 @@ function BookingFlowContent() {
                       key={type}
                       onClick={() => setSelectedRoomType(type)}
                       className={`px-4 py-2 text-sm rounded-full border transition-colors ${selectedRoomType === type
-                          ? 'bg-amber-100 border-amber-400 text-amber-800'
-                          : 'border-gray-300 text-gray-600 hover:border-amber-400'
+                        ? 'bg-amber-100 border-amber-400 text-amber-800'
+                        : 'border-gray-300 text-gray-600 hover:border-amber-400'
                         }`}
                     >
                       {ROOM_TYPE_LABELS[type] || type}
@@ -374,19 +381,23 @@ function BookingFlowContent() {
                         <div key={roomKey}>
                           <p className="text-sm font-medium text-gray-700 mb-2">{roomKey}</p>
                           <div className="flex flex-wrap gap-2">
-                            {roomShowtimes.map((showtime) => (
-                              <button
-                                key={showtime.id}
-                                onClick={() => handleSelectShowtime(showtime)}
-                                disabled={showtime.status !== 'AVAILABLE'}
-                                className={`px-4 py-2 border rounded transition-colors ${showtime.status === 'AVAILABLE'
-                                    ? 'border-gray-300 hover:border-red-500 hover:text-red-500'
+                            {roomShowtimes.map((showtime) => {
+                              if (!isBookingAvailable(selectedDate, showtime.startTime)) return null;
+
+                              return (
+                                <button
+                                  key={showtime.id}
+                                  onClick={() => handleSelectShowtime(showtime)}
+                                  disabled={showtime.status !== 'AVAILABLE'}
+                                  className={`px-4 py-2 border rounded transition-colors ${showtime.status === 'AVAILABLE'
+                                    ? 'border-gray-300 hover:border-red-500 hover:text-red-500 hover:bg-red-50'
                                     : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  }`}
-                              >
-                                <span className="font-medium">{showtime.startTime.substring(0, 5)}</span>
-                              </button>
-                            ))}
+                                    }`}
+                                >
+                                  <span className="font-medium">{showtime.startTime.substring(0, 5)}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -433,14 +444,13 @@ function BookingFlowContent() {
                           {selectedDate ? formatDate(selectedDate) : 'Chưa chọn'}
                         </span>
                       </div>
-
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Khu vực:</span>
+                        <span className="text-gray-500">Thành phố:</span>
                         <span className="font-medium">
-                          {selectedRegion?.name || 'Chưa chọn'}
+                          {selectedCity?.name || 'Chưa chọn'}
                         </span>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <span className="text-gray-500">Định dạng:</span>
                         <span className="font-medium">

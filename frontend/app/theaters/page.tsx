@@ -19,18 +19,8 @@ export default function TheatersPage() {
     }, 100);
   };
 
-
-
   return (
     <div className="min-h-screen bg-zinc-100">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 py-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-3xl font-bold text-white text-center">Hệ Thống Rạp Chiếu Phim</h1>
-          <p className="text-zinc-400 text-center mt-2">Chọn rạp và xem lịch chiếu phim</p>
-        </div>
-      </div>
-
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Cinema Selector */}
         <div className="mb-8">

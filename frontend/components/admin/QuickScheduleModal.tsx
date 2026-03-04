@@ -199,7 +199,7 @@ export default function QuickScheduleModal({
               {/* ────────── Movie + Theater ────────── */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">Phim <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Phim</label>
                   <select
                     value={movieId}
                     onChange={e => setMovieId(Number(e.target.value))}
@@ -208,13 +208,13 @@ export default function QuickScheduleModal({
                     <option value={0}>— Chọn phim —</option>
                     {movies.map(m => (
                       <option key={m.id} value={m.id}>
-                        {m.title} ({m.duration} phút{m.rating ? ` · ⭐ ${m.rating}` : ''})
+                        {m.title} ({m.duration} phút)
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">Rạp <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Rạp</label>
                   <select
                     value={theaterId}
                     onChange={e => setTheaterId(Number(e.target.value))}
@@ -230,9 +230,8 @@ export default function QuickScheduleModal({
 
               {/* ────────── Room selection ────────── */}
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Phòng chiếu
-                  <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Phòng chiếu</label>
+
                 {(!movieId || !theaterId) ? (
                   <div className="text-sm text-zinc-500 italic p-4 bg-zinc-50 rounded-xl border border-dashed border-zinc-200 text-center">
                     Vui lòng chọn Phim và Rạp để xem danh sách phòng
@@ -249,7 +248,6 @@ export default function QuickScheduleModal({
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {rooms.map((room, idx) => {
-                      const isSuggested = idx < suggestedCount;
                       const isSelected = selectedRoomIds.includes(room.id);
                       return (
                         <button
@@ -270,9 +268,7 @@ export default function QuickScheduleModal({
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-sm font-semibold text-zinc-800">{room.name}</span>
-                              {isSuggested && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">⭐ Đề xuất</span>
-                              )}
+                              
                             </div>
                             <p className="text-xs text-zinc-500 mt-0.5">
                               {room.roomType.replace(/_/g, ' ')} · {room.totalSeats} ghế

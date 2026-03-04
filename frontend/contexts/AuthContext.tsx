@@ -11,6 +11,9 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
+  hasPermission: (permission: string) => boolean;
+  hasRole: (...roles: string[]) => boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,6 +53,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    // ADMIN always has all permissions
+    if (user.role === 'ADMIN') return true;
+    if (!user.permissions || user.permissions.length === 0) return false;
+    return user.permissions.includes(permission);
+  };
+
+  const hasRole = (...roles: string[]): boolean => {
+    if (!user?.role) return false;
+    return roles.includes(user.role);
+  };
+
+  const ADMIN_ROLES = ['ADMIN', 'MANAGER'];
+  const isAdmin = !!user && ADMIN_ROLES.includes(user.role);
+
   return (
     <AuthContext.Provider
       value={{
@@ -59,6 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        hasPermission,
+        hasRole,
+        isAdmin,
       }}
     >
       {children}

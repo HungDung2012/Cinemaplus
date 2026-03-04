@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/tmdb")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('MANAGE_MOVIES')")
 public class TmdbController {
 
     private final TmdbService tmdbService;

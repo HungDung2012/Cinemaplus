@@ -1,0 +1,13 @@
+﻿components/admin/QuickScheduleModal.tsx(175,6): error TS17008: JSX element 'div' has no corresponding closing tag.
+components/admin/QuickScheduleModal.tsx(384,14): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/admin/QuickScheduleModal.tsx(491,11): error TS1005: ')' expected.
+components/admin/QuickScheduleModal.tsx(538,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/admin/QuickScheduleModal.tsx(541,51): error TS1005: '}' expected.
+components/admin/QuickScheduleModal.tsx(541,99): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/admin/QuickScheduleModal.tsx(542,3): error TS1109: Expression expected.
+components/admin/QuickScheduleModal.tsx(542,30): error TS1003: Identifier expected.
+components/admin/QuickScheduleModal.tsx(542,38): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+components/admin/QuickScheduleModal.tsx(543,9): error TS1005: '}' expected.
+components/admin/QuickScheduleModal.tsx(547,3): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/admin/QuickScheduleModal.tsx(554,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+components/admin/QuickScheduleModal.tsx(555,1): error TS1005: '</' expected.

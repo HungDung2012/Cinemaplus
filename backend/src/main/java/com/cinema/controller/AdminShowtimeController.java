@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/showtimes")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('MANAGE_SHOWTIMES')")
 public class AdminShowtimeController {
 
     private final ShowtimeService showtimeService;

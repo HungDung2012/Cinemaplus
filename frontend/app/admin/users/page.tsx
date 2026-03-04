@@ -400,9 +400,8 @@ export default function UsersManagementPage() {
                 for (let i = startPage; i <= endPage; i++) {
                   pages.push(
                     <button key={i} onClick={() => setCurrentPage(i)}
-                      className={`px-3 py-1 border rounded transition-colors ${
-                        currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
-                      }`}>{i + 1}</button>
+                      className={`px-3 py-1 border rounded transition-colors ${currentPage === i ? 'bg-red-600 text-white border-red-600' : 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                        }`}>{i + 1}</button>
                   );
                 }
                 if (endPage < totalPages - 1) {
@@ -571,8 +570,8 @@ export default function UsersManagementPage() {
                           {getRoleInfo(selectedUserDetail.role).label}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${selectedUserDetail.membershipLevel === 'VIP' ? 'bg-yellow-100 text-yellow-700' :
-                            selectedUserDetail.membershipLevel === 'PLATINUM' ? 'bg-purple-100 text-purple-700' :
-                              'bg-zinc-100 text-zinc-700'
+                          selectedUserDetail.membershipLevel === 'PLATINUM' ? 'bg-purple-100 text-purple-700' :
+                            'bg-zinc-100 text-zinc-700'
                           }`}>
                           {selectedUserDetail.membershipLevel || 'Thành viên'}
                         </span>
@@ -649,8 +648,8 @@ export default function UsersManagementPage() {
                             <div className="text-right">
                               <div className="font-bold text-zinc-900">{formatCurrency(booking.finalAmount)}</div>
                               <span className={`text-xs px-2 py-0.5 rounded ${booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                                  booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                                    'bg-blue-100 text-blue-700'
+                                booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                  'bg-blue-100 text-blue-700'
                                 }`}>
                                 {booking.status}
                               </span>

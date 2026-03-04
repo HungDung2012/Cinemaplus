@@ -1,0 +1,67 @@
+[
+  {
+    "line": 384,
+    "col": 14,
+    "msg": "Unexpected token. Did you mean `{'}'}` or `&rbrace;`?"
+  },
+  {
+    "line": 491,
+    "col": 11,
+    "msg": "')' expected."
+  },
+  {
+    "line": 538,
+    "col": 1,
+    "msg": "Unexpected token. Did you mean `{'}'}` or `&rbrace;`?"
+  },
+  {
+    "line": 541,
+    "col": 51,
+    "msg": "'}' expected."
+  },
+  {
+    "line": 541,
+    "col": 99,
+    "msg": "Unexpected token. Did you mean `{'}'}` or `&rbrace;`?"
+  },
+  {
+    "line": 542,
+    "col": 3,
+    "msg": "Expression expected."
+  },
+  {
+    "line": 542,
+    "col": 30,
+    "msg": "Identifier expected."
+  },
+  {
+    "line": 542,
+    "col": 38,
+    "msg": "Unexpected token. Did you mean `{'>'}` or `&gt;`?"
+  },
+  {
+    "line": 543,
+    "col": 9,
+    "msg": "'}' expected."
+  },
+  {
+    "line": 547,
+    "col": 3,
+    "msg": "Unexpected token. Did you mean `{'}'}` or `&rbrace;`?"
+  },
+  {
+    "line": 554,
+    "col": 1,
+    "msg": "Unexpected token. Did you mean `{'}'}` or `&rbrace;`?"
+  },
+  {
+    "line": 175,
+    "col": 6,
+    "msg": "JSX element 'div' has no corresponding closing tag."
+  },
+  {
+    "line": 555,
+    "col": 1,
+    "msg": "'</' expected."
+  }
+]

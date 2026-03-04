@@ -356,36 +356,37 @@ export default function CreateShowtimeForm() {
                                 onCreateShowtime={handleCreateShowtime}
                                 onShowtimeUpdate={handleUpdateShowtime}
                             />
-                            {/* Modals */}
-                            <CopyScheduleModal
-                                isOpen={isCopyModalOpen}
-                                onClose={() => setIsCopyModalOpen(false)}
-                                sourceDate={selectedDate}
-                                sourceTheaterId={selectedTheaterId}
-                                sourceShowtimes={serverShowtimes} // Pass SERVER state to copy to avoid copying unsaved temp items easily
-                                theaters={theaters}
-                                onSuccess={() => {
-                                    setIsCopyModalOpen(false);
-                                    fetchSchedule();
-                                }}
-                            />
-                            <QuickScheduleModal
-                                isOpen={isQuickScheduleOpen}
-                                onClose={() => setIsQuickScheduleOpen(false)}
-                                theaters={theaters}
-                                movies={movies}
-                                initialTheaterId={selectedTheaterId || undefined}
-                                onSuccess={() => {
-                                    setIsQuickScheduleOpen(false);
-                                    fetchSchedule();
-                                }}
-                            />
                         </>
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-zinc-400 italic">
                             Vui lòng chọn Rạp để xem lịch chiếu
                         </div>
                     )}
+
+                    {/* Modals */}
+                    <CopyScheduleModal
+                        isOpen={isCopyModalOpen}
+                        onClose={() => setIsCopyModalOpen(false)}
+                        sourceDate={selectedDate}
+                        sourceTheaterId={selectedTheaterId!}
+                        sourceShowtimes={serverShowtimes} // Pass SERVER state to copy to avoid copying unsaved temp items easily
+                        theaters={theaters}
+                        onSuccess={() => {
+                            setIsCopyModalOpen(false);
+                            fetchSchedule();
+                        }}
+                    />
+                    <QuickScheduleModal
+                        isOpen={isQuickScheduleOpen}
+                        onClose={() => setIsQuickScheduleOpen(false)}
+                        theaters={theaters}
+                        movies={movies}
+                        initialTheaterId={selectedTheaterId || undefined}
+                        onSuccess={() => {
+                            setIsQuickScheduleOpen(false);
+                            fetchSchedule();
+                        }}
+                    />
                 </div>
             </div>
 

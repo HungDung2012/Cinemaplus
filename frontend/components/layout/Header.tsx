@@ -3,30 +3,30 @@
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
-const ADMIN_ROLES = ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'];
+const ADMIN_ROLES = ['ADMIN', 'MANAGER'];
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/dist/client/components/navigation';
 
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  
+
   // Ref dùng để xác định vùng chứa của dropdown
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  
+
   // Xử lý click outside để đóng dropdown
   useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    // Nếu dropdown đang mở VÀ click xảy ra bên ngoài element được ref
-    if (isUserMenuOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-      setIsUserMenuOpen(false);
-    }
-  };
+    const handleClickOutside = (event: MouseEvent) => {
+      // Nếu dropdown đang mở VÀ click xảy ra bên ngoài element được ref
+      if (isUserMenuOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
 
-  // Đăng ký sự kiện khi component mount
+    // Đăng ký sự kiện khi component mount
     document.addEventListener('mousedown', handleClickOutside);
-    
+
     // Dọn dẹp sự kiện khi component unmount
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);

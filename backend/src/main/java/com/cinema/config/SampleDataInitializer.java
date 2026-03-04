@@ -127,7 +127,15 @@ public class SampleDataInitializer implements CommandLineRunner {
                 if (promotionRepository.count() == 0) {
                         initPromotions();
                 }
-                // NOTE: Movies, showtimes, reviews and bookings are managed manually via admin UI
+                if (movieRepository.count() == 0) {
+                        initSampleMovies();
+                }
+
+                if (reviewRepository.count() == 0) {
+                        initSampleReviews();
+                }
+                // NOTE: Movies, showtimes, reviews and bookings are managed manually via admin
+                // UI
         }
 
         private void initRoomsAndSeats() {
@@ -747,103 +755,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                                 160, "https://image.tmdb.org/t/p/w500/c5Tqxeo1UpBvnAc3csUm7j3hlQl.jpg",
                                 "https://www.youtube.com/watch?v=6COmYeLsz4c",
                                 LocalDate.of(2024, 11, 22), Movie.MovieStatus.ENDED, 8.0));
-
-                // ============= PHIM ĐANG CHIẾU - NOW_SHOWING =============
-                movies.add(createMovie("Thiên Đường Máu", "Nguyễn Quang Dũng", "Tuấn Trần, Kaity Nguyễn, NSND Kim Xuân",
-                                "Phim điện ảnh đầu tiên về nạn lừa đảo người Việt ra nước ngoài. Không ít thanh niên bị đưa đến những 'đặc khu' và bị ép buộc gọi điện lừa đảo.",
-                                113, "https://image.tmdb.org/t/p/w500/j3gPCCNMUxgUYPrwvLJPSoKvdX.jpg",
-                                "https://www.youtube.com/watch?v=example1",
-                                LocalDate.of(2025, 12, 31), Movie.MovieStatus.NOW_SHOWING, 9.0));
-
-                movies.add(createMovie("Mufasa: The Lion King", "Barry Jenkins",
-                                "Aaron Pierre, Kelvin Harrison Jr., Mads Mikkelsen",
-                                "Câu chuyện về nguồn gốc của Mufasa, từ một con sư tử mồ côi trở thành vị vua huyền thoại của Pride Lands.",
-                                118, "https://image.tmdb.org/t/p/w500/lurEK87kukWNaHd0zYnsi3yzJrs.jpg",
-                                "https://www.youtube.com/watch?v=o17MF9vnabg",
-                                LocalDate.of(2025, 12, 20), Movie.MovieStatus.NOW_SHOWING, 7.5));
-
-                movies.add(createMovie("Sonic the Hedgehog 3", "Jeff Fowler",
-                                "Ben Schwartz, Jim Carrey, Keanu Reeves, Idris Elba",
-                                "Sonic, Knuckles và Tails phải đối mặt với kẻ thù mới Shadow the Hedgehog để cứu thế giới.",
-                                109, "https://image.tmdb.org/t/p/w500/d8Ryb8AunYAuycVKDp5HpdWPKgC.jpg",
-                                "https://www.youtube.com/watch?v=qSu6i2iFMO0",
-                                LocalDate.of(2025, 12, 20), Movie.MovieStatus.NOW_SHOWING, 7.8));
-
-                movies.add(createMovie("Nosferatu", "Robert Eggers",
-                                "Bill Skarsgård, Lily-Rose Depp, Nicholas Hoult, Willem Dafoe",
-                                "Phiên bản làm lại của bộ phim kinh điển năm 1922 về ma cà rồng Count Orlok ám ảnh một phụ nữ trẻ.",
-                                132, "https://image.tmdb.org/t/p/w500/5qGIxdEO841C0tdDjYsHFAi7qCr.jpg",
-                                "https://www.youtube.com/watch?v=nulvWqYUM8k",
-                                LocalDate.of(2025, 12, 25), Movie.MovieStatus.NOW_SHOWING, 8.1));
-
-                movies.add(createMovie("Kraven the Hunter", "J.C. Chandor",
-                                "Aaron Taylor-Johnson, Ariana DeBose, Russell Crowe",
-                                "Câu chuyện nguồn gốc của một trong những kẻ thù đáng sợ nhất của Spider-Man.",
-                                127, "https://image.tmdb.org/t/p/w500/i47IUSsN126K11JUzqQIOi1Mg1M.jpg",
-                                "https://www.youtube.com/watch?v=gnDmJPJnD00",
-                                LocalDate.of(2025, 12, 13), Movie.MovieStatus.NOW_SHOWING, 6.2));
-
-                movies.add(createMovie("A Complete Unknown", "James Mangold",
-                                "Timothée Chalamet, Edward Norton, Elle Fanning",
-                                "Câu chuyện về Bob Dylan từ ca sĩ folk vô danh trở thành huyền thoại âm nhạc.",
-                                140, "https://image.tmdb.org/t/p/w500/lntrXpIi9PfhBJejKo5m7cjVDbA.jpg",
-                                "https://www.youtube.com/watch?v=QaLPdFHTCfo",
-                                LocalDate.of(2025, 12, 25), Movie.MovieStatus.NOW_SHOWING, 7.8));
-
-                // ============= PHIM SẮP CHIẾU - COMING_SOON =============
-                movies.add(createMovie("Captain America: Brave New World", "Julius Onah",
-                                "Anthony Mackie, Harrison Ford, Tim Blake Nelson",
-                                "Sam Wilson tiếp tục di sản của Captain America trong thế giới mới đầy biến động chính trị.",
-                                120, "https://image.tmdb.org/t/p/w500/pzIddUEMWhiHYxavvgX5nLrjuqT.jpg",
-                                "https://www.youtube.com/watch?v=example3",
-                                LocalDate.of(2026, 2, 14), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("Snow White", "Marc Webb", "Rachel Zegler, Gal Gadot, Andrew Burnap",
-                                "Phiên bản live-action của câu chuyện cổ tích kinh điển Bạch Tuyết và bảy chú lùn.",
-                                110, "https://image.tmdb.org/t/p/w500/sSh8JVGxfHSIqerbnUrUZrVsCC.jpg",
-                                "https://www.youtube.com/watch?v=example4",
-                                LocalDate.of(2026, 3, 21), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("Avatar 3", "James Cameron",
-                                "Sam Worthington, Zoe Saldana, Sigourney Weaver, Kate Winslet",
-                                "Tiếp tục câu chuyện của Jake Sully và gia đình trên Pandora, khám phá vùng đất mới.",
-                                180, "https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg",
-                                "https://www.youtube.com/watch?v=example5",
-                                LocalDate.of(2026, 12, 19), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("Jurassic World Rebirth", "Gareth Edwards",
-                                "Scarlett Johansson, Jonathan Bailey, Mahershala Ali",
-                                "Chương mới trong loạt phim khủng long huyền thoại với những sinh vật kỷ Jura đã tiến hóa.",
-                                140, "https://image.tmdb.org/t/p/w500/hkxxMIGaiCTmrEArK7J56JTKUlB.jpg",
-                                "https://www.youtube.com/watch?v=example6",
-                                LocalDate.of(2026, 7, 2), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("The Fantastic Four: First Steps", "Matt Shakman",
-                                "Pedro Pascal, Vanessa Kirby, Joseph Quinn, Ebon Moss-Bachrach",
-                                "Gia đình siêu anh hùng đầu tiên của Marvel giới thiệu với MCU.",
-                                150, "https://image.tmdb.org/t/p/w500/yFHHfHcUgGAxziP1C3lLt0q2T4s.jpg",
-                                "https://www.youtube.com/watch?v=example7",
-                                LocalDate.of(2026, 7, 25), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("Mission: Impossible 8", "Christopher McQuarrie",
-                                "Tom Cruise, Hayley Atwell, Simon Pegg, Ving Rhames",
-                                "Ethan Hunt đối mặt với thử thách lớn nhất trong sự nghiệp IMF.",
-                                160, "https://image.tmdb.org/t/p/w500/NNxYkU70HPurnNCSiCjYAmacwm.jpg",
-                                "https://www.youtube.com/watch?v=example8",
-                                LocalDate.of(2026, 5, 23), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("Zootopia 2", "Byron Howard, Jared Bush",
-                                "Ginnifer Goodwin, Jason Bateman, Idris Elba",
-                                "Judy Hopps và Nick Wilde tiếp tục phiêu lưu mới trong thành phố động vật.",
-                                100, "https://image.tmdb.org/t/p/w500/sM33SANp9z6rXW8Itn7NnG1GOEs.jpg",
-                                "https://www.youtube.com/watch?v=example9",
-                                LocalDate.of(2026, 11, 26), Movie.MovieStatus.COMING_SOON, 0.0));
-
-                movies.add(createMovie("Toy Story 5", "Andrew Stanton", "Tom Hanks, Tim Allen, Annie Potts",
-                                "Woody, Buzz và nhóm đồ chơi trở lại với cuộc phiêu lưu mới.",
-                                100, "https://image.tmdb.org/t/p/w500/w9kR8qbmQ01HwnvK4alvnQ2ca0L.jpg",
-                                "https://www.youtube.com/watch?v=example10",
-                                LocalDate.of(2026, 6, 19), Movie.MovieStatus.COMING_SOON, 0.0));
 
                 movieRepository.saveAll(movies);
                 log.info("Created {} sample movies", movies.size());
@@ -2360,57 +2271,74 @@ public class SampleDataInitializer implements CommandLineRunner {
                 log.info("Created {} promotions", promotions.size());
         }
 
-
         private void initSampleUsers() {
                 log.info("Initializing sample users...");
                 List<User> users = new ArrayList<>();
 
                 String[][] userData = {
-                        // email, password, fullName, phone, gender, dateOfBirth, address, membershipLevel
-                        {"nguyen.vanlong@gmail.com", "User123!", "Nguyễn Văn Long", "0901234001", "MALE", "1992-05-15", "123 Lê Lợi, Q1, TP.HCM", "VIP"},
-                        {"tran.thihoa@gmail.com", "User123!", "Trần Thị Hoa", "0901234002", "FEMALE", "1995-08-20", "45 Nguyễn Huệ, Q1, TP.HCM", "NORMAL"},
-                        {"le.vanminh@gmail.com", "User123!", "Lê Văn Minh", "0901234003", "MALE", "1990-03-10", "78 Điện Biên Phủ, Q3, TP.HCM", "PLATINUM"},
-                        {"pham.thilan@gmail.com", "User123!", "Phạm Thị Lan", "0901234004", "FEMALE", "1998-11-25", "12 Hoàng Diệu, Đà Nẵng", "NORMAL"},
-                        {"hoang.vanbinh@gmail.com", "User123!", "Hoàng Văn Bình", "0901234005", "MALE", "1988-07-04", "56 Trần Phú, Hà Nội", "VIP"},
-                        {"do.thimylinh@gmail.com", "User123!", "Đỗ Thị Mỹ Linh", "0901234006", "FEMALE", "2000-01-30", "90 Lý Thường Kiệt, Q10, TP.HCM", "NORMAL"},
-                        {"vu.thanhtung@gmail.com", "User123!", "Vũ Thành Tùng", "0901234007", "MALE", "1994-09-18", "34 Pasteur, Q3, TP.HCM", "NORMAL"},
-                        {"bui.thithanhthuy@gmail.com", "User123!", "Bùi Thị Thanh Thủy", "0901234008", "FEMALE", "1996-04-12", "67 Nguyễn Đình Chiểu, Q3, TP.HCM", "VIP"},
-                        {"dang.quochuy@gmail.com", "User123!", "Đặng Quốc Huy", "0901234009", "MALE", "1993-12-08", "23 Nam Kỳ Khởi Nghĩa, Q1, TP.HCM", "NORMAL"},
-                        {"nguyen.thikimanh@gmail.com", "User123!", "Nguyễn Thị Kim Anh", "0901234010", "FEMALE", "1999-06-22", "89 Cách Mạng Tháng 8, Q10, TP.HCM", "NORMAL"},
-                        {"phan.vanquang@gmail.com", "User123!", "Phan Văn Quang", "0901234011", "MALE", "1987-02-14", "15 Lý Tự Trọng, Q1, TP.HCM", "PLATINUM"},
-                        {"truong.thidiem@gmail.com", "User123!", "Trương Thị Diễm", "0901234012", "FEMALE", "1997-10-05", "44 Võ Thị Sáu, Q3, TP.HCM", "NORMAL"},
-                        {"mai.ductrung@gmail.com", "User123!", "Mai Đức Trung", "0901234013", "MALE", "1991-08-28", "101 Đinh Tiên Hoàng, Q1, TP.HCM", "VIP"},
-                        {"ly.thithuha@gmail.com", "User123!", "Lý Thị Thu Hà", "0901234014", "FEMALE", "2001-03-17", "77 Trần Hưng Đạo, Q5, TP.HCM", "NORMAL"},
-                        {"cao.vanphuc@gmail.com", "User123!", "Cao Văn Phúc", "0901234015", "MALE", "1985-11-09", "33 Hoàng Sa, Q3, TP.HCM", "NORMAL"},
+                                // email, password, fullName, phone, gender, dateOfBirth, address,
+                                // membershipLevel
+                                { "nguyen.vanlong@gmail.com", "User123!", "Nguyễn Văn Long", "0901234001", "MALE",
+                                                "1992-05-15", "123 Lê Lợi, Q1, TP.HCM", "VIP" },
+                                { "tran.thihoa@gmail.com", "User123!", "Trần Thị Hoa", "0901234002", "FEMALE",
+                                                "1995-08-20", "45 Nguyễn Huệ, Q1, TP.HCM", "NORMAL" },
+                                { "le.vanminh@gmail.com", "User123!", "Lê Văn Minh", "0901234003", "MALE", "1990-03-10",
+                                                "78 Điện Biên Phủ, Q3, TP.HCM", "PLATINUM" },
+                                { "pham.thilan@gmail.com", "User123!", "Phạm Thị Lan", "0901234004", "FEMALE",
+                                                "1998-11-25", "12 Hoàng Diệu, Đà Nẵng", "NORMAL" },
+                                { "hoang.vanbinh@gmail.com", "User123!", "Hoàng Văn Bình", "0901234005", "MALE",
+                                                "1988-07-04", "56 Trần Phú, Hà Nội", "VIP" },
+                                { "do.thimylinh@gmail.com", "User123!", "Đỗ Thị Mỹ Linh", "0901234006", "FEMALE",
+                                                "2000-01-30", "90 Lý Thường Kiệt, Q10, TP.HCM", "NORMAL" },
+                                { "vu.thanhtung@gmail.com", "User123!", "Vũ Thành Tùng", "0901234007", "MALE",
+                                                "1994-09-18", "34 Pasteur, Q3, TP.HCM", "NORMAL" },
+                                { "bui.thithanhthuy@gmail.com", "User123!", "Bùi Thị Thanh Thủy", "0901234008",
+                                                "FEMALE", "1996-04-12", "67 Nguyễn Đình Chiểu, Q3, TP.HCM", "VIP" },
+                                { "dang.quochuy@gmail.com", "User123!", "Đặng Quốc Huy", "0901234009", "MALE",
+                                                "1993-12-08", "23 Nam Kỳ Khởi Nghĩa, Q1, TP.HCM", "NORMAL" },
+                                { "nguyen.thikimanh@gmail.com", "User123!", "Nguyễn Thị Kim Anh", "0901234010",
+                                                "FEMALE", "1999-06-22", "89 Cách Mạng Tháng 8, Q10, TP.HCM", "NORMAL" },
+                                { "phan.vanquang@gmail.com", "User123!", "Phan Văn Quang", "0901234011", "MALE",
+                                                "1987-02-14", "15 Lý Tự Trọng, Q1, TP.HCM", "PLATINUM" },
+                                { "truong.thidiem@gmail.com", "User123!", "Trương Thị Diễm", "0901234012", "FEMALE",
+                                                "1997-10-05", "44 Võ Thị Sáu, Q3, TP.HCM", "NORMAL" },
+                                { "mai.ductrung@gmail.com", "User123!", "Mai Đức Trung", "0901234013", "MALE",
+                                                "1991-08-28", "101 Đinh Tiên Hoàng, Q1, TP.HCM", "VIP" },
+                                { "ly.thithuha@gmail.com", "User123!", "Lý Thị Thu Hà", "0901234014", "FEMALE",
+                                                "2001-03-17", "77 Trần Hưng Đạo, Q5, TP.HCM", "NORMAL" },
+                                { "cao.vanphuc@gmail.com", "User123!", "Cao Văn Phúc", "0901234015", "MALE",
+                                                "1985-11-09", "33 Hoàng Sa, Q3, TP.HCM", "NORMAL" },
                 };
 
-                String[] spendingAmounts = {"5200000", "850000", "12500000", "320000", "7800000",
-                        "450000", "680000", "4300000", "920000", "210000",
-                        "15000000", "560000", "6100000", "380000", "740000"};
+                String[] spendingAmounts = { "5200000", "850000", "12500000", "320000", "7800000",
+                                "450000", "680000", "4300000", "920000", "210000",
+                                "15000000", "560000", "6100000", "380000", "740000" };
 
                 for (int i = 0; i < userData.length; i++) {
                         String[] u = userData[i];
-                        if (userRepository.existsByEmail(u[0])) continue;
+                        if (userRepository.existsByEmail(u[0]))
+                                continue;
 
                         User.MembershipLevel level = User.MembershipLevel.valueOf(u[7]);
                         BigDecimal spending = new BigDecimal(spendingAmounts[i]);
-                        int points = spending.divide(new BigDecimal("10000"), 0, java.math.RoundingMode.DOWN).intValue() * 10;
+                        int points = spending.divide(new BigDecimal("10000"), 0, java.math.RoundingMode.DOWN).intValue()
+                                        * 10;
 
                         users.add(User.builder()
-                                .email(u[0])
-                                .password(passwordEncoder.encode(u[1]))
-                                .fullName(u[2])
-                                .phone(u[3])
-                                .gender(User.Gender.valueOf(u[4]))
-                                .dateOfBirth(LocalDate.parse(u[5]))
-                                .address(u[6])
-                                .role(User.Role.USER)
-                                .active(true)
-                                .membershipLevel(level)
-                                .totalSpending(spending)
-                                .currentPoints(points)
-                                .totalPointsEarned(points)
-                                .build());
+                                        .email(u[0])
+                                        .password(passwordEncoder.encode(u[1]))
+                                        .fullName(u[2])
+                                        .phone(u[3])
+                                        .gender(User.Gender.valueOf(u[4]))
+                                        .dateOfBirth(LocalDate.parse(u[5]))
+                                        .address(u[6])
+                                        .role(User.Role.USER)
+                                        .active(true)
+                                        .membershipLevel(level)
+                                        .totalSpending(spending)
+                                        .currentPoints(points)
+                                        .totalPointsEarned(points)
+                                        .build());
                 }
 
                 userRepository.saveAll(users);
@@ -2423,61 +2351,26 @@ public class SampleDataInitializer implements CommandLineRunner {
 
                 // Manager accounts
                 String[][] managerData = {
-                        {"manager@cinema.vn", "Manager123!", "Trần Quốc Bảo", "0911000001", "MALE", "1985-03-15"},
-                        {"manager2@cinema.vn", "Manager123!", "Lê Thị Hương", "0911000002", "FEMALE", "1988-07-22"},
+                                { "manager@cinema.vn", "Manager123!", "Trần Quốc Bảo", "0911000001", "MALE",
+                                                "1985-03-15" },
+                                { "manager2@cinema.vn", "Manager123!", "Lê Thị Hương", "0911000002", "FEMALE",
+                                                "1988-07-22" },
                 };
 
                 for (String[] m : managerData) {
-                        if (userRepository.existsByEmail(m[0])) continue;
+                        if (userRepository.existsByEmail(m[0]))
+                                continue;
                         staffUsers.add(User.builder()
-                                .email(m[0]).password(passwordEncoder.encode(m[1])).fullName(m[2])
-                                .phone(m[3]).gender(User.Gender.valueOf(m[4]))
-                                .dateOfBirth(LocalDate.parse(m[5]))
-                                .role(User.Role.MANAGER).active(true)
-                                .membershipLevel(User.MembershipLevel.NORMAL)
-                                .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
-                                .build());
-                }
-
-                // Staff accounts
-                String[][] staffData = {
-                        {"staff1@cinema.vn", "Staff123!", "Nguyễn Văn Tâm", "0922000001", "MALE", "1997-05-10"},
-                        {"staff2@cinema.vn", "Staff123!", "Phạm Thị Ngọc", "0922000002", "FEMALE", "1999-11-08"},
-                        {"staff3@cinema.vn", "Staff123!", "Hoàng Đức Hậu", "0922000003", "MALE", "2000-01-20"},
-                };
-
-                for (String[] s : staffData) {
-                        if (userRepository.existsByEmail(s[0])) continue;
-                        staffUsers.add(User.builder()
-                                .email(s[0]).password(passwordEncoder.encode(s[1])).fullName(s[2])
-                                .phone(s[3]).gender(User.Gender.valueOf(s[4]))
-                                .dateOfBirth(LocalDate.parse(s[5]))
-                                .role(User.Role.STAFF).active(true)
-                                .membershipLevel(User.MembershipLevel.NORMAL)
-                                .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
-                                .build());
-                }
-
-                // Technician accounts
-                String[][] techData = {
-                        {"tech1@cinema.vn", "Tech123!", "Vũ Minh Đức", "0933000001", "MALE", "1995-09-14"},
-                        {"tech2@cinema.vn", "Tech123!", "Đặng Thị Mai", "0933000002", "FEMALE", "1998-04-25"},
-                };
-
-                for (String[] t : techData) {
-                        if (userRepository.existsByEmail(t[0])) continue;
-                        staffUsers.add(User.builder()
-                                .email(t[0]).password(passwordEncoder.encode(t[1])).fullName(t[2])
-                                .phone(t[3]).gender(User.Gender.valueOf(t[4]))
-                                .dateOfBirth(LocalDate.parse(t[5]))
-                                .role(User.Role.TECHNICIAN).active(true)
-                                .membershipLevel(User.MembershipLevel.NORMAL)
-                                .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
-                                .build());
+                                        .email(m[0]).password(passwordEncoder.encode(m[1])).fullName(m[2])
+                                        .phone(m[3]).gender(User.Gender.valueOf(m[4]))
+                                        .dateOfBirth(LocalDate.parse(m[5]))
+                                        .role(User.Role.MANAGER).active(true)
+                                        .membershipLevel(User.MembershipLevel.NORMAL)
+                                        .totalSpending(BigDecimal.ZERO).currentPoints(0).totalPointsEarned(0)
+                                        .build());
                 }
 
                 userRepository.saveAll(staffUsers);
-                log.info("Created {} staff users (managers={}, staff={}, technicians={})", 
-                        staffUsers.size(), 2, 3, 2);
+                log.info("Created {} manager users", staffUsers.size());
         }
 }

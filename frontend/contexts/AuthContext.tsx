@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return roles.includes(user.role);
   };
 
-  const ADMIN_ROLES = ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'];
+  const ADMIN_ROLES = ['ADMIN', 'MANAGER'];
   const isAdmin = !!user && ADMIN_ROLES.includes(user.role);
 
   return (

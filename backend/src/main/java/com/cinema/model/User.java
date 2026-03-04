@@ -41,27 +41,27 @@ public class User {
 
     @Column(length = 255)
     private String avatar;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private Gender gender;
-    
+
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "membership_level", nullable = false)
     @Builder.Default
     private MembershipLevel membershipLevel = MembershipLevel.NORMAL;
-    
+
     @Column(name = "total_spending", precision = 15, scale = 2)
     @Builder.Default
     private BigDecimal totalSpending = BigDecimal.ZERO;
-    
+
     @Column(name = "current_points")
     @Builder.Default
     private Integer currentPoints = 0;
-    
+
     @Column(name = "total_points_earned")
     @Builder.Default
     private Integer totalPointsEarned = 0;
@@ -86,27 +86,27 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Booking> bookings = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<PointHistory> pointHistories = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<UserVoucher> userVouchers = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<UserCoupon> userCoupons = new ArrayList<>();
 
     public enum Role {
-        USER, ADMIN, MANAGER, STAFF, TECHNICIAN
+        USER, ADMIN, MANAGER
     }
-    
+
     public enum Gender {
         MALE, FEMALE, OTHER
     }
-    
+
     public enum MembershipLevel {
         NORMAL, VIP, PLATINUM
     }

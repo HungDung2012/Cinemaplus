@@ -16,8 +16,6 @@ const DEFAULT_ACTION_COLOR = 'bg-zinc-50 text-zinc-700 border-zinc-200';
 const ROLE_BADGES: Record<string, string> = {
     ADMIN: 'bg-red-100 text-red-800',
     MANAGER: 'bg-amber-100 text-amber-800',
-    STAFF: 'bg-sky-100 text-sky-800',
-    TECHNICIAN: 'bg-violet-100 text-violet-800',
 };
 
 export default function AuditLogsPage() {
@@ -39,7 +37,7 @@ export default function AuditLogsPage() {
     useEffect(() => {
         auditLogService.getFilterOptions().then(res => {
             if (res) setFilterOptions(res);
-        }).catch(() => {});
+        }).catch(() => { });
     }, []);
 
     const fetchLogs = useCallback(async () => {
@@ -90,11 +88,10 @@ export default function AuditLogsPage() {
                 </div>
                 <button
                     onClick={() => setShowFilters(f => !f)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                        showFilters || hasActiveFilters
-                            ? 'bg-orange-50 border-orange-300 text-orange-700'
-                            : 'bg-white border-zinc-300 text-zinc-700 hover:bg-zinc-50'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${showFilters || hasActiveFilters
+                        ? 'bg-orange-50 border-orange-300 text-orange-700'
+                        : 'bg-white border-zinc-300 text-zinc-700 hover:bg-zinc-50'
+                        }`}
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -156,8 +153,6 @@ export default function AuditLogsPage() {
                                 <option value="">Tất cả</option>
                                 <option value="ADMIN">Admin</option>
                                 <option value="MANAGER">Manager</option>
-                                <option value="STAFF">Staff</option>
-                                <option value="TECHNICIAN">Technician</option>
                             </select>
                         </div>
                     </div>

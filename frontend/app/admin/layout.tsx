@@ -28,8 +28,6 @@ const P = {
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Quản trị viên',
   MANAGER: 'Quản lý',
-  STAFF: 'Nhân viên',
-  TECHNICIAN: 'Kỹ thuật viên',
 };
 
 interface MenuItem {
@@ -97,7 +95,7 @@ const MENU_SECTIONS: MenuSection[] = [
   },
 ];
 
-const ADMIN_ROLES = ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'];
+const ADMIN_ROLES = ['ADMIN', 'MANAGER'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -192,11 +190,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="mb-2">
             <Link
               href="/admin"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                pathname === '/admin'
-                  ? 'bg-red-600 text-white'
-                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === '/admin'
+                ? 'bg-red-600 text-white'
+                : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
               <span className="text-sm font-medium">Dashboard</span>
@@ -212,13 +209,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div key={section.key}>
                   <button
                     onClick={() => toggleSection(section.key)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                      hasActive && !isOpen
-                        ? 'bg-zinc-800 text-white'
-                        : isOpen
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${hasActive && !isOpen
+                      ? 'bg-zinc-800 text-white'
+                      : isOpen
                         ? 'text-white'
                         : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <span className="shrink-0">{section.icon}</span>
                     <span className="text-sm font-medium flex-1 text-left">{section.label}</span>
@@ -237,11 +233,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           <li key={item.href}>
                             <Link
                               href={item.href}
-                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
-                                isActive
-                                  ? 'bg-red-600 text-white'
-                                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-                              }`}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${isActive
+                                ? 'bg-red-600 text-white'
+                                : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                                }`}
                             >
                               {item.icon}
                               <span className="font-medium">{item.label}</span>

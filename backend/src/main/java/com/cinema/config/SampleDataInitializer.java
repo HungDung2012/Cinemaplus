@@ -43,7 +43,6 @@ public class SampleDataInitializer implements CommandLineRunner {
         private final BookingSeatRepository bookingSeatRepository;
         private final BookingFoodRepository bookingFoodRepository;
         private final PaymentRepository paymentRepository;
-        private final TicketPriceRepository ticketPriceRepository;
         private final PriceHeaderRepository priceHeaderRepository;
         private final PriceLineRepository priceLineRepository;
         private final SurchargeRepository surchargeRepository;
@@ -76,7 +75,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         couponRepository.deleteAll();
                         voucherRepository.deleteAll();
                         promotionRepository.deleteAll();
-                        ticketPriceRepository.deleteAll();
                         surchargeRepository.deleteAll();
                         priceLineRepository.deleteAll();
                         priceHeaderRepository.deleteAll();
@@ -834,23 +832,21 @@ public class SampleDataInitializer implements CommandLineRunner {
         private void createFullPriceList(PriceHeader header) {
                 List<PriceLine> lines = new ArrayList<>();
 
-                // Iterate all combinations
-                for (PriceLine.CustomerType customer : PriceLine.CustomerType.values()) {
-                        for (PriceLine.DayType day : PriceLine.DayType.values()) {
-                                for (PriceLine.TimeSlot slot : PriceLine.TimeSlot.values()) {
-                                        for (Room.RoomType room : Room.RoomType.values()) {
-                                                BigDecimal price = calculateBasePrice(customer, day, slot, room);
-                                                lines.add(createPriceLine(header, customer, day, slot, room, price));
-                                        }
+                // Iterate all combinations (DayType × TimeSlot × RoomType = 4×4×5 = 80 lines)
+                for (PriceLine.DayType day : PriceLine.DayType.values()) {
+                        for (PriceLine.TimeSlot slot : PriceLine.TimeSlot.values()) {
+                                for (Room.RoomType room : Room.RoomType.values()) {
+                                        BigDecimal price = calculateBasePrice(day, slot, room);
+                                        lines.add(createPriceLine(header, day, slot, room, price));
                                 }
                         }
                 }
                 priceLineRepository.saveAll(lines);
         }
 
-        private BigDecimal calculateBasePrice(PriceLine.CustomerType customer, PriceLine.DayType day,
+        private BigDecimal calculateBasePrice(PriceLine.DayType day,
                         PriceLine.TimeSlot slot, Room.RoomType room) {
-                // Base price (Adult, Weekday, Morning, Standard 2D)
+                // Base price (Weekday, Morning, Standard 2D)
                 BigDecimal base = new BigDecimal("60000");
 
                 // 1. Room Type Modifiers
@@ -866,9 +862,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         base = base.add(new BigDecimal("20000"));
                 else if (day == PriceLine.DayType.HOLIDAY)
                         base = base.add(new BigDecimal("30000"));
-                // Happy Day might be cheaper
-                else if (day == PriceLine.DayType.HAPPY_DAY)
-                        base = base.add(new BigDecimal("0")); // Keep base low
 
                 // 3. Time Slot Modifiers
                 if (slot == PriceLine.TimeSlot.DAY || slot == PriceLine.TimeSlot.EVENING) {
@@ -877,39 +870,14 @@ public class SampleDataInitializer implements CommandLineRunner {
                         base = base.add(new BigDecimal("10000")); // Late night slightly more than morning
                 }
 
-                // 4. Customer Type Modifiers (Discounts)
-                // Ensure price doesn't go below a minimum threshold (e.g. 45k)
-                BigDecimal discount = BigDecimal.ZERO;
-                switch (customer) {
-                        case STUDENT:
-                        case U22:
-                        case SENIOR:
-                                discount = new BigDecimal("15000");
-                                break;
-                        case MEMBER:
-                                discount = new BigDecimal("10000");
-                                break;
-                        case VIP_MEMBER:
-                                discount = new BigDecimal("20000");
-                                break;
-                        default:
-                                break;
-                }
-
-                BigDecimal finalPrice = base.subtract(discount);
-                if (finalPrice.compareTo(new BigDecimal("45000")) < 0) {
-                        finalPrice = new BigDecimal("45000"); // Minimum floor price
-                }
-
-                return finalPrice;
+                return base;
         }
 
-        private PriceLine createPriceLine(PriceHeader header, PriceLine.CustomerType customerType,
+        private PriceLine createPriceLine(PriceHeader header,
                         PriceLine.DayType dayType, PriceLine.TimeSlot timeSlot, Room.RoomType roomType,
                         BigDecimal price) {
                 return PriceLine.builder()
                                 .priceHeader(header)
-                                .customerType(customerType)
                                 .dayType(dayType)
                                 .timeSlot(timeSlot)
                                 .roomType(roomType)

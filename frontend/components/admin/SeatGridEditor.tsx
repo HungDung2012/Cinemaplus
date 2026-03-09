@@ -153,7 +153,7 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
         setGrid(createEmptyGrid(r, c));
     };
 
-    const handleCellClick = (r: number, c: number) => {
+    const  handleCellClick = (r: number, c: number) => {
         const rowLabel = String.fromCharCode(65 + r);
         setGrid(prev => prev.map((row, ri) =>
             ri === r
@@ -255,7 +255,7 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                 <div
                     className="grid gap-1 mx-auto w-fit"
                     style={{
-                        gridTemplateColumns: `repeat(${colCount}, minmax(40px, 1fr))`
+                        gridTemplateColumns: `repeat(${colCount}, minmax(20px, 1fr))`
                     }}
                 >
                     {grid.map((row, i) => (
@@ -264,9 +264,9 @@ export default function SeatGridEditor({ roomId, onSave }: SeatGridEditorProps) 
                                 key={`${i}-${j}`}
                                 onClick={() => handleCellClick(i, j)}
                                 className={`
-                  w-10 h-10 rounded flex items-center justify-center text-xs font-bold transition-all
-                  ${cell.type === 'NONE' ? 'opacity-0 pointer-events-none' : 'shadow-sm border border-gray-200'}
-                `}
+                                    w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all
+                                    ${cell.type === 'NONE' ? 'opacity-0 pointer-events-none' : 'shadow-sm border border-gray-200'}
+                                `}
                                 style={{
                                     backgroundColor: cell.type !== 'NONE' ? (cell.type === 'STANDARD' || cell.type === 'VIP' ? '#fff' : getSeatColor(cell.type)) : 'transparent',
                                     color: cell.type !== 'NONE' ? (cell.type === 'COUPLE' ? '#fff' : '#1f2937') : 'inherit',

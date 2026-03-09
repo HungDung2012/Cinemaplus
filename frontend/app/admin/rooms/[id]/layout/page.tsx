@@ -29,7 +29,7 @@ export default function RoomLayoutPage() {
     };
 
     const handleSaveLayout = async (layoutJson: string) => {
-        console.log(roomId, { ...room, seatLayout: layoutJson });
+    
         try {
             await adminRoomService.update(roomId, { ...room, seatLayout: layoutJson });
             alert('Cập nhật sơ đồ ghế thành công!');

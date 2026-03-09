@@ -134,6 +134,8 @@ export interface Showtime {
   roomId: number;
   roomName: string;
   roomType: string;
+  roomRowsCount?: number;
+  roomColumnsCount?: number;
   theaterId: number;
   theaterName: string;
   availableSeats: number;
@@ -409,7 +411,6 @@ export interface PromotionTypeOption {
 }
 
 // Pricing types (Rate Card System)
-export type CustomerType = 'ADULT' | 'STUDENT' | 'MEMBER';
 export type DayType = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY';
 export type TimeSlot = 'MORNING' | 'DAY' | 'EVENING' | 'LATE';
 
@@ -425,7 +426,6 @@ export interface PriceHeader {
 export interface PriceLine {
   id?: number;
   priceHeaderId?: number;
-  customerType: CustomerType;
   dayType: DayType;
   timeSlot: TimeSlot;
   roomType: RoomType;

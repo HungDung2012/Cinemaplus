@@ -209,7 +209,6 @@ function BookingContent() {
       setShowtime(showtimeData);
 
       const seatsData = await seatService.getSeatsByShowtime(showtimeId, showtimeData.roomId);
-      console.log(showtimeData.roomId, showtimeId);
       setSeats(seatsData);
     } catch (err) {
       setError('Không thể tải thông tin suất chiếu');
@@ -585,6 +584,8 @@ function BookingContent() {
                     seats={seats}
                     basePrice={showtime.basePrice}
                     onSelectionChange={handleSeatSelection}
+                    roomRowsCount={showtime.roomRowsCount}
+                    roomColumnsCount={showtime.roomColumnsCount}
                   />
                 </div>
 

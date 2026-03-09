@@ -9,9 +9,11 @@ interface SeatMapProps {
   basePrice: number;
   onSelectionChange: (selectedSeats: Seat[]) => void;
   maxSeats?: number;
+  roomRowsCount?: number;
+  roomColumnsCount?: number;
 }
 
-export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats = 8 }: SeatMapProps) {
+export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats = 8, roomRowsCount, roomColumnsCount }: SeatMapProps) {
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
 
   // Only render active seats (inactive = position removed from room layout)
@@ -27,31 +29,71 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
   }, {} as Record<string, Seat[]>);
 
   // Sort rows and seats
-  const sortedRows = Object.keys(seatsByRow).sort();
-  sortedRows.forEach((row) => {
+  const existingRows = Object.keys(seatsByRow).sort();
+  existingRows.forEach((row) => {
     seatsByRow[row].sort((a, b) => a.seatNumber - b.seatNumber);
   });
 
-  // Compute the full column range across all rows so gaps are shown as empty cells
-  const allSeatNumbers = activeSeats.map((s) => s.seatNumber);
-  const minCol = allSeatNumbers.length ? Math.min(...allSeatNumbers) : 1;
-  const maxCol = allSeatNumbers.length ? Math.max(...allSeatNumbers) : 1;
-  const allColumns = Array.from({ length: maxCol - minCol + 1 }, (_, i) => i + minCol);
+  // Build full row/column grid from room dimensions (source of truth from backend Room entity).
+  // This ensures gap rows (e.g. row K entirely removed in admin editor) still render as blank space.
+  const sortedRows: string[] = [];
+  if (roomRowsCount) {
+    for (let i = 0; i < roomRowsCount; i++) {
+      sortedRows.push(String.fromCharCode(65 + i));
+    }
+  } else {
+    // Fallback: derive from seat data only
+    sortedRows.push(...existingRows);
+  }
+
+  const allColumns: number[] = [];
+  if (roomColumnsCount) {
+    for (let i = 1; i <= roomColumnsCount; i++) {
+      allColumns.push(i);
+    }
+  } else {
+    // Fallback: derive from seat data
+    const allSeatNumbers = activeSeats.map((s) => s.seatNumber);
+    const minCol = allSeatNumbers.length ? Math.min(...allSeatNumbers) : 1;
+    const maxCol = allSeatNumbers.length ? Math.max(...allSeatNumbers) : 1;
+    for (let i = minCol; i <= maxCol; i++) {
+      allColumns.push(i);
+    }
+  }
+
+  // Find the partner of a couple seat (paired by adjacent numbers: 1+2, 3+4, …)
+  const getCouplePartner = (seat: Seat): Seat | undefined => {
+    const code = seat.seatTypeCode || seat.seatType || 'STANDARD';
+    if (code !== 'COUPLE') return undefined;
+    const partnerNum = seat.seatNumber % 2 === 1 ? seat.seatNumber + 1 : seat.seatNumber - 1;
+    return activeSeats.find(
+      (s) => s.rowName === seat.rowName && s.seatNumber === partnerNum && (s.seatTypeCode || s.seatType) === 'COUPLE'
+    );
+  };
 
   const handleSeatClick = (seat: Seat) => {
     if (seat.isBooked || !seat.active) return;
 
+    const partner = getCouplePartner(seat);
+    // If partner is booked, block selection of this half too
+    if (partner && partner.isBooked) return;
+
+    const seatsToToggle = partner ? [seat, partner] : [seat];
     const isSelected = selectedSeats.find((s) => s.id === seat.id);
     let newSelection: Seat[];
 
     if (isSelected) {
-      newSelection = selectedSeats.filter((s) => s.id !== seat.id);
+      const idsToRemove = new Set(seatsToToggle.map((s) => s.id));
+      newSelection = selectedSeats.filter((s) => !idsToRemove.has(s.id));
     } else {
-      if (selectedSeats.length >= maxSeats) {
+      const newCount = seatsToToggle.filter((s) => !selectedSeats.find((sel) => sel.id === s.id)).length;
+      if (selectedSeats.length + newCount > maxSeats) {
         alert(`Bạn chỉ có thể chọn tối đa ${maxSeats} ghế`);
         return;
       }
-      newSelection = [...selectedSeats, seat];
+      // Add seats that aren't already selected
+      const existingIds = new Set(selectedSeats.map((s) => s.id));
+      newSelection = [...selectedSeats, ...seatsToToggle.filter((s) => !existingIds.has(s.id))];
     }
 
     setSelectedSeats(newSelection);
@@ -110,7 +152,12 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
       <div className="overflow-x-auto">
         <div className="inline-block min-w-full">
           {sortedRows.map((row) => {
-            const seatMap = new Map(seatsByRow[row].map((s) => [s.seatNumber, s]));
+            const rowSeats = seatsByRow[row];
+            if (!rowSeats) {
+              // Empty row (e.g. row K removed in admin editor) — render as a blank gap
+              return <div key={row} className="h-6 sm:h-7 mb-1" />;
+            }
+            const seatMap = new Map(rowSeats.map((s) => [s.seatNumber, s]));
             return (
               <div key={row} className="flex items-center justify-center gap-1 mb-1">
                 <div className="flex gap-[2px]">

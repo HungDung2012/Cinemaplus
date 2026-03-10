@@ -117,9 +117,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         initVouchers();
                 }
                 // Init promotions
-                if (promotionRepository.count() == 0) {
-                        initPromotions();
-                }
+                promotionRepository.deleteAll(); // Force recreate
+                initPromotions();
                 if (movieRepository.count() == 0) {
                         initSampleMovies();
                 }
@@ -2214,6 +2213,42 @@ public class SampleDataInitializer implements CommandLineRunner {
                                 .type(Promotion.PromotionType.MOVIE)
                                 .isFeatured(false)
                                 .sortOrder(12)
+                                .build());
+
+                // Promotion 13 - Học sinh / Sinh viên
+                promotions.add(Promotion.builder()
+                                .title("HỌC SINH SINH VIÊN - CHỈ 55K")
+                                .shortDescription("Ưu đãi đặc quyền học sinh sinh viên")
+                                .content("<h2>Đồng giá 55.000đ cho HS/SV</h2>" +
+                                                "<p>Ưu đãi dành riêng cho học sinh, sinh viên khi xem phim tại các rạp CinemaPlus</p>"
+                                                +
+                                                "<h3>Điều kiện:</h3>" +
+                                                "<ul><li>Xuất trình thẻ Học sinh/Sinh viên (còn hạn bản gốc hoặc ảnh chụp)</li><li>Áp dụng cho tất cả các suất chiếu 2D</li></ul>")
+                                .imageUrl("https://picsum.photos/seed/student/980/448")
+                                .thumbnailUrl("https://picsum.photos/seed/student/400/400")
+                                .startDate(LocalDate.of(2026, 1, 1))
+                                .endDate(LocalDate.of(2026, 12, 31))
+                                .status(Promotion.PromotionStatus.ACTIVE)
+                                .type(Promotion.PromotionType.TICKET)
+                                .isFeatured(true)
+                                .sortOrder(13)
+                                .build());
+
+                // Promotion 14 - Combo siêu tiết kiệm
+                promotions.add(Promotion.builder()
+                                .title("GIẢM TỚI 30% KHI MUA COMBO ONLINE")
+                                .shortDescription("Mua vé online kèm bắp nước siêu hời")
+                                .content("<h2>Ưu đãi Combo F&B</h2>" +
+                                                "<p>Tiết kiệm lên đến 30% khi mua online các loại bắp nước</p>" +
+                                                "<ul><li>Combo 1: 1 Bắp + 1 Nước ngọt - Chỉ 59k</li><li>Combo 2: 1 Bắp + 2 Nước ngọt - Chỉ 79k</li><li>Không giới hạn số lượt mua!</li></ul>")
+                                .imageUrl("https://picsum.photos/seed/combo/980/448")
+                                .thumbnailUrl("https://picsum.photos/seed/combo/400/400")
+                                .startDate(LocalDate.of(2026, 1, 1))
+                                .endDate(LocalDate.of(2026, 6, 30))
+                                .status(Promotion.PromotionStatus.ACTIVE)
+                                .type(Promotion.PromotionType.FOOD)
+                                .isFeatured(false)
+                                .sortOrder(14)
                                 .build());
 
                 promotionRepository.saveAll(promotions);

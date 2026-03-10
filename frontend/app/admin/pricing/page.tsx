@@ -21,13 +21,6 @@ const roomTypeLabels: Record<RoomType, string> = {
     'IMAX_3D': 'IMAX 3D',
     'VIP_4DX': 'VIP 4DX',
 };
-const roomTypeBadgeColors: Record<RoomType, string> = {
-    'STANDARD_2D': 'bg-gray-100 text-gray-700',
-    'STANDARD_3D': 'bg-blue-100 text-blue-700',
-    'IMAX': 'bg-purple-100 text-purple-700',
-    'IMAX_3D': 'bg-indigo-100 text-indigo-700',
-    'VIP_4DX': 'bg-amber-100 text-amber-700',
-};
 const timeSlotLabels: Record<TimeSlot, string> = {
     'MORNING': 'Sáng (<10h)',
     'DAY': 'Ngày (10-17h)',
@@ -344,7 +337,7 @@ export default function PricingPage() {
                                                 {timeSlots.map(slot => (
                                                     <th key={slot} className="text-right px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                                         {timeSlotLabels[slot]}
-                                                        
+
                                                     </th>
                                                 ))}
                                             </tr>
@@ -353,7 +346,7 @@ export default function PricingPage() {
                                             {roomTypes.map((rt, idx) => (
                                                 <tr key={rt} className="hover:bg-gray-50/30 transition-colors">
                                                     <td className="pl-6 pr-4 py-5">
-                                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-black/5 ${roomTypeBadgeColors[rt]}`}>
+                                                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold`}>
                                                             {roomTypeLabels[rt]}
                                                         </span>
                                                     </td>
@@ -372,13 +365,13 @@ export default function PricingPage() {
                                                                                     ? 'border-amber-400 bg-amber-50 text-amber-900 shadow-sm'
                                                                                     : 'border-gray-100 bg-transparent text-gray-900 hover:border-gray-200 focus:border-red-400 focus:bg-white focus:shadow-sm focus:ring-4 focus:ring-red-50'
                                                                                 }`}
-                                                                            value={price}
+                                                                            value={price === 0 ? '' : price}
                                                                             onChange={(e) => handlePriceCellChange(activeDayType, slot, rt, Number(e.target.value))}
                                                                             step="1000"
                                                                         />
                                                                     </div>
                                                                     {price > 0 && (
-                                                                        <span className={`absolute -bottom-[16px] right-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider transition-opacity ${modified ? 'opacity-100 text-amber-600' : 'opacity-0 group-focus-within/cell:opacity-100 group-hover/cell:opacity-100'}`}>
+                                                                        <span className={`absolute -bottom-[16px] right-2 text-[10px] font-bold uppercase tracking-wider transition-opacity opacity-100 ${modified ? 'text-amber-600' : 'text-gray-400'}`}>
                                                                             {formatVND(price)}
                                                                         </span>
                                                                     )}

@@ -25,10 +25,6 @@ public class PriceLine {
     private PriceHeader priceHeader;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "customer_type")
-    private CustomerType customerType; // ADULT, STUDENT, etc.
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "day_type")
     private DayType dayType; // WEEKDAY, WEEKEND, HOLIDAY, SPECIAL
 
@@ -42,10 +38,6 @@ public class PriceLine {
 
     @Column(nullable = false)
     private BigDecimal price;
-
-    public enum CustomerType {
-        ADULT, STUDENT, U22, SENIOR, MEMBER, VIP_MEMBER
-    }
 
     public enum DayType {
         WEEKDAY, // Mon-Thu

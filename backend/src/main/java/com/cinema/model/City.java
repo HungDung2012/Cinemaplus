@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * Entity đại diện cho Thành phố.
- * Cấu trúc: Region (Miền) -> City (Thành phố) -> Theater (Rạp chiếu phim)
+ * Cấu trúc: City (có regionType) -> Theater (Rạp chiếu phim)
  */
 @Entity
 @Table(name = "cities")
@@ -23,6 +23,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class City {
+    public enum RegionType {
+        NORTH, CENTRAL, SOUTH
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,9 +52,9 @@ public class City {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id", nullable = false)
-    private Region region;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "region_type", nullable = false)
+    private RegionType regionType;
 
     @OneToMany(mappedBy = "city", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default

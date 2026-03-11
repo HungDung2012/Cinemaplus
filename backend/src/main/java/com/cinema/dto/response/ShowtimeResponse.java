@@ -33,6 +33,8 @@ public class ShowtimeResponse {
     private Long roomId;
     private String roomName;
     private String roomType;
+    private Integer roomRowsCount;
+    private Integer roomColumnsCount;
 
     // Theater info
     private Long theaterId;

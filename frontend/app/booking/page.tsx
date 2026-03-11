@@ -496,32 +496,32 @@ function BookingContent() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* ===== FIXED TIMER BAR - Below main header ===== */}
+      {/* ===== FIXED TIMER BAR - Just below main header ===== */}
       {timerStarted && step > 1 && step < 4 && (
         <div className={`
-          fixed top-16 left-0 right-0 z-40 px-4 py-2 flex items-center justify-center gap-3 text-white transition-colors shadow-lg
+          fixed top-[52px] md:top-[56px] left-0 right-0 z-40 px-4 py-2 flex items-center justify-center gap-3 text-white transition-colors shadow-md border-b border-black/10
           ${getTimerUrgency() === 'critical'
             ? 'bg-red-600 animate-pulse'
             : getTimerUrgency() === 'warning'
               ? 'bg-amber-500'
               : 'bg-zinc-800'}
         `}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="font-mono text-xl font-bold tracking-wider">
+          <span className="font-mono text-lg font-bold tracking-wider leading-none mt-0.5">
             {formatTime(timeLeft)}
           </span>
-          <span className="text-sm opacity-90">
+          <span className="text-xs uppercase font-medium tracking-wide opacity-90 hidden sm:inline ml-1">
             {getTimerUrgency() === 'critical'
-              ? 'Sắp hết giờ!'
-              : 'thời gian giữ chỗ'}
+              ? 'Sắp hết giờ'
+              : 'Thời gian giữ chỗ'}
           </span>
         </div>
       )}
 
       {/* ===== STICKY HEADER ===== */}
-      <header className={`sticky z-10 bg-white border-b border-zinc-200 shadow-sm ${timerStarted && step > 1 && step < 4 ? 'top-[104px]' : 'top-0'}`}>
+      <header className={`sticky z-50 bg-white border-b border-zinc-200 shadow-sm top-0`}>
         <div className="max-w-7xl mx-auto">
           {/* Navigation Header */}
           <div className="px-4 py-3">
@@ -584,6 +584,8 @@ function BookingContent() {
                     seats={seats}
                     basePrice={showtime.basePrice}
                     onSelectionChange={handleSeatSelection}
+                    roomRowsCount={showtime.roomRowsCount}
+                    roomColumnsCount={showtime.roomColumnsCount}
                   />
                 </div>
 

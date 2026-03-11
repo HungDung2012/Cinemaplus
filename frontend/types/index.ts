@@ -61,9 +61,7 @@ export interface City {
   code: string;
   provinceCode?: string;
   active: boolean;
-  regionId: number;
-  regionName: string;
-  regionCode: string;
+  regionType: 'NORTH' | 'CENTRAL' | 'SOUTH';
   theaterCount: number;
 }
 
@@ -136,6 +134,8 @@ export interface Showtime {
   roomId: number;
   roomName: string;
   roomType: string;
+  roomRowsCount?: number;
+  roomColumnsCount?: number;
   theaterId: number;
   theaterName: string;
   availableSeats: number;
@@ -291,13 +291,7 @@ export interface Review {
   isSpoiler: boolean;
 }
 
-// Region types
-export interface Region {
-  id: number;
-  name: string;
-  code: string;
-  theaterCount: number;
-}
+
 
 // Food types
 export type FoodCategory = 'POPCORN' | 'DRINK' | 'SNACK' | 'COMBO' | 'FAST_FOOD' | 'CANDY' | 'ICE_CREAM';
@@ -417,7 +411,6 @@ export interface PromotionTypeOption {
 }
 
 // Pricing types (Rate Card System)
-export type CustomerType = 'ADULT' | 'STUDENT' | 'MEMBER';
 export type DayType = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY';
 export type TimeSlot = 'MORNING' | 'DAY' | 'EVENING' | 'LATE';
 
@@ -433,7 +426,6 @@ export interface PriceHeader {
 export interface PriceLine {
   id?: number;
   priceHeaderId?: number;
-  customerType: CustomerType;
   dayType: DayType;
   timeSlot: TimeSlot;
   roomType: RoomType;

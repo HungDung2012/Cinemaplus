@@ -15,7 +15,6 @@ public class CityResponse {
     private String code;
     private String provinceCode;
     private Boolean active;
-    private Long regionId;
     private String regionName;
     private String regionCode;
     private Integer theaterCount;

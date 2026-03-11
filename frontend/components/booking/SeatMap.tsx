@@ -9,9 +9,11 @@ interface SeatMapProps {
   basePrice: number;
   onSelectionChange: (selectedSeats: Seat[]) => void;
   maxSeats?: number;
+  roomRowsCount?: number;
+  roomColumnsCount?: number;
 }
 
-export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats = 8 }: SeatMapProps) {
+export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats = 8, roomRowsCount, roomColumnsCount }: SeatMapProps) {
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
 
   // Only render active seats (inactive = position removed from room layout)
@@ -27,55 +29,110 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
   }, {} as Record<string, Seat[]>);
 
   // Sort rows and seats
-  const sortedRows = Object.keys(seatsByRow).sort();
-  sortedRows.forEach((row) => {
+  const existingRows = Object.keys(seatsByRow).sort();
+  existingRows.forEach((row) => {
     seatsByRow[row].sort((a, b) => a.seatNumber - b.seatNumber);
   });
 
-  // Compute the full column range across all rows so gaps are shown as empty cells
-  const allSeatNumbers = activeSeats.map((s) => s.seatNumber);
-  const minCol = allSeatNumbers.length ? Math.min(...allSeatNumbers) : 1;
-  const maxCol = allSeatNumbers.length ? Math.max(...allSeatNumbers) : 1;
-  const allColumns = Array.from({ length: maxCol - minCol + 1 }, (_, i) => i + minCol);
+  // Build full row/column grid from room dimensions (source of truth from backend Room entity).
+  // This ensures gap rows (e.g. row K entirely removed in admin editor) still render as blank space.
+  const sortedRows: string[] = [];
+  if (roomRowsCount) {
+    for (let i = 0; i < roomRowsCount; i++) {
+      sortedRows.push(String.fromCharCode(65 + i));
+    }
+  } else {
+    // Fallback: derive from seat data only
+    sortedRows.push(...existingRows);
+  }
+
+  const allColumns: number[] = [];
+  if (roomColumnsCount) {
+    for (let i = 1; i <= roomColumnsCount; i++) {
+      allColumns.push(i);
+    }
+  } else {
+    // Fallback: derive from seat data
+    const allSeatNumbers = activeSeats.map((s) => s.seatNumber);
+    const minCol = allSeatNumbers.length ? Math.min(...allSeatNumbers) : 1;
+    const maxCol = allSeatNumbers.length ? Math.max(...allSeatNumbers) : 1;
+    for (let i = minCol; i <= maxCol; i++) {
+      allColumns.push(i);
+    }
+  }
+
+  // Find the partner of a couple seat (paired by adjacent numbers: 1+2, 3+4, …)
+  const getCouplePartner = (seat: Seat): Seat | undefined => {
+    const code = seat.seatTypeCode || seat.seatType || 'STANDARD';
+    if (code !== 'COUPLE') return undefined;
+    const partnerNum = seat.seatNumber % 2 === 1 ? seat.seatNumber + 1 : seat.seatNumber - 1;
+    return activeSeats.find(
+      (s) => s.rowName === seat.rowName && s.seatNumber === partnerNum && (s.seatTypeCode || s.seatType) === 'COUPLE'
+    );
+  };
 
   const handleSeatClick = (seat: Seat) => {
     if (seat.isBooked || !seat.active) return;
 
+    const partner = getCouplePartner(seat);
+    // If partner is booked, block selection of this half too
+    if (partner && partner.isBooked) return;
+
+    const seatsToToggle = partner ? [seat, partner] : [seat];
     const isSelected = selectedSeats.find((s) => s.id === seat.id);
     let newSelection: Seat[];
 
     if (isSelected) {
-      newSelection = selectedSeats.filter((s) => s.id !== seat.id);
+      const idsToRemove = new Set(seatsToToggle.map((s) => s.id));
+      newSelection = selectedSeats.filter((s) => !idsToRemove.has(s.id));
     } else {
-      if (selectedSeats.length >= maxSeats) {
+      const newCount = seatsToToggle.filter((s) => !selectedSeats.find((sel) => sel.id === s.id)).length;
+      if (selectedSeats.length + newCount > maxSeats) {
         alert(`Bạn chỉ có thể chọn tối đa ${maxSeats} ghế`);
         return;
       }
-      newSelection = [...selectedSeats, seat];
+      // Add seats that aren't already selected
+      const existingIds = new Set(selectedSeats.map((s) => s.id));
+      newSelection = [...selectedSeats, ...seatsToToggle.filter((s) => !existingIds.has(s.id))];
     }
 
     setSelectedSeats(newSelection);
     onSelectionChange(newSelection);
   };
 
-  // Fallback colors by code when backend doesn't supply seatColor
-  // Cinema-style palette inspired by CGV/Lotte
-  const FALLBACK_COLORS: Record<string, string> = {
-    STANDARD: '#6b7280',  // slate gray
-    VIP:      '#b45309',  // deep amber/gold
-    COUPLE:   '#be185d',  // rose/magenta
-    DISABLED: '#2563eb',  // blue (accessible)
-  };
+  const getSeatStyles = (seat: Seat, isSelected: boolean) => {
+    // Basic shared classes
+    const base = "w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-[11px] font-medium rounded border transition-all duration-150 shadow-sm flex items-center justify-center";
 
-  const getSeatBgColor = (seat: Seat): string => {
+    if (seat.isBooked) {
+      return `${base} bg-gray-300 border-gray-300 text-white cursor-not-allowed`;
+    }
+
+    if (isSelected) {
+      return `${base} bg-[#b11515] border-[#b11515] text-white shadow-md transform scale-110`;
+    }
+
+    // Dynamic coloring based on seat.seatColor from DB (if missing fallback to manual logic)
     const code = seat.seatTypeCode || seat.seatType || 'STANDARD';
-    return seat.seatColor || FALLBACK_COLORS[code] || '#64748b';
-  };
+    const hexColor = seat.seatColor;
 
-  const getSeatClass = (seat: Seat) => {
-    if (seat.isBooked) return 'cursor-not-allowed opacity-60';
-    if (selectedSeats.find((s) => s.id === seat.id)) return 'ring-4 ring-green-400 ring-offset-1 scale-110 shadow-lg';
-    return 'hover:brightness-125 hover:scale-105 hover:shadow-md cursor-pointer';
+    if (hexColor) {
+      // Special case for couple seats (fill the whole box)
+      if (code === 'COUPLE') {
+        return `${base} text-white hover:brightness-110`;
+      }
+      // Outline style for VIP and Standard
+      return `${base} bg-white text-gray-800 hover:brightness-95`;
+    }
+
+    // Absolutely no hex from backend (Fallback default logic)
+    if (code === 'VIP') {
+      return `${base} bg-white border-red-500 text-gray-800 hover:bg-red-50`;
+    }
+    if (code === 'COUPLE') {
+      return `${base} bg-pink-400 border-pink-400 text-white hover:bg-pink-500`;
+    }
+    return `${base} bg-white border-green-500 text-gray-800 hover:bg-green-50`;
   };
 
   const totalAmount = selectedSeats.reduce((sum, seat) => {
@@ -95,32 +152,44 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
       <div className="overflow-x-auto">
         <div className="inline-block min-w-full">
           {sortedRows.map((row) => {
-            const seatMap = new Map(seatsByRow[row].map((s) => [s.seatNumber, s]));
+            const rowSeats = seatsByRow[row];
+            if (!rowSeats) {
+              // Empty row (e.g. row K removed in admin editor) — render as a blank gap
+              return <div key={row} className="h-6 sm:h-7 mb-1" />;
+            }
+            const seatMap = new Map(rowSeats.map((s) => [s.seatNumber, s]));
             return (
-              <div key={row} className="flex items-center justify-center gap-2 mb-2">
-                <span className="w-6 text-center font-bold text-gray-600">{row}</span>
-                <div className="flex gap-1">
+              <div key={row} className="flex items-center justify-center gap-1 mb-1">
+                <div className="flex gap-[2px]">
                   {allColumns.map((col) => {
                     const seat = seatMap.get(col);
                     if (!seat) {
                       // Empty gap — matches deleted/NONE column in admin editor
-                      return <div key={col} className="w-8 h-8" />;
+                      return <div key={col} className="w-6 h-6 sm:w-7 sm:h-7" />;
                     }
+                    const isSelected = !!selectedSeats.find((s) => s.id === seat.id);
                     return (
                       <button
                         key={seat.id}
                         onClick={() => handleSeatClick(seat)}
                         disabled={seat.isBooked}
-                        className={`w-8 h-8 text-xs font-semibold rounded transition-all duration-150 text-white shadow-sm ${getSeatClass(seat)}`}
-                        style={{ backgroundColor: seat.isBooked ? '#374151' : getSeatBgColor(seat) }}
+                        className={getSeatStyles(seat, isSelected)}
+                        style={
+                          (!seat.isBooked && !isSelected && seat.seatColor)
+                            ? (
+                              (seat.seatTypeCode === 'COUPLE' || seat.seatType === 'COUPLE')
+                                ? { backgroundColor: seat.seatColor, borderColor: seat.seatColor }
+                                : { borderColor: seat.seatColor }
+                            )
+                            : {}
+                        }
                         title={`${seat.seatLabel} - ${seat.seatTypeName || seat.seatType} - ${formatCurrency(basePrice * seat.priceMultiplier)}`}
                       >
-                        {seat.seatNumber}
+                        {seat.isBooked ? 'X' : (seat.seatLabel || seat.seatNumber)}
                       </button>
                     );
                   })}
                 </div>
-                <span className="w-6 text-center font-bold text-gray-600">{row}</span>
               </div>
             );
           })}
@@ -128,26 +197,26 @@ export default function SeatMap({ seats, basePrice, onSelectionChange, maxSeats 
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-4 text-sm">
+      <div className="flex flex-wrap items-center justify-center gap-6 text-sm mt-8 border-t pt-6">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#6b7280' }}></div>
-          <span>Thường</span>
+          <div className="w-6 h-6 rounded border bg-white shadow-sm" style={{ borderColor: '#22c55e' }}></div>
+          <span className="text-gray-700">Thường</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#b45309' }}></div>
-          <span>VIP</span>
+          <div className="w-6 h-6 rounded border bg-white shadow-sm" style={{ borderColor: '#ef4444' }}></div>
+          <span className="text-gray-700">VIP</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded shadow-sm" style={{ backgroundColor: '#be185d' }}></div>
-          <span>Đôi</span>
+          <div className="w-6 h-6 rounded shadow-sm border" style={{ backgroundColor: '#f472b6', borderColor: '#f472b6' }}></div>
+          <span className="text-gray-700">Sweetbox (Đôi)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded ring-4 ring-green-400 ring-offset-1 shadow-sm" style={{ backgroundColor: '#22c55e' }}></div>
-          <span>Đang chọn</span>
+          <div className="w-6 h-6 rounded bg-[#b11515] shadow-sm border border-[#b11515]"></div>
+          <span className="text-gray-700">Đang chọn</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded opacity-60" style={{ backgroundColor: '#374151' }}></div>
-          <span>Đã đặt</span>
+          <div className="w-6 h-6 rounded bg-gray-300 shadow-sm border border-gray-300 flex items-center justify-center text-white text-xs font-bold">X</div>
+          <span className="text-gray-700">Không thể chọn</span>
         </div>
       </div>
 

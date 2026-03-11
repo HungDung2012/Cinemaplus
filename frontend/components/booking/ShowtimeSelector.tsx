@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Showtime, Region, Theater } from '@/types';
+import { Showtime, City, Theater } from '@/types';
 import { showtimeService } from '@/services/showtimeService';
-import { theaterService, regionService } from '@/services/theaterService';
+import { theaterService, cityService } from '@/services/theaterService';
 import { formatCurrency } from '@/lib/utils';
 
 interface ShowtimeSelectorProps {
@@ -24,15 +24,15 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 
 export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelectorProps) {
   // Data state
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [theaters, setTheaters] = useState<Theater[]>([]);
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
-  
+
   // Selection state
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedRoomType, setSelectedRoomType] = useState<string>('all');
-  
+
   // Loading
   const [loading, setLoading] = useState(false);
 
@@ -40,11 +40,11 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
   const dates = useMemo(() => {
     const result: { date: string; day: number; month: number; dayName: string }[] = [];
     const today = new Date();
-    
+
     for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      
+
       const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
       result.push({
         date: d.toISOString().split('T')[0],
@@ -58,46 +58,46 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
 
   // Init
   useEffect(() => {
-    fetchRegions();
+    fetchCities();
     setSelectedDate(dates[0]?.date || '');
   }, []);
 
-  // Fetch showtimes when date or region changes
+  // Fetch showtimes when date or city changes
   useEffect(() => {
-    if (selectedDate && selectedRegion) {
+    if (selectedDate && selectedCity) {
       fetchShowtimes();
     }
-  }, [selectedDate, selectedRegion, movieId]);
+  }, [selectedDate, selectedCity, movieId]);
 
-  const fetchRegions = async () => {
+  const fetchCities = async () => {
     try {
-      const data = await regionService.getAllRegions();
-      setRegions(data);
+      const data = await cityService.getCitiesWithActiveTheaters();
+      setCities(data);
       if (data.length > 0) {
-        setSelectedRegion(data[0]);
+        setSelectedCity(data[0]);
       }
     } catch (error) {
-      console.error('Error fetching regions:', error);
+      console.error('Error fetching cities:', error);
     }
   };
 
   const fetchShowtimes = async () => {
-    if (!selectedRegion || !selectedDate) return;
-    
+    if (!selectedCity || !selectedDate) return;
+
     try {
       setLoading(true);
-      
-      // Get theaters in region
-      const theatersData = await theaterService.getTheatersByRegion(selectedRegion.id);
+
+      // Get theaters in city
+      const theatersData = await theaterService.getTheatersByCity(selectedCity.id);
       setTheaters(theatersData);
-      
+
       // Get showtimes for movie and date
       const showtimesData = await showtimeService.getShowtimesByMovieAndDate(movieId, selectedDate);
-      
-      // Filter by theaters in region
+
+      // Filter by theaters in city
       const theaterIds = theatersData.map(t => t.id);
       const filteredShowtimes = showtimesData.filter(s => theaterIds.includes(s.theaterId));
-      
+
       setShowtimes(filteredShowtimes);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
@@ -122,7 +122,7 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
   // Group showtimes by theater and room
   const showtimesByTheater = useMemo(() => {
     const grouped: Record<string, { theater: Theater; rooms: Record<string, Showtime[]> }> = {};
-    
+
     filteredShowtimes.forEach(showtime => {
       if (!grouped[showtime.theaterName]) {
         const theater = theaters.find(t => t.id === showtime.theaterId);
@@ -130,7 +130,7 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
           grouped[showtime.theaterName] = { theater, rooms: {} };
         }
       }
-      
+
       if (grouped[showtime.theaterName]) {
         const roomKey = `Rạp ${showtime.roomType}`;
         if (!grouped[showtime.theaterName].rooms[roomKey]) {
@@ -139,14 +139,14 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
         grouped[showtime.theaterName].rooms[roomKey].push(showtime);
       }
     });
-    
+
     // Sort by start time
     Object.values(grouped).forEach(theater => {
       Object.values(theater.rooms).forEach(showtimes => {
         showtimes.sort((a, b) => a.startTime.localeCompare(b.startTime));
       });
     });
-    
+
     return grouped;
   }, [filteredShowtimes, theaters]);
 
@@ -159,28 +159,26 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
             {dates.map((d, idx) => {
               const isSelected = selectedDate === d.date;
               const isToday = idx === 0;
-              
+
               return (
                 <button
                   key={d.date}
                   onClick={() => setSelectedDate(d.date)}
-                  className={`flex flex-col items-center px-3 py-2 rounded transition-colors min-w-[56px] ${
-                    isSelected
+                  className={`flex flex-col items-center px-3 py-2 rounded transition-colors min-w-[56px] ${isSelected
                       ? 'bg-red-500 text-white'
                       : isToday
-                      ? 'bg-red-100 hover:bg-red-200'
-                      : 'hover:bg-gray-100 border border-gray-200'
-                  }`}
+                        ? 'bg-red-100 hover:bg-red-200'
+                        : 'hover:bg-gray-100 border border-gray-200'
+                    }`}
                 >
                   <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
                     {d.month < 10 ? `0${d.month}` : d.month}
                   </span>
                   <span className="text-lg font-bold">{d.day}</span>
-                  <span className={`text-xs ${
-                    isSelected ? 'text-white' : 
-                    d.dayName === 'CN' ? 'text-red-500' : 
-                    d.dayName === 'T7' ? 'text-blue-500' : ''
-                  }`}>
+                  <span className={`text-xs ${isSelected ? 'text-white' :
+                      d.dayName === 'CN' ? 'text-red-500' :
+                        d.dayName === 'T7' ? 'text-blue-500' : ''
+                    }`}>
                     {d.dayName}
                   </span>
                 </button>
@@ -190,20 +188,19 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
         </div>
       </div>
 
-      {/* Region Tabs */}
+      {/* City Tabs */}
       <div>
         <div className="flex flex-wrap gap-2 border-b pb-3">
-          {regions.map((region) => (
+          {cities.map((city) => (
             <button
-              key={region.id}
-              onClick={() => setSelectedRegion(region)}
-              className={`px-4 py-2 text-sm rounded-t transition-colors ${
-                selectedRegion?.id === region.id
+              key={city.id}
+              onClick={() => setSelectedCity(city)}
+              className={`px-4 py-2 text-sm rounded-t transition-colors ${selectedCity?.id === city.id
                   ? 'bg-amber-100 text-amber-800 border-b-2 border-amber-500 font-medium'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
-              {region.name}
+              {city.name}
             </button>
           ))}
         </div>
@@ -215,11 +212,10 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedRoomType('all')}
-              className={`px-4 py-2 text-sm rounded-full border transition-colors ${
-                selectedRoomType === 'all'
+              className={`px-4 py-2 text-sm rounded-full border transition-colors ${selectedRoomType === 'all'
                   ? 'bg-amber-100 border-amber-400 text-amber-800'
                   : 'border-gray-300 text-gray-600 hover:border-amber-400'
-              }`}
+                }`}
             >
               Tất cả
             </button>
@@ -227,11 +223,10 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
               <button
                 key={type}
                 onClick={() => setSelectedRoomType(type)}
-                className={`px-4 py-2 text-sm rounded-full border transition-colors ${
-                  selectedRoomType === type
+                className={`px-4 py-2 text-sm rounded-full border transition-colors ${selectedRoomType === type
                     ? 'bg-amber-100 border-amber-400 text-amber-800'
                     : 'border-gray-300 text-gray-600 hover:border-amber-400'
-                }`}
+                  }`}
               >
                 {ROOM_TYPE_LABELS[type] || type}
               </button>
@@ -260,7 +255,7 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
           <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p>Không có suất chiếu nào cho ngày và khu vực đã chọn</p>
+          <p>Không có suất chiếu nào cho ngày và thành phố đã chọn</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -276,7 +271,7 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
                   {theaterName}
                 </h3>
               </div>
-              
+
               {/* Room Showtimes */}
               <div className="p-4 space-y-4">
                 {Object.entries(rooms).map(([roomKey, roomShowtimes]) => (
@@ -288,11 +283,10 @@ export default function ShowtimeSelector({ movieId, onSelect }: ShowtimeSelector
                           key={showtime.id}
                           onClick={() => onSelect(showtime)}
                           disabled={showtime.status !== 'AVAILABLE'}
-                          className={`px-4 py-2 border rounded transition-colors ${
-                            showtime.status === 'AVAILABLE'
+                          className={`px-4 py-2 border rounded transition-colors ${showtime.status === 'AVAILABLE'
                               ? 'border-gray-300 hover:border-red-500 hover:text-red-500 hover:bg-red-50'
                               : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                          }`}
+                            }`}
                         >
                           <span className="font-medium">{showtime.startTime.substring(0, 5)}</span>
                         </button>

@@ -30,19 +30,15 @@ public class PricingService {
      */
     public BigDecimal calculateTicketPrice(Showtime showtime, Seat seat, User user) {
         // 1. Determine Factors
-        PriceLine.CustomerType customerType = deriveCustomerType(user);
         PriceLine.DayType dayType = determineDayType(showtime.getShowDate());
         PriceLine.TimeSlot timeSlot = determineTimeSlot(showtime.getStartTime());
         Room.RoomType roomType = showtime.getRoom().getRoomType();
 
-        // Movie Format? Assuming mapped from RoomType or Showtime Format string
-        // For simplicity, we assume RoomType implies format (IMAX, 3D, etc.)
-
-        log.debug("Calculating price for: Customer={}, Day={}, Time={}, Room={}",
-                customerType, dayType, timeSlot, roomType);
+        log.debug("Calculating price for: Day={}, Time={}, Room={}",
+                dayType, timeSlot, roomType);
 
         // 2. Find Base Price from Rate Card
-        BigDecimal basePrice = findBasePrice(showtime.getShowDate(), customerType, dayType, timeSlot, roomType);
+        BigDecimal basePrice = findBasePrice(showtime.getShowDate(), dayType, timeSlot, roomType);
 
         // 3. Apply Surcharges
         BigDecimal surcharges = calculateSurcharges(seat, showtime);
@@ -51,7 +47,7 @@ public class PricingService {
         return basePrice.add(surcharges);
     }
 
-    private BigDecimal findBasePrice(LocalDate date, PriceLine.CustomerType customerType,
+    public BigDecimal findBasePrice(LocalDate date,
             PriceLine.DayType dayType, PriceLine.TimeSlot timeSlot,
             Room.RoomType roomType) {
         // Find active header
@@ -64,19 +60,15 @@ public class PricingService {
         PriceHeader header = headers.get(0); // Highest priority
 
         // Find matching line
-        // Optimization: In real app, cache this or use a specific DB query
         return header.getPriceLines().stream()
-                .filter(line -> line.getCustomerType() == customerType &&
-                        line.getDayType() == dayType &&
+                .filter(line -> line.getDayType() == dayType &&
                         line.getTimeSlot() == timeSlot &&
                         line.getRoomType() == roomType)
                 .map(PriceLine::getPrice)
                 .findFirst()
                 .orElseGet(() -> {
-                    log.warn("No Price Line found for criteria. Factors: {}/{}./{}/{}. Using fallback.",
-                            customerType, dayType, timeSlot, roomType);
-                    // Try to find a "Standard" fallback in the same header?
-                    // For now, return a safe default
+                    log.warn("No Price Line found for criteria. Factors: {}/{}/{}. Using fallback.",
+                            dayType, timeSlot, roomType);
                     return new BigDecimal("50000");
                 });
     }
@@ -113,27 +105,6 @@ public class PricingService {
             }
         }
         return totalSurcharge;
-    }
-
-    public PriceLine.CustomerType deriveCustomerType(User user) {
-        if (user == null)
-            return PriceLine.CustomerType.ADULT;
-
-        // Simple age logic
-        if (user.getDateOfBirth() != null) {
-            int age = java.time.Period.between(user.getDateOfBirth(), LocalDate.now()).getYears();
-            if (age <= 22)
-                return PriceLine.CustomerType.U22; // Or STUDENT
-            if (age >= 60)
-                return PriceLine.CustomerType.SENIOR;
-        }
-
-        // Member logic could be here
-        if (user.getRole() == User.Role.USER) {
-            return PriceLine.CustomerType.MEMBER;
-        }
-
-        return PriceLine.CustomerType.ADULT;
     }
 
     public PriceLine.DayType determineDayType(LocalDate date) {
@@ -177,18 +148,13 @@ public class PricingService {
             BigDecimal price = calculateTicketPrice(showtime, seat, user);
             totalPrice = totalPrice.add(price);
 
-            PriceLine.CustomerType cType = deriveCustomerType(user);
             PriceLine.DayType dType = determineDayType(showtime.getShowDate());
             PriceLine.TimeSlot tSlot = determineTimeSlot(showtime.getStartTime());
             com.cinema.model.Room.RoomType roomType = showtime.getRoom().getRoomType();
 
-            String desc = cType + " | " + dType + " | " + tSlot + " | " + roomType;
+            String desc = dType + " | " + tSlot + " | " + roomType;
             if (seat.getSeatType() != null) {
                 desc += " | " + seat.getSeatType().getName();
-
-                // Add seat type surcharge directly here if strict calculation needed,
-                // but calculateTicketPrice already includes it via calculateSurcharges.
-                // However, logic in calculateSurcharges needs update.
             }
 
             details.add(com.cinema.dto.response.CalculatedPriceResponse.PriceDetail.builder()

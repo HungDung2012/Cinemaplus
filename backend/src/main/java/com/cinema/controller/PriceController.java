@@ -70,16 +70,14 @@ public class PriceController {
                 .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("PriceHeader", "id", headerId));
 
         // Check if line exists (Upsert Logic)
-        PriceLine priceLine = priceLineRepository.findByPriceHeaderIdAndCustomerTypeAndDayTypeAndTimeSlotAndRoomType(
+        PriceLine priceLine = priceLineRepository.findByPriceHeaderIdAndDayTypeAndTimeSlotAndRoomType(
                 headerId,
-                request.getCustomerType(),
                 request.getDayType(),
                 request.getTimeSlot(),
                 request.getRoomType()).orElse(new PriceLine());
 
         // Update fields
         priceLine.setPriceHeader(header);
-        priceLine.setCustomerType(request.getCustomerType());
         priceLine.setDayType(request.getDayType());
         priceLine.setTimeSlot(request.getTimeSlot());
         priceLine.setRoomType(request.getRoomType());
@@ -100,16 +98,14 @@ public class PriceController {
 
         for (com.cinema.dto.request.PriceLineRequest request : requests) {
             PriceLine priceLine = priceLineRepository
-                    .findByPriceHeaderIdAndCustomerTypeAndDayTypeAndTimeSlotAndRoomType(
+                    .findByPriceHeaderIdAndDayTypeAndTimeSlotAndRoomType(
                             headerId,
-                            request.getCustomerType(),
                             request.getDayType(),
                             request.getTimeSlot(),
                             request.getRoomType())
                     .orElse(new PriceLine());
 
             priceLine.setPriceHeader(header);
-            priceLine.setCustomerType(request.getCustomerType());
             priceLine.setDayType(request.getDayType());
             priceLine.setTimeSlot(request.getTimeSlot());
             priceLine.setRoomType(request.getRoomType());

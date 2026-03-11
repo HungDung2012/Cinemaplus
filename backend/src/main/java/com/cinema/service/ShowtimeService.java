@@ -9,6 +9,7 @@ import com.cinema.dto.response.ShowtimeResponse;
 import com.cinema.exception.BadRequestException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.Movie;
+import com.cinema.model.PriceLine;
 import com.cinema.model.Room;
 import com.cinema.model.Showtime;
 import com.cinema.repository.BookingSeatRepository;
@@ -33,6 +34,7 @@ public class ShowtimeService {
         private final MovieRepository movieRepository;
         private final RoomRepository roomRepository;
         private final BookingSeatRepository bookingSeatRepository;
+        private final PricingService pricingService;
 
         public List<ShowtimeResponse> getShowtimesByMovie(Long movieId) {
                 return showtimeRepository.findByMovieId(movieId).stream()
@@ -46,6 +48,17 @@ public class ShowtimeService {
                                 .stream()
                                 .map(this::mapToResponse)
                                 .collect(Collectors.toList());
+        }
+
+        /**
+         * Auto-calculate basePrice from PriceLine rate card based on showtime
+         * parameters.
+         */
+        private java.math.BigDecimal calculateAutoBasePrice(LocalDate showDate, java.time.LocalTime startTime,
+                        Room.RoomType roomType) {
+                PriceLine.DayType dayType = pricingService.determineDayType(showDate);
+                PriceLine.TimeSlot timeSlot = pricingService.determineTimeSlot(startTime);
+                return pricingService.findBasePrice(showDate, dayType, timeSlot, roomType);
         }
 
         public List<ShowtimeResponse> getShowtimesByMovieAndDate(Long movieId, LocalDate date) {
@@ -127,7 +140,8 @@ public class ShowtimeService {
                                 .showDate(request.getShowDate())
                                 .startTime(request.getStartTime())
                                 .endTime(endTime)
-                                .basePrice(request.getBasePrice())
+                                .basePrice(calculateAutoBasePrice(request.getShowDate(), request.getStartTime(),
+                                                room.getRoomType()))
                                 .format(request.getFormat())
                                 .status(Showtime.ShowtimeStatus.AVAILABLE)
                                 .movie(movie)
@@ -157,7 +171,8 @@ public class ShowtimeService {
                 showtime.setShowDate(request.getShowDate());
                 showtime.setStartTime(request.getStartTime());
                 showtime.setEndTime(endTime);
-                showtime.setBasePrice(request.getBasePrice());
+                showtime.setBasePrice(calculateAutoBasePrice(request.getShowDate(), request.getStartTime(),
+                                room.getRoomType()));
                 showtime.setFormat(request.getFormat());
                 showtime.setMovie(movie);
                 showtime.setRoom(room);
@@ -296,6 +311,8 @@ public class ShowtimeService {
                                 .roomId(room.getId())
                                 .roomName(room.getName())
                                 .roomType(room.getRoomType().name())
+                                .roomRowsCount(room.getRowsCount())
+                                .roomColumnsCount(room.getColumnsCount())
                                 .theaterId(room.getTheater().getId())
                                 .theaterName(room.getTheater().getName())
                                 .availableSeats(availableSeats)
@@ -324,6 +341,8 @@ public class ShowtimeService {
                                 .roomId(room.getId())
                                 .roomName(room.getName())
                                 .roomType(room.getRoomType().name())
+                                .roomRowsCount(room.getRowsCount())
+                                .roomColumnsCount(room.getColumnsCount())
                                 .theaterId(room.getTheater().getId())
                                 .theaterName(room.getTheater().getName())
                                 .availableSeats(availableSeats) // Approximate for list view
@@ -371,7 +390,8 @@ public class ShowtimeService {
                                         .showDate(req.getShowDate())
                                         .startTime(req.getStartTime())
                                         .endTime(endTime)
-                                        .basePrice(req.getBasePrice())
+                                        .basePrice(calculateAutoBasePrice(req.getShowDate(), req.getStartTime(),
+                                                        room.getRoomType()))
                                         .status(req.getStatus() != null ? req.getStatus()
                                                         : Showtime.ShowtimeStatus.AVAILABLE)
                                         .movie(movie)
@@ -550,7 +570,8 @@ public class ShowtimeService {
                                                                 .startTime(slotTime)
                                                                 .endTime(slotTime.plusMinutes(
                                                                                 req.getAdsDuration() + movie.getDuration()))
-                                                                .basePrice(req.getBasePrice())
+                                                                .basePrice(calculateAutoBasePrice(date, slotTime,
+                                                                                room.getRoomType()))
                                                                 .status(Showtime.ShowtimeStatus.AVAILABLE)
                                                                 .movie(movie)
                                                                 .room(room)

@@ -5,10 +5,8 @@ import com.cinema.dto.response.CityResponse;
 import com.cinema.exception.DuplicateResourceException;
 import com.cinema.exception.ResourceNotFoundException;
 import com.cinema.model.City;
-import com.cinema.model.Region;
 import com.cinema.model.Theater;
 import com.cinema.repository.CityRepository;
-import com.cinema.repository.RegionRepository;
 import com.cinema.repository.TheaterRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +24,6 @@ import java.util.stream.Collectors;
 public class CityService {
 
     private final CityRepository cityRepository;
-    private final RegionRepository regionRepository;
     private final TheaterRepository theaterRepository;
 
     /**
@@ -59,8 +56,8 @@ public class CityService {
     /**
      * Lấy danh sách thành phố theo region
      */
-    public List<CityResponse> getCitiesByRegion(Long regionId) {
-        return cityRepository.findByRegionIdAndActiveTrue(regionId).stream()
+    public List<CityResponse> getCitiesByRegion(City.RegionType regionType) {
+        return cityRepository.findByRegionTypeAndActiveTrue(regionType).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -69,9 +66,12 @@ public class CityService {
      * Lấy danh sách thành phố theo region code
      */
     public List<CityResponse> getCitiesByRegionCode(String regionCode) {
-        return cityRepository.findByRegionCodeAndActiveTrue(regionCode).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        try {
+            City.RegionType regionType = City.RegionType.valueOf(regionCode.toUpperCase());
+            return getCitiesByRegion(regionType);
+        } catch (IllegalArgumentException e) {
+            return List.of();
+        }
     }
 
     /**
@@ -87,7 +87,7 @@ public class CityService {
      * Tạo mới thành phố
      */
     @Transactional
-    public CityResponse createCity(String name, String code, Long regionId) {
+    public CityResponse createCity(String name, String code, City.RegionType regionType) {
         // Validate
         if (cityRepository.existsByCode(code)) {
             throw new DuplicateResourceException("City", "code", code);
@@ -96,18 +96,15 @@ public class CityService {
             throw new DuplicateResourceException("City", "name", name);
         }
 
-        Region region = regionRepository.findById(regionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Region", "id", regionId));
-
         City city = City.builder()
                 .name(name)
                 .code(code)
-                .region(region)
+                .regionType(regionType)
                 .active(true)
                 .build();
 
         City savedCity = cityRepository.save(city);
-        log.info("Created new city: {} with code: {} in region: {}", name, code, region.getName());
+        log.info("Created new city: {} with code: {} in region: {}", name, code, regionType.name());
 
         return mapToResponse(savedCity);
     }
@@ -168,22 +165,20 @@ public class CityService {
     public void createDefaultCitiesForAllRegions() {
         log.info("Creating default cities for all regions...");
 
-        List<Region> regions = regionRepository.findAll();
-
-        for (Region region : regions) {
-            String defaultCityName = getDefaultCityForRegion(region.getCode());
+        for (City.RegionType regionType : City.RegionType.values()) {
+            String defaultCityName = getDefaultCityForRegion(regionType.name());
             String cityCode = generateCityCode(defaultCityName);
 
             if (!cityRepository.existsByCode(cityCode)) {
                 City city = City.builder()
                         .name(defaultCityName)
                         .code(cityCode)
-                        .region(region)
+                        .regionType(regionType)
                         .active(true)
                         .build();
 
                 cityRepository.save(city);
-                log.info("Created default city '{}' for region '{}'", defaultCityName, region.getName());
+                log.info("Created default city '{}' for region '{}'", defaultCityName, regionType.name());
             }
         }
     }
@@ -199,10 +194,16 @@ public class CityService {
                 .active(city.getActive())
                 .build();
 
-        if (city.getRegion() != null) {
-            response.setRegionId(city.getRegion().getId());
-            response.setRegionName(city.getRegion().getName());
-            response.setRegionCode(city.getRegion().getCode());
+        if (city.getRegionType() != null) {
+            City.RegionType regionType = city.getRegionType();
+            response.setRegionCode(regionType.name());
+            // Set name based on enum
+            if (regionType == City.RegionType.NORTH)
+                response.setRegionName("Miền Bắc");
+            else if (regionType == City.RegionType.CENTRAL)
+                response.setRegionName("Miền Trung");
+            else if (regionType == City.RegionType.SOUTH)
+                response.setRegionName("Miền Nam");
         }
 
         Long theaterCount = cityRepository.countActiveTheatersByCityId(city.getId());

@@ -1,0 +1,4 @@
+components/booking/ShowtimeSelector.tsx(4,20): error TS2305: Module '"@/types"' has no exported member 'Region'.
+components/booking/ShowtimeSelector.tsx(6,26): error TS2305: Module '"@/services/theaterService"' has no exported member 'regionService'.
+components/booking/ShowtimeSelector.tsx(91,49): error TS2551: Property 'getTheatersByRegion' does not exist on type '{ getAllTheaters(): Promise<Theater[]>; getTheatersByCity(cityId: number): Promise<Theater[]>; getTheatersByCityCode(cityCode: string): Promise<...>; getTheaterById(id: number): Promise<...>; getTheatersGroupedByCity(): Promise<...>; getTheaterSchedule(theaterId: number, date?: string | undefined): Promise<...>; }'. Did you mean 'getTheaterById'?
+components/booking/ShowtimeSelector.tsx(98,43): error TS7006: Parameter 't' implicitly has an 'any' type.

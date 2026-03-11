@@ -17,7 +17,8 @@ public class AdminDTOMapper {
     // ==================== MOVIE ====================
 
     public MovieResponse toMovieResponse(Movie movie) {
-        if (movie == null) return null;
+        if (movie == null)
+            return null;
 
         return MovieResponse.builder()
                 .id(movie.getId())
@@ -45,10 +46,11 @@ public class AdminDTOMapper {
     }
 
     // ==================== BOOKING ====================
-    
+
     public BookingResponse toBookingResponse(Booking booking) {
-        if (booking == null) return null;
-        
+        if (booking == null)
+            return null;
+
         BookingResponse.BookingResponseBuilder builder = BookingResponse.builder()
                 .id(booking.getId())
                 .bookingCode(booking.getBookingCode())
@@ -64,32 +66,32 @@ public class AdminDTOMapper {
 
         // User info
         if (booking.getUser() != null) {
-            User user = booking.getUser();  
+            User user = booking.getUser();
             builder.userId(user.getId())
-                   .userFullName(user.getFullName())
-                   .userEmail(user.getEmail());
+                    .userFullName(user.getFullName())
+                    .userEmail(user.getEmail());
         }
 
         // Showtime info
         if (booking.getShowtime() != null) {
             Showtime showtime = booking.getShowtime();
             builder.showtimeId(showtime.getId())
-                   .showDate(showtime.getShowDate())
-                   .startTime(showtime.getStartTime());
+                    .showDate(showtime.getShowDate())
+                    .startTime(showtime.getStartTime());
 
             // Movie info
             if (showtime.getMovie() != null) {
                 Movie movie = showtime.getMovie();
                 builder.movieId(movie.getId())
-                       .movieTitle(movie.getTitle())
-                       .moviePosterUrl(movie.getPosterUrl());
+                        .movieTitle(movie.getTitle())
+                        .moviePosterUrl(movie.getPosterUrl());
             }
 
             // Room & Theater info
             if (showtime.getRoom() != null) {
                 Room room = showtime.getRoom();
                 builder.roomName(room.getName());
-                
+
                 if (room.getTheater() != null) {
                     builder.theaterName(room.getTheater().getName());
                 }
@@ -106,10 +108,11 @@ public class AdminDTOMapper {
     }
 
     // ==================== USER ====================
-    
+
     public UserResponse toUserResponse(User user) {
-        if (user == null) return null;
-        
+        if (user == null)
+            return null;
+
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -130,10 +133,11 @@ public class AdminDTOMapper {
     }
 
     // ==================== SHOWTIME ====================
-    
+
     public ShowtimeResponse toShowtimeResponse(Showtime showtime) {
-        if (showtime == null) return null;
-        
+        if (showtime == null)
+            return null;
+
         ShowtimeResponse.ShowtimeResponseBuilder builder = ShowtimeResponse.builder()
                 .id(showtime.getId())
                 .showDate(showtime.getShowDate())
@@ -146,23 +150,23 @@ public class AdminDTOMapper {
         if (showtime.getMovie() != null) {
             Movie movie = showtime.getMovie();
             builder.movieId(movie.getId())
-                   .movieTitle(movie.getTitle())
-                   .moviePosterUrl(movie.getPosterUrl())
-                   .movieDuration(movie.getDuration());
+                    .movieTitle(movie.getTitle())
+                    .moviePosterUrl(movie.getPosterUrl())
+                    .movieDuration(movie.getDuration());
         }
 
         // Room info
         if (showtime.getRoom() != null) {
             Room room = showtime.getRoom();
             builder.roomId(room.getId())
-                   .roomName(room.getName())
-                   .roomType(room.getRoomType() != null ? room.getRoomType().name() : null);
+                    .roomName(room.getName())
+                    .roomType(room.getRoomType() != null ? room.getRoomType().name() : null);
 
             // Theater info
             if (room.getTheater() != null) {
                 Theater theater = room.getTheater();
                 builder.theaterId(theater.getId())
-                       .theaterName(theater.getName());
+                        .theaterName(theater.getName());
             }
         }
 
@@ -176,10 +180,11 @@ public class AdminDTOMapper {
     }
 
     // ==================== THEATER ====================
-    
+
     public TheaterResponse toTheaterResponse(Theater theater) {
-        if (theater == null) return null;
-        
+        if (theater == null)
+            return null;
+
         TheaterResponse.TheaterResponseBuilder builder = TheaterResponse.builder()
                 .id(theater.getId())
                 .name(theater.getName())
@@ -194,15 +199,20 @@ public class AdminDTOMapper {
         if (theater.getCity() != null) {
             City city = theater.getCity();
             builder.cityId(city.getId())
-                   .cityName(city.getName())
-                   .cityCode(city.getCode());
+                    .cityName(city.getName())
+                    .cityCode(city.getCode());
 
             // Region info
-            if (city.getRegion() != null) {
-                Region region = city.getRegion();
-                builder.regionId(region.getId())
-                       .regionName(region.getName())
-                       .regionCode(region.getCode());
+            if (city.getRegionType() != null) {
+                City.RegionType regionType = city.getRegionType();
+                builder.regionCode(regionType.name());
+                // Set name based on enum
+                if (regionType == City.RegionType.NORTH)
+                    builder.regionName("Miền Bắc");
+                else if (regionType == City.RegionType.CENTRAL)
+                    builder.regionName("Miền Trung");
+                else if (regionType == City.RegionType.SOUTH)
+                    builder.regionName("Miền Nam");
             }
         }
 
@@ -216,10 +226,11 @@ public class AdminDTOMapper {
     }
 
     // ==================== ROOM ====================
-    
+
     public RoomResponse toRoomResponse(Room room) {
-        if (room == null) return null;
-        
+        if (room == null)
+            return null;
+
         RoomResponse.RoomResponseBuilder builder = RoomResponse.builder()
                 .id(room.getId())
                 .name(room.getName())
@@ -231,7 +242,7 @@ public class AdminDTOMapper {
 
         if (room.getTheater() != null) {
             builder.theaterId(room.getTheater().getId())
-                   .theaterName(room.getTheater().getName());
+                    .theaterName(room.getTheater().getName());
         }
 
         return builder.build();
@@ -244,10 +255,11 @@ public class AdminDTOMapper {
     }
 
     // ==================== REVIEW ====================
-    
+
     public ReviewResponse toReviewResponse(Review review) {
-        if (review == null) return null;
-        
+        if (review == null)
+            return null;
+
         ReviewResponse.ReviewResponseBuilder builder = ReviewResponse.builder()
                 .id(review.getId())
                 .rating(review.getRating())
@@ -258,13 +270,13 @@ public class AdminDTOMapper {
 
         if (review.getMovie() != null) {
             builder.movieId(review.getMovie().getId())
-                   .movieTitle(review.getMovie().getTitle());
+                    .movieTitle(review.getMovie().getTitle());
         }
 
         if (review.getUser() != null) {
             builder.userId(review.getUser().getId())
-                   .userName(review.getUser().getFullName())
-                   .userAvatar(review.getUser().getAvatar());
+                    .userName(review.getUser().getFullName())
+                    .userAvatar(review.getUser().getAvatar());
         }
 
         return builder.build();

@@ -66,7 +66,7 @@ public class Theater {
     @JoinColumn(name = "city_id")
     private City city;
 
-    public Region getRegion() {
-        return city != null ? city.getRegion() : null;
+    public City.RegionType getRegionType() {
+        return city != null ? city.getRegionType() : null;
     }
 }

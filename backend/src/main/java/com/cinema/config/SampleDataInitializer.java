@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Order(2)
 public class SampleDataInitializer implements CommandLineRunner {
 
-        private final RegionRepository regionRepository;
         private final CityRepository cityRepository;
         private final TheaterRepository theaterRepository;
         private final RoomRepository roomRepository;
@@ -44,7 +43,6 @@ public class SampleDataInitializer implements CommandLineRunner {
         private final BookingSeatRepository bookingSeatRepository;
         private final BookingFoodRepository bookingFoodRepository;
         private final PaymentRepository paymentRepository;
-        private final TicketPriceRepository ticketPriceRepository;
         private final PriceHeaderRepository priceHeaderRepository;
         private final PriceLineRepository priceLineRepository;
         private final SurchargeRepository surchargeRepository;
@@ -72,13 +70,11 @@ public class SampleDataInitializer implements CommandLineRunner {
                         roomRepository.deleteAll();
                         theaterRepository.deleteAll();
                         cityRepository.deleteAll();
-                        regionRepository.deleteAll();
                         movieRepository.deleteAll();
                         foodRepository.deleteAll();
                         couponRepository.deleteAll();
                         voucherRepository.deleteAll();
                         promotionRepository.deleteAll();
-                        ticketPriceRepository.deleteAll();
                         surchargeRepository.deleteAll();
                         priceLineRepository.deleteAll();
                         priceHeaderRepository.deleteAll();
@@ -86,9 +82,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         log.info("All data deleted.");
                 }
 
-                if (regionRepository.count() == 0) {
-                        initRegions();
-                }
                 if (cityRepository.count() == 0) {
                         initCities();
                 }
@@ -124,9 +117,8 @@ public class SampleDataInitializer implements CommandLineRunner {
                         initVouchers();
                 }
                 // Init promotions
-                if (promotionRepository.count() == 0) {
-                        initPromotions();
-                }
+                promotionRepository.deleteAll(); // Force recreate
+                initPromotions();
                 if (movieRepository.count() == 0) {
                         initSampleMovies();
                 }
@@ -147,54 +139,34 @@ public class SampleDataInitializer implements CommandLineRunner {
                 log.info("Created rooms and seats for {} theaters", theaters.size());
         }
 
-        private void initRegions() {
-                log.info("Initializing regions...");
-                List<Region> regions = List.of(
-                                Region.builder().name("Miền Bắc").code("NORTH").build(),
-                                Region.builder().name("Miền Trung").code("CENTRAL").build(),
-                                Region.builder().name("Miền Nam").code("SOUTH").build());
-                regionRepository.saveAll(regions);
-                log.info("Created {} regions", regions.size());
-        }
-
         private void initCities() {
                 log.info("Initializing cities...");
-
-                Region north = regionRepository.findByCode("NORTH").orElse(null);
-                Region central = regionRepository.findByCode("CENTRAL").orElse(null);
-                Region south = regionRepository.findByCode("SOUTH").orElse(null);
-
-                if (north == null || central == null || south == null) {
-                        log.warn("Regions not found, skipping city initialization");
-                        return;
-                }
-
                 List<City> cities = new ArrayList<>();
 
                 // Miền Bắc
-                cities.add(createCity("Hà Nội", "HA_NOI", north));
-                cities.add(createCity("Hải Phòng", "HAI_PHONG", north));
-                cities.add(createCity("Quảng Ninh", "QUANG_NINH", north));
+                cities.add(createCity("Hà Nội", "HA_NOI", City.RegionType.NORTH));
+                cities.add(createCity("Hải Phòng", "HAI_PHONG", City.RegionType.NORTH));
+                cities.add(createCity("Quảng Ninh", "QUANG_NINH", City.RegionType.NORTH));
 
                 // Miền Trung
-                cities.add(createCity("Đà Nẵng", "DA_NANG", central));
-                cities.add(createCity("Huế", "HUE", central));
-                cities.add(createCity("Nha Trang", "NHA_TRANG", central));
+                cities.add(createCity("Đà Nẵng", "DA_NANG", City.RegionType.CENTRAL));
+                cities.add(createCity("Huế", "HUE", City.RegionType.CENTRAL));
+                cities.add(createCity("Nha Trang", "NHA_TRANG", City.RegionType.CENTRAL));
 
                 // Miền Nam
-                cities.add(createCity("TP.HCM", "HO_CHI_MINH", south));
-                cities.add(createCity("Cần Thơ", "CAN_THO", south));
-                cities.add(createCity("Biên Hòa", "BIEN_HOA", south));
+                cities.add(createCity("TP.HCM", "HO_CHI_MINH", City.RegionType.SOUTH));
+                cities.add(createCity("Cần Thơ", "CAN_THO", City.RegionType.SOUTH));
+                cities.add(createCity("Biên Hòa", "BIEN_HOA", City.RegionType.SOUTH));
 
                 cityRepository.saveAll(cities);
                 log.info("Created {} cities", cities.size());
         }
 
-        private City createCity(String name, String code, Region region) {
+        private City createCity(String name, String code, City.RegionType regionType) {
                 return City.builder()
                                 .name(name)
                                 .code(code)
-                                .region(region)
+                                .regionType(regionType)
                                 .active(true)
                                 .build();
         }
@@ -208,20 +180,23 @@ public class SampleDataInitializer implements CommandLineRunner {
                         // Standard - usually 0 surcharge
                         surcharges.add(Surcharge.builder()
                                         .name("Ghế Thường")
-                                        .code("STANDARD")
                                         .type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .amount(BigDecimal.ZERO)
+                                        .targetId("STANDARD")
+                                        .amount(new BigDecimal("0.0"))
+                                        .color("#22c55e")
+                                        .code("STANDARD")
                                         .active(true)
                                         .build());
 
                         // VIP - Add 10000
                         surcharges.add(Surcharge.builder()
                                         .name("Ghế VIP")
-                                        .code("VIP")
                                         .type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .amount(new BigDecimal("10000"))
+                                        .targetId("VIP")
+                                        .amount(new BigDecimal("20000.0"))
+                                        .color("#ef4444")
+                                        .code("VIP")
                                         .active(true)
-                                        .color("#D69E2E")
                                         .build());
 
                         // Couple - Add 50000
@@ -229,9 +204,10 @@ public class SampleDataInitializer implements CommandLineRunner {
                                         .name("Ghế Đôi")
                                         .code("COUPLE")
                                         .type(Surcharge.SurchargeType.SEAT_TYPE)
+                                        .targetId("COUPLE")
                                         .amount(new BigDecimal("50000"))
                                         .active(true)
-                                        .color("#E53E3E")
+                                        .color("#f472b6")
                                         .build());
 
                         surchargeRepository.saveAll(surcharges);
@@ -833,15 +809,17 @@ public class SampleDataInitializer implements CommandLineRunner {
 
                 // VIP Seat
                 if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
-                                .noneMatch(s -> "VIP".equals(s.getTargetId()))) {
+                                .noneMatch(s -> "VIP".equals(s.getCode()))) {
                         surcharges.add(Surcharge.builder().name("VIP Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .targetId("VIP").amount(new BigDecimal("15000")).active(true).build());
+                                        .amount(new BigDecimal("20000.0")).color("#ef4444").code("VIP").targetId("VIP")
+                                        .active(true).build());
                 }
                 // Couple Seat
                 if (surchargeRepository.findByType(Surcharge.SurchargeType.SEAT_TYPE).stream()
-                                .noneMatch(s -> "COUPLE".equals(s.getTargetId()))) {
+                                .noneMatch(s -> "COUPLE".equals(s.getCode()))) {
                         surcharges.add(Surcharge.builder().name("Couple Seat").type(Surcharge.SurchargeType.SEAT_TYPE)
-                                        .targetId("COUPLE").amount(new BigDecimal("20000")).active(true).build());
+                                        .amount(new BigDecimal("50000.0")).color("#f472b6").code("COUPLE")
+                                        .targetId("COUPLE").active(true).build());
                 }
 
                 if (!surcharges.isEmpty()) {
@@ -853,23 +831,21 @@ public class SampleDataInitializer implements CommandLineRunner {
         private void createFullPriceList(PriceHeader header) {
                 List<PriceLine> lines = new ArrayList<>();
 
-                // Iterate all combinations
-                for (PriceLine.CustomerType customer : PriceLine.CustomerType.values()) {
-                        for (PriceLine.DayType day : PriceLine.DayType.values()) {
-                                for (PriceLine.TimeSlot slot : PriceLine.TimeSlot.values()) {
-                                        for (Room.RoomType room : Room.RoomType.values()) {
-                                                BigDecimal price = calculateBasePrice(customer, day, slot, room);
-                                                lines.add(createPriceLine(header, customer, day, slot, room, price));
-                                        }
+                // Iterate all combinations (DayType × TimeSlot × RoomType = 4×4×5 = 80 lines)
+                for (PriceLine.DayType day : PriceLine.DayType.values()) {
+                        for (PriceLine.TimeSlot slot : PriceLine.TimeSlot.values()) {
+                                for (Room.RoomType room : Room.RoomType.values()) {
+                                        BigDecimal price = calculateBasePrice(day, slot, room);
+                                        lines.add(createPriceLine(header, day, slot, room, price));
                                 }
                         }
                 }
                 priceLineRepository.saveAll(lines);
         }
 
-        private BigDecimal calculateBasePrice(PriceLine.CustomerType customer, PriceLine.DayType day,
+        private BigDecimal calculateBasePrice(PriceLine.DayType day,
                         PriceLine.TimeSlot slot, Room.RoomType room) {
-                // Base price (Adult, Weekday, Morning, Standard 2D)
+                // Base price (Weekday, Morning, Standard 2D)
                 BigDecimal base = new BigDecimal("60000");
 
                 // 1. Room Type Modifiers
@@ -885,9 +861,6 @@ public class SampleDataInitializer implements CommandLineRunner {
                         base = base.add(new BigDecimal("20000"));
                 else if (day == PriceLine.DayType.HOLIDAY)
                         base = base.add(new BigDecimal("30000"));
-                // Happy Day might be cheaper
-                else if (day == PriceLine.DayType.HAPPY_DAY)
-                        base = base.add(new BigDecimal("0")); // Keep base low
 
                 // 3. Time Slot Modifiers
                 if (slot == PriceLine.TimeSlot.DAY || slot == PriceLine.TimeSlot.EVENING) {
@@ -896,39 +869,14 @@ public class SampleDataInitializer implements CommandLineRunner {
                         base = base.add(new BigDecimal("10000")); // Late night slightly more than morning
                 }
 
-                // 4. Customer Type Modifiers (Discounts)
-                // Ensure price doesn't go below a minimum threshold (e.g. 45k)
-                BigDecimal discount = BigDecimal.ZERO;
-                switch (customer) {
-                        case STUDENT:
-                        case U22:
-                        case SENIOR:
-                                discount = new BigDecimal("15000");
-                                break;
-                        case MEMBER:
-                                discount = new BigDecimal("10000");
-                                break;
-                        case VIP_MEMBER:
-                                discount = new BigDecimal("20000");
-                                break;
-                        default:
-                                break;
-                }
-
-                BigDecimal finalPrice = base.subtract(discount);
-                if (finalPrice.compareTo(new BigDecimal("45000")) < 0) {
-                        finalPrice = new BigDecimal("45000"); // Minimum floor price
-                }
-
-                return finalPrice;
+                return base;
         }
 
-        private PriceLine createPriceLine(PriceHeader header, PriceLine.CustomerType customerType,
+        private PriceLine createPriceLine(PriceHeader header,
                         PriceLine.DayType dayType, PriceLine.TimeSlot timeSlot, Room.RoomType roomType,
                         BigDecimal price) {
                 return PriceLine.builder()
                                 .priceHeader(header)
-                                .customerType(customerType)
                                 .dayType(dayType)
                                 .timeSlot(timeSlot)
                                 .roomType(roomType)
@@ -2265,6 +2213,42 @@ public class SampleDataInitializer implements CommandLineRunner {
                                 .type(Promotion.PromotionType.MOVIE)
                                 .isFeatured(false)
                                 .sortOrder(12)
+                                .build());
+
+                // Promotion 13 - Học sinh / Sinh viên
+                promotions.add(Promotion.builder()
+                                .title("HỌC SINH SINH VIÊN - CHỈ 55K")
+                                .shortDescription("Ưu đãi đặc quyền học sinh sinh viên")
+                                .content("<h2>Đồng giá 55.000đ cho HS/SV</h2>" +
+                                                "<p>Ưu đãi dành riêng cho học sinh, sinh viên khi xem phim tại các rạp CinemaPlus</p>"
+                                                +
+                                                "<h3>Điều kiện:</h3>" +
+                                                "<ul><li>Xuất trình thẻ Học sinh/Sinh viên (còn hạn bản gốc hoặc ảnh chụp)</li><li>Áp dụng cho tất cả các suất chiếu 2D</li></ul>")
+                                .imageUrl("https://picsum.photos/seed/student/980/448")
+                                .thumbnailUrl("https://picsum.photos/seed/student/400/400")
+                                .startDate(LocalDate.of(2026, 1, 1))
+                                .endDate(LocalDate.of(2026, 12, 31))
+                                .status(Promotion.PromotionStatus.ACTIVE)
+                                .type(Promotion.PromotionType.TICKET)
+                                .isFeatured(true)
+                                .sortOrder(13)
+                                .build());
+
+                // Promotion 14 - Combo siêu tiết kiệm
+                promotions.add(Promotion.builder()
+                                .title("GIẢM TỚI 30% KHI MUA COMBO ONLINE")
+                                .shortDescription("Mua vé online kèm bắp nước siêu hời")
+                                .content("<h2>Ưu đãi Combo F&B</h2>" +
+                                                "<p>Tiết kiệm lên đến 30% khi mua online các loại bắp nước</p>" +
+                                                "<ul><li>Combo 1: 1 Bắp + 1 Nước ngọt - Chỉ 59k</li><li>Combo 2: 1 Bắp + 2 Nước ngọt - Chỉ 79k</li><li>Không giới hạn số lượt mua!</li></ul>")
+                                .imageUrl("https://picsum.photos/seed/combo/980/448")
+                                .thumbnailUrl("https://picsum.photos/seed/combo/400/400")
+                                .startDate(LocalDate.of(2026, 1, 1))
+                                .endDate(LocalDate.of(2026, 6, 30))
+                                .status(Promotion.PromotionStatus.ACTIVE)
+                                .type(Promotion.PromotionType.FOOD)
+                                .isFeatured(false)
+                                .sortOrder(14)
                                 .build());
 
                 promotionRepository.saveAll(promotions);

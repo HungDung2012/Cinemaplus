@@ -1,5 +1,6 @@
 package com.cinema.repository;
 
+import com.cinema.model.City;
 import com.cinema.model.Theater;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,11 +24,8 @@ public interface TheaterRepository extends JpaRepository<Theater, Long> {
     List<Theater> findByCityCodeAndActiveTrue(String cityCode);
 
     // Tìm theo Region thông qua City
-    @Query("SELECT t FROM Theater t WHERE t.city.region.id = :regionId AND t.active = true")
-    List<Theater> findByRegionIdAndActiveTrue(Long regionId);
-
-    @Query("SELECT t FROM Theater t WHERE t.city.region.code = :regionCode AND t.active = true")
-    List<Theater> findByRegionCodeAndActiveTrue(String regionCode);
+    @Query("SELECT t FROM Theater t WHERE t.city.regionType = :regionType AND t.active = true")
+    List<Theater> findByCityRegionTypeAndActiveTrue(City.RegionType regionType);
 
     /**
      * Lấy tất cả thành phố (City entity) có rạp đang hoạt động
@@ -49,12 +47,13 @@ public interface TheaterRepository extends JpaRepository<Theater, Long> {
 
     // Pageable methods for admin pagination
     Page<Theater> findByActiveTrueOrderByNameAsc(Pageable pageable);
-    
+
     Page<Theater> findByNameContainingAndActiveTrueOrderByNameAsc(String name, Pageable pageable);
-    
+
     @Query("SELECT t FROM Theater t WHERE t.city.name = :cityName AND t.active = true ORDER BY t.name ASC")
     Page<Theater> findByCityNameAndActiveTrueOrderByNameAsc(String cityName, Pageable pageable);
-    
+
     @Query("SELECT t FROM Theater t WHERE t.name LIKE %:name% AND t.city.name = :cityName AND t.active = true ORDER BY t.name ASC")
-    Page<Theater> findByNameContainingAndCityNameAndActiveTrueOrderByNameAsc(String name, String cityName, Pageable pageable);
+    Page<Theater> findByNameContainingAndCityNameAndActiveTrueOrderByNameAsc(String name, String cityName,
+            Pageable pageable);
 }

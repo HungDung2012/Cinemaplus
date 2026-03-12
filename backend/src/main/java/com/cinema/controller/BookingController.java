@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.BookingRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.BookingResponse;
+import com.cinema.model.Booking;
 import com.cinema.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,7 @@ public class BookingController {
      * @return BookingResponse với thông tin đặt vé đã tạo
      */
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Booking", entityClass = Booking.class)
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest request) {
         log.info("API: Tạo booking mới cho suất chiếu {}", request.getShowtimeId());
@@ -122,6 +126,7 @@ public class BookingController {
      * @return BookingResponse sau khi hủy
      */
     @PostMapping("/{id}/cancel")
+    @Auditable(action = AuditAction.UPDATE, entity = "Booking", entityClass = Booking.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(@PathVariable Long id) {
         log.info("API: Hủy booking ID: {}", id);
 
@@ -138,6 +143,7 @@ public class BookingController {
      * @return BookingResponse sau khi xác nhận
      */
     @PostMapping("/{id}/confirm")
+    @Auditable(action = AuditAction.UPDATE, entity = "Booking", entityClass = Booking.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@PathVariable Long id) {
         log.info("API: Xác nhận booking ID: {}", id);
 
@@ -154,6 +160,7 @@ public class BookingController {
      * @return BookingResponse sau khi cập nhật
      */
     @PostMapping("/{id}/complete")
+    @Auditable(action = AuditAction.UPDATE, entity = "Booking", entityClass = Booking.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<BookingResponse>> completeBooking(@PathVariable Long id) {
         log.info("API: Hoàn thành booking ID: {}", id);
 

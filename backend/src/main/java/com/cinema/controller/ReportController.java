@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,6 +30,7 @@ public class ReportController {
     // =================== REVENUE REPORT ===================
 
     @GetMapping("/revenue")
+    @Auditable(action = AuditAction.EXPORT, entity = "RevenueReport", captureRequestPayload = true)
     public ResponseEntity<byte[]> exportRevenueReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
@@ -51,6 +54,7 @@ public class ReportController {
     // =================== MOVIES REPORT ===================
 
     @GetMapping("/movies")
+    @Auditable(action = AuditAction.EXPORT, entity = "MovieReport", captureRequestPayload = true)
     public ResponseEntity<byte[]> exportMoviesReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
@@ -75,6 +79,7 @@ public class ReportController {
     // =================== THEATERS REPORT ===================
 
     @GetMapping("/theaters")
+    @Auditable(action = AuditAction.EXPORT, entity = "TheaterReport", captureRequestPayload = true)
     public ResponseEntity<byte[]> exportTheatersReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
@@ -98,6 +103,7 @@ public class ReportController {
     // =================== TOP CUSTOMERS REPORT ===================
 
     @GetMapping("/customers")
+    @Auditable(action = AuditAction.EXPORT, entity = "CustomerReport", captureRequestPayload = true)
     public ResponseEntity<byte[]> exportCustomersReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
@@ -122,6 +128,7 @@ public class ReportController {
     // =================== F&B REPORT ===================
 
     @GetMapping("/food")
+    @Auditable(action = AuditAction.EXPORT, entity = "FoodReport", captureRequestPayload = true)
     public ResponseEntity<byte[]> exportFoodReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,

@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.ShowtimeRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.ShowtimeResponse;
+import com.cinema.model.Showtime;
 import com.cinema.service.ShowtimeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +80,7 @@ public class ShowtimeController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, entity = "Showtime", entityClass = Showtime.class)
     public ResponseEntity<ApiResponse<ShowtimeResponse>> createShowtime(@Valid @RequestBody ShowtimeRequest request) {
         ShowtimeResponse showtime = showtimeService.createShowtime(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -85,6 +89,7 @@ public class ShowtimeController {
 
     @PostMapping("/bulk")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, entity = "Showtime", captureResponseBody = true)
     public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> createShowtimesBulk(
             @RequestBody List<@Valid ShowtimeRequest> requests) {
         List<ShowtimeResponse> showtimes = showtimeService.createShowtimesBulk(requests);
@@ -94,6 +99,7 @@ public class ShowtimeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.UPDATE, entity = "Showtime", entityClass = Showtime.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowtime(
             @PathVariable Long id,
             @Valid @RequestBody ShowtimeRequest request) {
@@ -103,6 +109,7 @@ public class ShowtimeController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.DELETE, entity = "Showtime", entityClass = Showtime.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteShowtime(@PathVariable Long id) {
         showtimeService.deleteShowtime(id);
         return ResponseEntity.ok(ApiResponse.success("Showtime deleted successfully", null));

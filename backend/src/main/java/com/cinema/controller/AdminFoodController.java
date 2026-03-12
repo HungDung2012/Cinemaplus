@@ -1,9 +1,12 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.FoodRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.FoodResponse;
 import com.cinema.dto.response.PageResponse;
+import com.cinema.model.Food;
 import com.cinema.service.FoodService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,18 +51,21 @@ public class AdminFoodController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Food", entityClass = Food.class)
     public ResponseEntity<ApiResponse<FoodResponse>> createFood(@Valid @RequestBody FoodRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(foodService.createFood(request)));
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Food", entityClass = Food.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<FoodResponse>> updateFood(@PathVariable Long id,
             @Valid @RequestBody FoodRequest request) {
         return ResponseEntity.ok(ApiResponse.success(foodService.updateFood(id, request)));
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Food", entityClass = Food.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteFood(@PathVariable Long id) {
         foodService.deleteFood(id);
         return ResponseEntity.ok(ApiResponse.success(null));

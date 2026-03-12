@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.model.PriceHeader;
 import com.cinema.model.PriceLine;
@@ -31,6 +33,7 @@ public class PriceController {
     }
 
     @PostMapping("/headers")
+    @Auditable(action = AuditAction.CREATE, entity = "PriceHeader", entityClass = PriceHeader.class)
     public ResponseEntity<ApiResponse<PriceHeader>> createPriceHeader(
             @RequestBody com.cinema.dto.request.PriceHeaderRequest request) {
         PriceHeader header = new PriceHeader();
@@ -44,6 +47,7 @@ public class PriceController {
     }
 
     @DeleteMapping("/headers/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "PriceHeader", entityClass = PriceHeader.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deletePriceHeader(@PathVariable Long id) {
         if (!priceHeaderRepository.existsById(id)) {
             throw new com.cinema.exception.ResourceNotFoundException("PriceHeader", "id", id);
@@ -62,6 +66,7 @@ public class PriceController {
     }
 
     @PostMapping("/headers/{headerId}/lines")
+    @Auditable(action = AuditAction.UPDATE, entity = "PriceLine", entityClass = PriceLine.class)
     public ResponseEntity<ApiResponse<PriceLine>> createOrUpdatePriceLine(
             @PathVariable Long headerId,
             @RequestBody com.cinema.dto.request.PriceLineRequest request) {
@@ -87,6 +92,7 @@ public class PriceController {
     }
 
     @PostMapping("/headers/{headerId}/lines/batch")
+    @Auditable(action = AuditAction.UPDATE, entity = "PriceLine", captureResponseBody = true)
     public ResponseEntity<ApiResponse<List<PriceLine>>> batchUpdatePriceLines(
             @PathVariable Long headerId,
             @RequestBody List<com.cinema.dto.request.PriceLineRequest> requests) {
@@ -117,6 +123,7 @@ public class PriceController {
     }
 
     @DeleteMapping("/lines/{lineId}")
+    @Auditable(action = AuditAction.DELETE, entity = "PriceLine", entityClass = PriceLine.class, entityIdParam = "lineId")
     public ResponseEntity<ApiResponse<Void>> deletePriceLine(@PathVariable Long lineId) {
         priceLineRepository.deleteById(lineId);
         return ResponseEntity.ok(ApiResponse.success(null));
@@ -130,6 +137,7 @@ public class PriceController {
     }
 
     @PostMapping("/seat-types")
+    @Auditable(action = AuditAction.CREATE, entity = "SeatType", entityClass = Surcharge.class)
     public ResponseEntity<ApiResponse<Surcharge>> createSeatType(
             @RequestBody com.cinema.dto.request.SurchargeRequest request) {
         Surcharge surcharge = new Surcharge();
@@ -145,6 +153,7 @@ public class PriceController {
     }
 
     @PutMapping("/seat-types/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "SeatType", entityClass = Surcharge.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Surcharge>> updateSeatType(
             @PathVariable Long id,
             @RequestBody com.cinema.dto.request.SurchargeRequest request) {
@@ -168,6 +177,7 @@ public class PriceController {
     }
 
     @DeleteMapping("/seat-types/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "SeatType", entityClass = Surcharge.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteSeatType(@PathVariable Long id) {
         Surcharge surcharge = surchargeRepository.findById(id)
                 .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("Seat Type", "id", id));

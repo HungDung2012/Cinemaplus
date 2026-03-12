@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.PromotionRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.PageResponse;
@@ -58,6 +60,7 @@ public class AdminPromotionController {
      * Tạo khuyến mãi mới
      */
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Promotion", entityClass = Promotion.class)
     public ResponseEntity<ApiResponse<Promotion>> createPromotion(
             @RequestBody @Valid PromotionRequest request) {
         Promotion createdPromotion = promotionService.createPromotion(request);
@@ -68,6 +71,7 @@ public class AdminPromotionController {
      * Cập nhật khuyến mãi
      */
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Promotion", entityClass = Promotion.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Promotion>> updatePromotion(@PathVariable Long id,
             @RequestBody @Valid PromotionRequest request) {
         try {
@@ -82,6 +86,7 @@ public class AdminPromotionController {
      * Xóa khuyến mãi
      */
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Promotion", entityClass = Promotion.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deletePromotion(@PathVariable Long id) {
         try {
             promotionService.deletePromotion(id);

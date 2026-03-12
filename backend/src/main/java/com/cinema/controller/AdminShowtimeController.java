@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.BatchScheduleRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.BatchSchedulePreviewResponse;
@@ -7,6 +9,7 @@ import com.cinema.dto.response.BatchScheduleResult;
 import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.RoomResponse;
 import com.cinema.dto.response.ShowtimeResponse;
+import com.cinema.model.Showtime;
 import com.cinema.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -47,6 +50,7 @@ public class AdminShowtimeController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Showtime", entityClass = Showtime.class)
     public ResponseEntity<ApiResponse<ShowtimeResponse>> createShowtime(
             @RequestBody com.cinema.dto.request.ShowtimeRequest request) {
         ShowtimeResponse showtime = showtimeService.createShowtime(request);
@@ -55,6 +59,7 @@ public class AdminShowtimeController {
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Showtime", entityClass = Showtime.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowtime(@PathVariable Long id,
             @RequestBody com.cinema.dto.request.ShowtimeRequest request) {
         ShowtimeResponse showtime = showtimeService.updateShowtime(id, request);
@@ -62,6 +67,7 @@ public class AdminShowtimeController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Showtime", entityClass = Showtime.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteShowtime(@PathVariable Long id) {
         showtimeService.deleteShowtime(id);
         return ResponseEntity.ok(ApiResponse.success("Showtime deleted", null));
@@ -77,6 +83,7 @@ public class AdminShowtimeController {
     }
 
     @PostMapping("/batch")
+    @Auditable(action = AuditAction.CREATE, entity = "Showtime", captureResponseBody = true)
     public ResponseEntity<ApiResponse<BatchScheduleResult>> createBatchSchedule(
             @RequestBody BatchScheduleRequest request) {
         BatchScheduleResult result = showtimeService.createBatchSchedule(request);

@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.CreateUserRequest;
 import com.cinema.dto.request.UpdateUserRequest;
 import com.cinema.dto.response.ApiResponse;
@@ -57,18 +59,21 @@ public class AdminUserController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "User", entityClass = User.class)
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(userService.createUser(request)));
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "User", entityClass = User.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable Long id,
             @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userService.updateUser(id, request)));
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "User", entityClass = User.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success(null));
@@ -76,6 +81,7 @@ public class AdminUserController {
 
     // Deprecated or alternative endpoint for just updating role
     @PutMapping("/{id}/role")
+    @Auditable(action = AuditAction.UPDATE, entity = "User", entityClass = User.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<UserResponse>> updateUserRole(@PathVariable Long id,
             @RequestBody Map<String, String> body) {
         String roleStr = body.get("role");

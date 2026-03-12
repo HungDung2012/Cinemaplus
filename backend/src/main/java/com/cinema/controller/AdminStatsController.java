@@ -3,16 +3,12 @@ package com.cinema.controller;
 import com.cinema.dto.response.AnalyticsOverviewResponse;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.DashboardStatsResponse;
-import com.cinema.model.AuditLog;
-import com.cinema.repository.AuditLogRepository;
 import com.cinema.repository.BookingRepository;
 import com.cinema.repository.MovieRepository;
 import com.cinema.repository.TheaterRepository;
 import com.cinema.repository.UserRepository;
 import com.cinema.service.AnalyticsService;
-import com.cinema.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -35,9 +31,7 @@ public class AdminStatsController {
     private final TheaterRepository theaterRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
-    private final AuditLogRepository auditLogRepository;
     private final AnalyticsService analyticsService;
-    private final AuditLogService auditLogService;
 
     // =================== DASHBOARD ===================
 
@@ -246,37 +240,4 @@ public class AdminStatsController {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getFoodRevenueByCategory(start, end)));
     }
 
-    // =================== AUDIT LOGS ===================
-
-    @GetMapping("/audit-logs")
-    @PreAuthorize("hasAuthority('VIEW_AUDIT_LOGS')")
-    public ResponseEntity<ApiResponse<Page<AuditLog>>> getAuditLogs(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String action,
-            @RequestParam(required = false) String entityName,
-            @RequestParam(required = false) String userRole,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate) {
-        
-        Page<AuditLog> logs;
-        if (username != null || action != null || entityName != null || userRole != null || fromDate != null || toDate != null) {
-            logs = auditLogService.getAuditLogs(username, action, entityName, userRole, fromDate, toDate, page, size);
-        } else {
-            logs = auditLogService.getAll(page, size);
-        }
-        return ResponseEntity.ok(ApiResponse.success(logs));
-    }
-
-    @GetMapping("/audit-logs/filters")
-    @PreAuthorize("hasAuthority('VIEW_AUDIT_LOGS')")
-    public ResponseEntity<ApiResponse<Map<String, List<String>>>> getAuditLogFilters() {
-        Map<String, List<String>> filters = Map.of(
-                "actions", auditLogService.getDistinctActions(),
-                "entityNames", auditLogService.getDistinctEntityNames(),
-                "usernames", auditLogService.getDistinctUsernames()
-        );
-        return ResponseEntity.ok(ApiResponse.success(filters));
-    }
 }

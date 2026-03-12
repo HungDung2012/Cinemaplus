@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.TheaterResponse;
+import com.cinema.model.Theater;
 import com.cinema.service.TheaterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +58,7 @@ public class AdminTheaterController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Theater", entityClass = Theater.class)
     public ResponseEntity<ApiResponse<TheaterResponse>> createTheater(
             @Valid @RequestBody com.cinema.dto.request.TheaterRequest request) {
         TheaterResponse theater = theaterService.createTheater(request);
@@ -63,6 +67,7 @@ public class AdminTheaterController {
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Theater", entityClass = Theater.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<TheaterResponse>> updateTheater(@PathVariable Long id,
             @Valid @RequestBody com.cinema.dto.request.TheaterRequest request) {
         TheaterResponse theater = theaterService.updateTheater(id, request);
@@ -70,6 +75,7 @@ public class AdminTheaterController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Theater", entityClass = Theater.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteTheater(@PathVariable Long id) {
         theaterService.deleteTheater(id);
         return ResponseEntity.ok(ApiResponse.success("Theater deleted", null));

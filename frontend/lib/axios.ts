@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { authService } from '@/services/authService';
+import { resolveApiBaseUrl } from '@/lib/apiBaseUrl';
 
-// Use relative URL '/api' so requests go through Next.js rewrite proxy (avoids CORS in production).
-// NEXT_PUBLIC_API_URL can override for special cases, but defaults to relative path.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+// Default to the Next.js proxy in production, but also accept absolute backend origins.
+const API_URL = resolveApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -46,10 +46,6 @@ api.interceptors.response.use(
       // Xử lý khi token hết hạn hoặc không hợp lệ
       if (typeof window !== 'undefined') {
         authService.clearAuth();
-        // Only redirect if not already on login page
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login?expired=true';
-        }
       }
     }
     return Promise.reject(error);

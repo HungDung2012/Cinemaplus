@@ -20,7 +20,9 @@ Open [http://localhost:3000](http://localhost:3000)
 
 Create `.env.local`:
 ```
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
+BACKEND_INTERNAL_URL=http://localhost:8080
+# Optional: leave unset to use the Next.js /api proxy.
+# NEXT_PUBLIC_API_URL=/api
 ```
 
 ## Tech Stack

@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.LoginRequest;
 import com.cinema.dto.request.RegisterRequest;
 import com.cinema.dto.response.ApiResponse;
@@ -27,6 +29,7 @@ public class AuthController {
     }
     
     @PostMapping("/login")
+    @Auditable(action = AuditAction.LOGIN, entity = "Authentication", captureResponseBody = true)
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));

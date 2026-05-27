@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.MovieRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.MovieResponse;
@@ -102,6 +104,7 @@ public class MovieController {
     
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.CREATE, entity = "Movie", entityClass = Movie.class)
     public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody MovieRequest request) {
         MovieResponse movie = movieService.createMovie(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -110,6 +113,7 @@ public class MovieController {
     
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.UPDATE, entity = "Movie", entityClass = Movie.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(
             @PathVariable Long id, 
             @Valid @RequestBody MovieRequest request) {
@@ -119,6 +123,7 @@ public class MovieController {
     
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = AuditAction.DELETE, entity = "Movie", entityClass = Movie.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable Long id) {
         movieService.deleteMovie(id);
         return ResponseEntity.ok(ApiResponse.success("Movie deleted successfully", null));

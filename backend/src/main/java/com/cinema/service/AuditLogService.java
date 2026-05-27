@@ -1,136 +1,108 @@
 package com.cinema.service;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.dto.response.AuditLogFilterOptionsResponse;
+import com.cinema.dto.response.AuditLogResponse;
 import com.cinema.model.AuditLog;
-import com.cinema.model.User;
 import com.cinema.repository.AuditLogRepository;
-import com.cinema.security.UserPrincipal;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Transactional(readOnly = true)
 public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
-    private final ObjectMapper objectMapper;
 
-    /**
-     * Log an admin action with full details
-     */
-    @Transactional
-    public void log(String action, String entityName, String entityId, String details) {
-        log(action, entityName, entityId, details, null, null);
-    }
+    public Page<AuditLogResponse> getAuditLogs(
+            Long userId,
+            String username,
+            AuditAction action,
+            String entityName,
+            String userRole,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            int page,
+            int size) {
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 100),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
 
-    /**
-     * Log an admin action with old/new value snapshots for change tracking
-     */
-    @Transactional
-    public void log(String action, String entityName, String entityId, String details,
-                    Object oldValue, Object newValue) {
-        try {
-            AuditLog.AuditLogBuilder builder = AuditLog.builder()
-                    .action(action)
-                    .entityName(entityName)
-                    .entityId(entityId)
-                    .details(details)
-                    .ipAddress(getClientIp());
+        Specification<AuditLog> specification = Specification.where(null);
 
-            // Get current user info from SecurityContext
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof UserPrincipal principal) {
-                builder.userId(principal.getId())
-                       .username(principal.getUsername())
-                       .userRole(principal.getRole() != null ? principal.getRole().name() : null);
-            }
-
-            // Serialize old/new values as JSON
-            if (oldValue != null) {
-                builder.oldValue(toJson(oldValue));
-            }
-            if (newValue != null) {
-                builder.newValue(toJson(newValue));
-            }
-
-            auditLogRepository.save(builder.build());
-        } catch (Exception e) {
-            log.error("Failed to write audit log: action={}, entity={}, id={}", action, entityName, entityId, e);
+        if (userId != null) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("userId"), userId));
         }
-    }
-
-    /**
-     * Get audit logs with filters
-     */
-    public Page<AuditLog> getAuditLogs(String username, String action, String entityName,
-                                        String userRole, LocalDateTime fromDate, LocalDateTime toDate,
-                                        int page, int size) {
-        return auditLogRepository.findWithFilters(
-                username, action, entityName, userRole, fromDate, toDate,
-                PageRequest.of(page, size));
-    }
-
-    /**
-     * Get all audit logs with simple pagination
-     */
-    public Page<AuditLog> getAll(int page, int size) {
-        return auditLogRepository.findAllByOrderByTimestampDesc(PageRequest.of(page, size));
-    }
-
-    /**
-     * Get distinct filter options for the UI dropdowns
-     */
-    public List<String> getDistinctActions() {
-        return auditLogRepository.findDistinctActions();
-    }
-
-    public List<String> getDistinctEntityNames() {
-        return auditLogRepository.findDistinctEntityNames();
-    }
-
-    public List<String> getDistinctUsernames() {
-        return auditLogRepository.findDistinctUsernames();
-    }
-
-    // =================== HELPERS ===================
-
-    private String getClientIp() {
-        try {
-            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attrs != null) {
-                HttpServletRequest request = attrs.getRequest();
-                String xff = request.getHeader("X-Forwarded-For");
-                if (xff != null && !xff.isEmpty()) {
-                    return xff.split(",")[0].trim();
-                }
-                return request.getRemoteAddr();
-            }
-        } catch (Exception e) {
-            log.debug("Could not determine client IP", e);
+        if (StringUtils.hasText(username)) {
+            String pattern = "%" + username.trim().toLowerCase() + "%";
+            specification = specification.and((root, query, cb) -> cb.like(cb.lower(root.get("username")), pattern));
         }
-        return null;
+        if (action != null) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("action"), action));
+        }
+        if (StringUtils.hasText(entityName)) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("entityName"), entityName.trim()));
+        }
+        if (StringUtils.hasText(userRole)) {
+            specification = specification.and((root, query, cb) -> cb.equal(root.get("userRole"), userRole.trim()));
+        }
+        if (fromDate != null) {
+            specification = specification.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate));
+        }
+        if (toDate != null) {
+            specification = specification.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
+        }
+
+        return auditLogRepository.findAll(specification, pageable).map(this::toResponse);
     }
 
-    private String toJson(Object obj) {
-        try {
-            if (obj instanceof String) return (String) obj;
-            return objectMapper.writeValueAsString(obj);
-        } catch (Exception e) {
-            log.warn("Failed to serialize object to JSON", e);
-            return obj.toString();
-        }
+    public AuditLogResponse getAuditLogById(Long id) {
+        AuditLog auditLog = auditLogRepository.findById(id)
+                .orElseThrow(() -> new com.cinema.exception.ResourceNotFoundException("AuditLog", "id", id));
+        return toResponse(auditLog);
+    }
+
+    public AuditLogFilterOptionsResponse getFilterOptions() {
+        return AuditLogFilterOptionsResponse.builder()
+                .actions(auditLogRepository.findDistinctActions().stream()
+                        .filter(Objects::nonNull)
+                        .map(Enum::name)
+                        .distinct()
+                        .sorted()
+                        .toList())
+                .entityNames(auditLogRepository.findDistinctEntityNames())
+                .usernames(auditLogRepository.findDistinctUsernames())
+                .roles(auditLogRepository.findDistinctUserRoles())
+                .build();
+    }
+
+    private AuditLogResponse toResponse(AuditLog auditLog) {
+        return AuditLogResponse.builder()
+                .id(auditLog.getId())
+                .action(auditLog.getAction())
+                .entityName(auditLog.getEntityName())
+                .entityId(auditLog.getEntityId())
+                .userId(auditLog.getUserId())
+                .username(auditLog.getUsername())
+                .userRole(auditLog.getUserRole())
+                .ipAddress(auditLog.getIpAddress())
+                .userAgent(auditLog.getUserAgent())
+                .reason(auditLog.getReason())
+                .oldValues(auditLog.getOldValues())
+                .newValues(auditLog.getNewValues())
+                .createdAt(auditLog.getCreatedAt())
+                .build();
     }
 }

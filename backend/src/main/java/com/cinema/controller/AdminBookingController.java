@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.BookingResponse;
 import com.cinema.dto.response.PageResponse;
+import com.cinema.model.Booking;
 import com.cinema.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -55,6 +58,7 @@ public class AdminBookingController {
     }
 
     @PutMapping("/{id}/status")
+    @Auditable(action = AuditAction.UPDATE, entity = "Booking", entityClass = Booking.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBookingStatus(@PathVariable Long id,
             @RequestBody Map<String, String> body) {
         String status = body.get("status");
@@ -63,6 +67,7 @@ public class AdminBookingController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Booking", entityClass = Booking.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(@PathVariable Long id) {
         bookingService.deleteBooking(id);
         return ResponseEntity.ok(ApiResponse.success("Booking deleted", null));

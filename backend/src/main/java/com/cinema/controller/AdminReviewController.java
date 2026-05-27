@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.PageResponse;
 import com.cinema.dto.response.ReviewResponse;
+import com.cinema.model.Review;
 import com.cinema.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -46,6 +49,7 @@ public class AdminReviewController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Review", entityClass = Review.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteReview(@PathVariable Long id) {
         reviewService.deleteReviewAdmin(id);
         return ResponseEntity.ok(ApiResponse.success(null));

@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.VoucherRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.PageResponse;
@@ -52,6 +54,7 @@ public class AdminVoucherController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Voucher", entityClass = Voucher.class)
     public ResponseEntity<ApiResponse<VoucherResponse>> createVoucher(@Valid @RequestBody VoucherRequest request) {
         Voucher voucher = voucherService.createVoucher(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -59,6 +62,7 @@ public class AdminVoucherController {
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Voucher", entityClass = Voucher.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<VoucherResponse>> updateVoucher(@PathVariable Long id,
             @Valid @RequestBody VoucherRequest request) {
         Voucher voucher = voucherService.updateVoucher(id, request);
@@ -66,6 +70,7 @@ public class AdminVoucherController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Voucher", entityClass = Voucher.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteVoucher(@PathVariable Long id) {
         voucherService.deleteVoucher(id);
         return ResponseEntity.ok(ApiResponse.success(null));

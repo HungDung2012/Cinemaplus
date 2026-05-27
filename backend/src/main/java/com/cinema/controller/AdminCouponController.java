@@ -1,5 +1,7 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.request.CouponRequest;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.CouponResponse;
@@ -52,6 +54,7 @@ public class AdminCouponController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Coupon", entityClass = Coupon.class)
     public ResponseEntity<ApiResponse<CouponResponse>> createCoupon(@Valid @RequestBody CouponRequest request) {
         Coupon coupon = couponService.createCoupon(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -59,6 +62,7 @@ public class AdminCouponController {
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Coupon", entityClass = Coupon.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<CouponResponse>> updateCoupon(@PathVariable Long id,
             @Valid @RequestBody CouponRequest request) {
         Coupon coupon = couponService.updateCoupon(id, request);
@@ -66,6 +70,7 @@ public class AdminCouponController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Coupon", entityClass = Coupon.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteCoupon(@PathVariable Long id) {
         couponService.deleteCoupon(id);
         return ResponseEntity.ok(ApiResponse.success(null));

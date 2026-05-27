@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.RoomDTO;
 import com.cinema.dto.request.RoomRequest;
 import com.cinema.dto.response.ApiResponse;
+import com.cinema.model.Room;
 import com.cinema.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +22,7 @@ public class AdminRoomController {
     private final RoomService roomService;
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Room", entityClass = Room.class)
     public ResponseEntity<ApiResponse<RoomDTO>> createRoom(
             @RequestBody RoomRequest request) {
         RoomDTO room = roomService.createRoom(request);
@@ -27,6 +31,7 @@ public class AdminRoomController {
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Room", entityClass = Room.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<RoomDTO>> updateRoom(
             @PathVariable Long id,
             @RequestBody RoomRequest request) {
@@ -35,6 +40,7 @@ public class AdminRoomController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Room", entityClass = Room.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable Long id) {
         roomService.deleteRoom(id);
         return ResponseEntity.ok(ApiResponse.success("Room deleted", null));

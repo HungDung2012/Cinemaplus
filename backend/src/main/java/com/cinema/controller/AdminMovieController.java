@@ -1,8 +1,11 @@
 package com.cinema.controller;
 
+import com.cinema.audit.AuditAction;
+import com.cinema.audit.Auditable;
 import com.cinema.dto.response.ApiResponse;
 import com.cinema.dto.response.MovieResponse;
 import com.cinema.dto.response.PageResponse;
+import com.cinema.model.Movie;
 import com.cinema.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +49,7 @@ public class AdminMovieController {
     }
 
     @PostMapping
+    @Auditable(action = AuditAction.CREATE, entity = "Movie", entityClass = Movie.class)
     public ResponseEntity<ApiResponse<MovieResponse>> createMovie(
             @RequestBody com.cinema.dto.request.MovieRequest request) {
         MovieResponse movie = movieService.createMovie(request);
@@ -54,6 +58,7 @@ public class AdminMovieController {
     }
 
     @PutMapping("/{id}")
+    @Auditable(action = AuditAction.UPDATE, entity = "Movie", entityClass = Movie.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(@PathVariable Long id,
             @RequestBody com.cinema.dto.request.MovieRequest request) {
         MovieResponse movie = movieService.updateMovie(id, request);
@@ -61,6 +66,7 @@ public class AdminMovieController {
     }
 
     @DeleteMapping("/{id}")
+    @Auditable(action = AuditAction.DELETE, entity = "Movie", entityClass = Movie.class, entityIdParam = "id")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable Long id) {
         movieService.deleteMovie(id);
         return ResponseEntity.ok(ApiResponse.success("Movie deleted", null));

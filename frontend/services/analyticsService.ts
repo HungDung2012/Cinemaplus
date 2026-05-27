@@ -1,4 +1,5 @@
 import api from '@/lib/axios';
+import { resolveApiBaseUrl } from '@/lib/apiBaseUrl';
 import {
   AnalyticsOverview,
   RevenueByDate,
@@ -137,12 +138,12 @@ export const analyticsService = {
   // ─── Report downloads ────────────────────────────────────────
   buildReportUrl: (type: 'revenue' | 'movies' | 'theaters' | 'customers' | 'food',
     from?: Date | null, to?: Date | null): string => {
-    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const base = resolveApiBaseUrl();
     const params = new URLSearchParams();
     if (from) params.set('from', from.toISOString());
     if (to) params.set('to', to.toISOString());
     const qs = params.toString();
-    return `${base}/api/admin/reports/${type}${qs ? '?' + qs : ''}`;
+    return `${base}/admin/reports/${type}${qs ? '?' + qs : ''}`;
   },
 };
 

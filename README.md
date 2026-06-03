@@ -2,6 +2,8 @@
 
 CinemaPlus là hệ thống đặt vé xem phim full-stack, được xây dựng với Spring Boot, MySQL, Next.js và TypeScript. Dự án hỗ trợ quy trình đặt vé từ đầu đến cuối: xem phim và lịch chiếu, chọn ghế, mua đồ ăn kèm, áp dụng voucher/coupon và điểm thưởng, tạo liên kết thanh toán trực tuyến, quản lý đơn đặt vé và vận hành hệ thống qua trang quản trị.
 
+Tài khoản Admin: admin@cinema.com - Admin123!
+
 ## Tính năng chính
 
 ### Khách hàng
@@ -95,6 +97,11 @@ cinema/
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Database
+
+<img width="975" height="1045" alt="image" src="https://github.com/user-attachments/assets/dd01740a-73aa-42b3-a555-3c09cc89d0d0" />
+
 
 ## Cài đặt và chạy dự án
 

@@ -100,7 +100,8 @@ cinema/
 
 ## Database
 
-<img width="975" height="1045" alt="image" src="https://github.com/user-attachments/assets/dd01740a-73aa-42b3-a555-3c09cc89d0d0" />
+<img width="1032" height="1120" alt="image" src="https://github.com/user-attachments/assets/bec6d2ef-38a0-426e-8a6f-21d98b3ea494" />
+
 
 
 ## Cài đặt và chạy dự án
